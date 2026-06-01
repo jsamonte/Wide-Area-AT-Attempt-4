@@ -5553,7 +5553,7 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1092296855}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: MagicLeap.Examples.MarkerTrackingExample, Assembly-CSharp
         m_MethodName: OnSliderChanged
         m_Mode: 0
@@ -7333,11 +7333,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1092296853}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b225c0a65bd684986ad6d2b5abf14c11, type: 3}
+  m_Script: {fileID: 11500000, guid: bc26e6cb76cf2674f8f6f5a87ee822f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  markerVisualPrefab: {fileID: 8463550547130954935, guid: b48e4748b4611a54db60e198e38605ee,
+  customMarkerPrefab: {fileID: 2056525220486815846, guid: b48e4748b4611a54db60e198e38605ee,
     type: 3}
+  targetArucoID: 88
   profileDropdown: {fileID: 1521255679}
   markerDetectorTypeDropdown: {fileID: 159827747}
   markerTypeText: {fileID: 83141255}
@@ -9791,7 +9792,7 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1092296855}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: MagicLeap.Examples.MarkerTrackingExample, Assembly-CSharp
         m_MethodName: OnMarkerProfileChanged
         m_Mode: 0
@@ -11056,7 +11057,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1092296855}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: MagicLeap.Examples.MarkerTrackingTest, Assembly-CSharp
         m_MethodName: OnDestroyMarkerDetector
         m_Mode: 1
@@ -11497,7 +11498,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1092296855}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: MagicLeap.Examples.MarkerTrackingExample, Assembly-CSharp
         m_MethodName: OnCreateMarkerDetector
         m_Mode: 1
