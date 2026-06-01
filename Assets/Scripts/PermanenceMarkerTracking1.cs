@@ -14,7 +14,7 @@ using MagicLeap.OpenXR.Features.MarkerUnderstanding;
 
 namespace MagicLeap.Examples
 {
-    public class PersonalMarkerTracking1 : MonoBehaviour
+    public class PermanenceMarkerTracking1 : MonoBehaviour
     {
         [Header("=== YOUR CUSTOM PREFAB SETTINGS ===")]
         [SerializeField, Tooltip("Your own prefab that should appear on your personal ArUco marker")]
@@ -45,7 +45,7 @@ namespace MagicLeap.Examples
         private MagicLeapMarkerUnderstandingFeature markerFeature;
         private MarkerDetectorSettings markerDetectorSettings;
         private GameObject currentCustomInstance;   // tracks your spawned prefab
-        private bool markerVisible = false;         // tracks whether target was seen this frame
+        private bool hasEverBeenSeen = false;       // NEW: tracks permanence (last known pose)
 
         void Start()
         {
@@ -96,7 +96,7 @@ namespace MagicLeap.Examples
 
             markerFeature.UpdateMarkerDetectors();
 
-            markerVisible = false;
+            bool currentlyVisible = false;   // NEW: only true this frame if marker is seen right now
 
             foreach (var markerDetector in markerFeature.MarkerDetectors)
             {
@@ -110,36 +110,46 @@ namespace MagicLeap.Examples
                     if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
                         continue;
 
-                    markerVisible = true;
+                    currentlyVisible = true;
+                    hasEverBeenSeen = true;
 
                     // Spawn once, then just move it — never re-instantiate every frame
                     if (currentCustomInstance == null && customMarkerPrefab != null)
                     {
                         currentCustomInstance = Instantiate(customMarkerPrefab);
+                        currentCustomInstance.SetActive(true);   // start visible
                     }
 
                     if (currentCustomInstance != null)
                     {
+                        // Update to the LIVE pose only while the marker is visible
                         Quaternion offset = Quaternion.Euler(rotationOffset);
                         currentCustomInstance.transform.SetPositionAndRotation(
                             data.MarkerPose.Value.position,
                             data.MarkerPose.Value.rotation * offset);
 
-                        // NOTE: Do NOT scale by data.MarkerLength — it can be 0 on first detection
-                        // and will produce a degenerate transform crash. If you need size-matching,
-                        // guard it: only apply when the value is a sensible positive number.
+                        // Guarded scale (only apply when valid — prevents degenerate transform)
                         float reportedLength = data.MarkerLength;
-                        // else: keep the prefab's authored scale until a valid length arrives
+                        if (reportedLength > 0.001f)
+                        {
+                            currentCustomInstance.transform.localScale = Vector3.one * reportedLength;
+                        }
                     }
 
                     sb.AppendLine($"\nTracking ID {data.MarkerNumber} at {data.MarkerPose.Value.position}");
                 }
             }
 
-            // Hide (but don't destroy) the prefab when the marker leaves view
+            // PERMANENCE: Once seen, the prefab STAYS visible at the LAST known position/rotation/scale
             if (currentCustomInstance != null)
             {
-                currentCustomInstance.SetActive(markerVisible);
+                currentCustomInstance.SetActive(true);   // never hide again after first detection
+            }
+
+            // Helpful status feedback
+            if (hasEverBeenSeen && !currentlyVisible)
+            {
+                sb.AppendLine($"\n🟡 LAST SEEN POSITION (ArUco ID {targetArucoID} no longer visible)");
             }
 
             statusTextDisplay.text = sb.ToString();
@@ -159,6 +169,7 @@ namespace MagicLeap.Examples
                 Destroy(currentCustomInstance);
                 currentCustomInstance = null;
             }
+            hasEverBeenSeen = false;
             markerFeature.DestroyAllMarkerDetectors();
         }
 
