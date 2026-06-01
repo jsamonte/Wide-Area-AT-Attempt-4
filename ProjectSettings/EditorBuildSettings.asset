@@ -20,9 +20,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/EyeGazeDestroyer.unity
     guid: 77849c988a752ce408dd45565218ed82
-  - enabled: 1
+  - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/EyeTrackingSimple 1.unity
     guid: f63e48979bed2bc4fa986f50258ea877
+  - enabled: 1
+    path: Assets/Scenes/JsonFileSave.unity
+    guid: 1c566cbd86c00704db2b04e962093323
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
