@@ -130,7 +130,7 @@ namespace MagicLeap.Examples
                     if (markerDetector.Data[i].MarkerPose != null)
                     {
                         var markerVisual = Instantiate(markerVisualPrefab);
-                        currentCustomInstance = Instantiate(customMarkerPrefab);
+                        var currentCustomInstance = Instantiate(customMarkerPrefab);
                         if (currentVisualSet != null)
                         {
                             currentVisualSet.Add(markerVisual);

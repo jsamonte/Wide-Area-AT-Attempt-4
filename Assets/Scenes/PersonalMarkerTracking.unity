@@ -6516,12 +6516,12 @@ PrefabInstance:
     - target: {fileID: 2824090336219949919, guid: e11acd7e824adcc43a4715c4f5daa2ba,
         type: 3}
       propertyPath: m_AnchorMax.x
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2824090336219949919, guid: e11acd7e824adcc43a4715c4f5daa2ba,
         type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3062218150148249415, guid: e11acd7e824adcc43a4715c4f5daa2ba,
         type: 3}
@@ -7336,7 +7336,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bc26e6cb76cf2674f8f6f5a87ee822f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  customMarkerPrefab: {fileID: 2056525220486815846, guid: b48e4748b4611a54db60e198e38605ee,
+  customMarkerPrefab: {fileID: 8021518131579474132, guid: bdd2e4ba8ff3a6248b36fc693e5d9052,
     type: 3}
   targetArucoID: 88
   profileDropdown: {fileID: 1521255679}

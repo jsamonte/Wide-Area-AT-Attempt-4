@@ -6,7 +6,6 @@
 // ---------------------------------------------------------------------
 // %BANNER_END%
 
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -42,50 +41,48 @@ namespace MagicLeap.Examples
         [SerializeField] private Text statusTextDisplay;
         [SerializeField] private Button destroyAllButton;
 
+        private Vector3 rotationOffset = new Vector3(180f, 0f, 0f);
         private MagicLeapMarkerUnderstandingFeature markerFeature;
         private MarkerDetectorSettings markerDetectorSettings;
         private GameObject currentCustomInstance;   // tracks your spawned prefab
+        private bool markerVisible = false;         // tracks whether target was seen this frame
 
         void Start()
         {
             markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
-            
+
             if (markerFeature == null)
             {
                 Debug.LogError("❌ MagicLeapMarkerUnderstandingFeature not found! Make sure it's enabled in XR Plug-in Management → OpenXR.");
                 return;
             }
 
-            // === HARDCODED PERSONAL ARUCO TRACKER (exactly what you asked for) ===
             CreateHardcodedPersonalArucoTracker();
 
-            // Keep the destroy button working
             destroyAllButton.onClick.AddListener(DestroyMarkerTrackers);
             destroyAllButton.interactable = false;
 
-            // Optional: still allow manual creation via UI if you want both
             markerDetectorTypeDropdown.onValueChanged.AddListener(OnMarkerDetectorDropdownChanged);
         }
 
         private void CreateHardcodedPersonalArucoTracker()
         {
-            // Fresh settings every time (required)
             markerDetectorSettings = new MarkerDetectorSettings();
 
-            markerDetectorSettings.MarkerDetectorProfile = MarkerDetectorProfile.Default;   // Fast & reliable. Change to .Accuracy / .SmallTargets / .LargeFOV if needed
+            markerDetectorSettings.MarkerDetectorProfile = MarkerDetectorProfile.Default;
             markerDetectorSettings.MarkerType = MarkerType.Aruco;
 
             // === CHANGE THESE TWO LINES TO MATCH YOUR PRINTED MARKER ===
-            markerDetectorSettings.ArucoSettings.ArucoType = ArucoType.Dictionary_5x5_250;   // Supports ID 88 (use Dictionary_5x5_100 or Dictionary_6x6_250 if you prefer)
-            markerDetectorSettings.ArucoSettings.ArucoLength = 0.15f;                        // Your marker size in METERS (example = 15 cm). MUST match real size if EstimateArucoLength = false
+            markerDetectorSettings.ArucoSettings.ArucoType = ArucoType.Dictionary_5x5_250;
+            markerDetectorSettings.ArucoSettings.ArucoLength = 0.15f;   // meters — must match real size
 
-            markerDetectorSettings.ArucoSettings.EstimateArucoLength = false;   // Set true only if you don't know exact size
+            markerDetectorSettings.ArucoSettings.EstimateArucoLength = false;
 
-            // Create the tracker
             markerFeature.CreateMarkerDetector(markerDetectorSettings);
 
             Debug.Log($"✅ Personal ArUco tracker created (target ID = {targetArucoID}, size = {markerDetectorSettings.ArucoSettings.ArucoLength * 1000f} mm)");
         }
+
         void Update()
         {
             var sb = new StringBuilder($"Marker Detectors Created: {markerFeature.MarkerDetectors.Count}");
@@ -99,9 +96,10 @@ namespace MagicLeap.Examples
 
             markerFeature.UpdateMarkerDetectors();
 
+            markerVisible = false;
+
             foreach (var markerDetector in markerFeature.MarkerDetectors)
             {
-                // Only care about ArUco detectors
                 if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
                     continue;
 
@@ -109,27 +107,39 @@ namespace MagicLeap.Examples
                 {
                     var data = markerDetector.Data[i];
 
-                    // === THIS IS THE KEY PART ===
-                    if (data.MarkerPose != null && data.MarkerNumber == targetArucoID)
+                    if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
+                        continue;
+
+                    markerVisible = true;
+
+                    // Spawn once, then just move it — never re-instantiate every frame
+                    if (currentCustomInstance == null && customMarkerPrefab != null)
                     {
-                        if (currentCustomInstance == null && customMarkerPrefab != null)
-                        {
-                            currentCustomInstance = Instantiate(customMarkerPrefab);
-                        }
-
-                        if (currentCustomInstance != null)
-                        {
-                            // Move your prefab to the exact real-world position & rotation of the marker
-                            currentCustomInstance.transform.SetPositionAndRotation(
-                                data.MarkerPose.Value.position,
-                                data.MarkerPose.Value.rotation);
-
-                            // Optional: scale the prefab to match the real marker size
-                            float scale = data.MarkerLength;
-                            currentCustomInstance.transform.localScale = Vector3.one * scale;
-                        }
+                        currentCustomInstance = Instantiate(customMarkerPrefab);
                     }
+
+                    if (currentCustomInstance != null)
+                    {
+                        Quaternion offset = Quaternion.Euler(rotationOffset);
+                        currentCustomInstance.transform.SetPositionAndRotation(
+                            data.MarkerPose.Value.position,
+                            data.MarkerPose.Value.rotation * offset);
+
+                        // NOTE: Do NOT scale by data.MarkerLength — it can be 0 on first detection
+                        // and will produce a degenerate transform crash. If you need size-matching,
+                        // guard it: only apply when the value is a sensible positive number.
+                        float reportedLength = data.MarkerLength;
+                        // else: keep the prefab's authored scale until a valid length arrives
+                    }
+
+                    sb.AppendLine($"\nTracking ID {data.MarkerNumber} at {data.MarkerPose.Value.position}");
                 }
+            }
+
+            // Hide (but don't destroy) the prefab when the marker leaves view
+            if (currentCustomInstance != null)
+            {
+                currentCustomInstance.SetActive(markerVisible);
             }
 
             statusTextDisplay.text = sb.ToString();
@@ -152,9 +162,11 @@ namespace MagicLeap.Examples
             markerFeature.DestroyAllMarkerDetectors();
         }
 
-        // The rest of your existing UI methods (unchanged)
+        // ── UI helpers (unchanged) ────────────────────────────────────────────
+
         public void OnSliderChanged(float value) => markerLengethText.text = $"{(int)value} mm";
-                public void OnMarkerDetectorDropdownChanged(int idx)
+
+        public void OnMarkerDetectorDropdownChanged(int idx)
         {
             switch ((MarkerType)idx)
             {
@@ -175,6 +187,7 @@ namespace MagicLeap.Examples
                     break;
             }
         }
+
         public void OnMarkerProfileChanged(int idx)
         {
             bool active = (MarkerDetectorProfile)idx == MarkerDetectorProfile.Custom;
@@ -185,17 +198,16 @@ namespace MagicLeap.Examples
             analysisIntervalDropdown.gameObject.SetActive(active);
             useEdgeRefinement.gameObject.SetActive(active);
         }
+
         public void OnCreateMarkerDetector()
         {
-            markerDetectorSettings = new MarkerDetectorSettings();   // ← safe to do every time
+            markerDetectorSettings = new MarkerDetectorSettings();   // required — it's a struct
 
-            markerDetectorSettings.MarkerDetectorProfile = (MarkerDetectorProfile)profileDropdown.value;
             markerDetectorSettings.MarkerDetectorProfile = (MarkerDetectorProfile)profileDropdown.value;
             markerDetectorSettings.MarkerType = (MarkerType)markerDetectorTypeDropdown.value;
 
             if (markerDetectorSettings.MarkerDetectorProfile == MarkerDetectorProfile.Custom)
             {
-                // set custom settings
                 markerDetectorSettings.CustomProfileSettings.FPSHint = (MarkerDetectorFPS)FPSHintDropdown.value;
                 markerDetectorSettings.CustomProfileSettings.ResolutionHint = (MarkerDetectorResolution)resolutionHintDropdown.value;
                 markerDetectorSettings.CustomProfileSettings.CameraHint = (MarkerDetectorCamera)cameraHintDropdown.value;
