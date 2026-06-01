@@ -44,4 +44,5 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0, g: 0, b: 0, a: 1}
     - _Color: {r: 0, g: 0, b: 0, a: 1}
+    - _FillColor: {r: 0.5116806, g: 0, b: 1, a: 0}
   m_BuildTextureStacks: []

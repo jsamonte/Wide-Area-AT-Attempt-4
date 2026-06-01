@@ -14,9 +14,15 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/PersonalMarkerTracking.unity
     guid: 5c0fe7b76d4d4dc46a32ff574fd30775
-  - enabled: 1
+  - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/EyeTrackingSimple.unity
     guid: 589366791d56d16458fbc05da433ca98
+  - enabled: 0
+    path: Assets/EyeGaze/Assets/Scenes/EyeGazeDestroyer.unity
+    guid: 77849c988a752ce408dd45565218ed82
+  - enabled: 1
+    path: Assets/EyeGaze/Assets/Scenes/EyeTrackingSimple 1.unity
+    guid: f63e48979bed2bc4fa986f50258ea877
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
