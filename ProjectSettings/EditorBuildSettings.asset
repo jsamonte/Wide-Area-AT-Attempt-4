@@ -8,9 +8,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/Assets/Scenes/MarkerTracking.unity
     guid: 66abf3f55417c4017baf4c57c231b55a
+  - enabled: 1
+    path: Assets/Scenes/PersonalMarkerTracking.unity
+    guid: 786cdd82c32eb5d4ca3584470b023243
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
