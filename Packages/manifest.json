@@ -1,5 +1,18 @@
 {
+  "scopedRegistries": [
+    {
+      "name": "VideoKit",
+      "url": "https://registry.npmjs.com",
+      "scopes": ["ai.videokit"]
+    },
+    {
+      "name": "Muna",
+      "url": "https://registry.npmjs.com",
+      "scopes": ["ai.muna"]
+    }
+  ],
   "dependencies": {
+    "ai.videokit.videokit": "1.0.10",
     "com.magicleap.unitysdk": "file:C:/Users/yujnkm/MagicLeap/tools/unity/v2.6.0/com.magicleap.unitysdk.tgz",
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.ide.rider": "3.0.36",
@@ -46,3 +59,4 @@
     "com.unity.modules.xr": "1.0.0"
   }
 }
+
