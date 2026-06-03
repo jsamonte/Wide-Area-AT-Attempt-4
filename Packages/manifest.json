@@ -3,12 +3,16 @@
     {
       "name": "VideoKit",
       "url": "https://registry.npmjs.com",
-      "scopes": ["ai.videokit"]
+      "scopes": [
+        "ai.videokit"
+      ]
     },
     {
       "name": "Muna",
       "url": "https://registry.npmjs.com",
-      "scopes": ["ai.muna"]
+      "scopes": [
+        "ai.muna"
+      ]
     }
   ],
   "dependencies": {
@@ -26,6 +30,7 @@
     "com.unity.visualscripting": "1.9.4",
     "com.unity.xr.arfoundation": "5.2.2",
     "com.unity.xr.management": "4.6.0",
+    "fr.liris.plume.recorder": "https://github.com/liris-xr/PLUME-Recorder.git",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
@@ -59,4 +64,3 @@
     "com.unity.modules.xr": "1.0.0"
   }
 }
-

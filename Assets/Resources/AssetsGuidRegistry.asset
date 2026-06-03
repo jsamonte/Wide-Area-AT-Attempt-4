@@ -1,0 +1,175 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d44972bad5c4f8c9d17e95f798abd2f, type: 3}
+  m_Name: AssetsGuidRegistry
+  m_EditorClassIdentifier: 
+  registry:
+    entries:
+    - object: {fileID: 11400000, guid: d0e2fc18fe036412f8223b3b3d9ad574, type: 2}
+      guid: d0e2fc18fe036412f8223b3b3d9ad574
+      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset,
+        Unity.RenderPipelines.Universal.Runtime:Assets/Settings/URP-Performant.asset:URP-Performant
+    - object: {fileID: 11400000, guid: e1260c1148f6143b28bae5ace5e9c5d1, type: 2}
+      guid: e1260c1148f6143b28bae5ace5e9c5d1
+      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset,
+        Unity.RenderPipelines.Universal.Runtime:Assets/Settings/URP-Balanced.asset:URP-Balanced
+    - object: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
+      guid: 7b7fd9122c28c4d15b667c7040e3b3fd
+      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset,
+        Unity.RenderPipelines.Universal.Runtime:Assets/Settings/URP-HighFidelity.asset:URP-HighFidelity
+    - object: {fileID: 11400000, guid: 18dc0cd2c080841dea60987a38ce93fa, type: 2}
+      guid: 18dc0cd2c080841dea60987a38ce93fa
+      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings,
+        Unity.RenderPipelines.Universal.Runtime:Assets/UniversalRenderPipelineGlobalSettings.asset:UniversalRenderPipelineGlobalSettings
+    - object: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
+      guid: feaa8eb42e9d48039700a8e33577baf7
+      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites/Default
+    - object: {fileID: 207, guid: 0000000000000000f000000000000000, type: 0}
+      guid: b5b12e6d43f4447ab20fd1d2ccdc94e5
+      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
+        Shaders/Particles/Alpha Blended Premultiply
+    - object: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      guid: 8f586378b4e144a9851e7b34d9b748ee
+      assetBundlePath: Custom:TMPro.TMP_FontAsset, Unity.TextMeshPro:Assets/Assets/TextMesh
+        Pro/Resources/Fonts & Materials/LiberationSans SDF.asset:LiberationSans SDF
+    - object: {fileID: 4800000, guid: da07703fcc09f8d4799221050659bd55, type: 3}
+      guid: da07703fcc09f8d4799221050659bd55
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.shadergraph/Editor/Resources/Shaders/FallbackError.shader:Hidden/Shader
+        Graph/FallbackError
+    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+      guid: ecd3f4fecf75409c8893557768e49718
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
+    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
+      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
+    - object: {fileID: 2100000, guid: b49987f28d68948acb0d617df4824786, type: 2}
+      guid: b49987f28d68948acb0d617df4824786
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/Fill.mat:Fill
+    - object: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      guid: 8f586378b4e144a9851e7b34d9b748ee
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Resources/Fonts & Materials/LiberationSans SDF.asset:LiberationSans SDF
+        Material
+    - object: {fileID: 4800000, guid: fe393ace9b354375a9cb14cdbbc28be4, type: 3}
+      guid: fe393ace9b354375a9cb14cdbbc28be4
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Shaders/TMP_SDF-Mobile.shader:TextMeshPro/Mobile/Distance Field
+    - object: {fileID: 28268798066460806, guid: 2e498d1c8094910479dc3e1b768306a4,
+        type: 2}
+      guid: 2e498d1c8094910479dc3e1b768306a4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset:LiberationSans
+        SDF Atlas
+    - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
+    - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Position
+    - object: {fileID: -4607609863168903279, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Rotation
+    - object: {fileID: 4715436822718277786, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Position
+    - object: {fileID: -3730266099773404857, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Rotation
+    - object: {fileID: 716709262026818769, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TriggerButton
+    - object: {fileID: 5544746641166235747, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TouchpadPosition
+    - object: {fileID: 28684132378477856, guid: 8f586378b4e144a9851e7b34d9b748ee,
+        type: 2}
+      guid: 8f586378b4e144a9851e7b34d9b748ee
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Resources/Fonts & Materials/LiberationSans SDF.asset:LiberationSans SDF
+        Atlas
+    - object: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+      guid: 2e498d1c8094910479dc3e1b768306a4
+      assetBundlePath: Custom:TMPro.TMP_FontAsset, Unity.TextMeshPro:Assets/Assets/TextMesh
+        Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset:LiberationSans
+        SDF - Fallback
+    - object: {fileID: 971518578729158012, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerPosition
+    - object: {fileID: 2188567022586841978, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerRotation
+    - object: {fileID: -4319516118568744573, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Position
+    - object: {fileID: 601750489641515592, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Rotation
+    - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 6b78d6145c6e4e01a6d86f67c8f890f6
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
+    - object: {fileID: 2100000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+      guid: e3265ab4bf004d28a9537516768c1c75
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Fonts/LiberationSans.ttf:Font Material
+    - object: {fileID: 2800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+      guid: e3265ab4bf004d28a9537516768c1c75
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Fonts/LiberationSans.ttf:Font Texture
+    - object: {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+      guid: e3265ab4bf004d28a9537516768c1c75
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/TextMesh
+        Pro/Fonts/LiberationSans.ttf:LiberationSans
+    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
+      guid: 8236c695e72414e7889fb3f4d8226fde
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
+    - object: {fileID: 2800000, guid: 13ee01d73e66c4f3eb2effcbe5bba9f6, type: 3}
+      guid: 13ee01d73e66c4f3eb2effcbe5bba9f6
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/LearnXR/Core/Textures/ML2/Logo.jpg:Logo
+    - object: {fileID: 2800000, guid: 2fd6421f253b4ef1a19526541f9ffc0c, type: 3}
+      guid: 2fd6421f253b4ef1a19526541f9ffc0c
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.textmeshpro/Editor
+        Resources/Gizmos/TMP - Text Component Icon.psd:TMP - Text Component Icon
+    - object: {fileID: 10101, guid: 0000000000000000e000000000000000, type: 0}
+      guid: e9c8c066db69415da93ec7af1532c912
+      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Library/unity
+        default resources:GUI/Text Shader
+    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
+      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
+    - object: {fileID: -6465566751694194690, guid: 5802ac1538fd94cc58b4d5202ed2abe6,
+        type: 3}
+      guid: 5802ac1538fd94cc58b4d5202ed2abe6
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Shaders/FillMaterial.shadergraph:Shader
+        Graphs/FillMaterial
+    - object: {fileID: 2800000, guid: ee148e281f3c41c5b4ff5f8a5afe5a6c, type: 3}
+      guid: ee148e281f3c41c5b4ff5f8a5afe5a6c
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.textmeshpro/Editor
+        Resources/Gizmos/TMP - Font Asset Icon.psd:TMP - Font Asset Icon
+    - object: {fileID: -944628639613478452, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:MLInput
+    - object: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+      guid: 27a12828a1ac4c35bf4feb1f2cde2b32
+      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
+        default resources:Sphere

@@ -1,0 +1,14 @@
+ManifestFileVersion: 1
+CompatibilityAssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: plume_assets
+      Hash: 592b13fe78377dfddc41c9ed4faff493
+      CRC: 2268300339
+      Dependencies: {}
+    Info_1:
+      Name: plume_scenes
+      Hash: 7fb384b7e757145391a1449a547b8591
+      CRC: 3222715159
+      Dependencies: {}
+        Dependency_0: plume_assets
