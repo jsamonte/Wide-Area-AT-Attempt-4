@@ -16,5 +16,6 @@ MonoBehaviour:
   Values:
   - featureSets:
     - com.magicleap.openxr.featuregroup
+    - com.magicleap.openxr.featuregroup-exp
   - featureSets: []
   m_vulkanAdditionalGraphicsQueue: 0
