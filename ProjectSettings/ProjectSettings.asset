@@ -143,8 +143,10 @@ PlayerSettings:
   tvOSBundleVersion: 1.0
   bundleVersion: 0.1.0
   preloadedAssets:
-  - {fileID: 11400000, guid: 7336f220885de7441909585782d8d62f, type: 2}
-  - {fileID: 11400000, guid: 2f77ba62bfe4a8c408fc5f1fabe53c0c, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 11400000, guid: 2efc5dab7a3cf5048bdc87517c8a776a, type: 2}
+  - {fileID: 11400000, guid: d7f35e00eccb2d54f94844940858acd1, type: 2}
   - {fileID: 200753018772540543, guid: 583a29f9e3f74304d869096f91238eb6, type: 2}
   - {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78, type: 2}
   - {fileID: -3693710367517097684, guid: dec0e520e55de8044b64aa4971c504e6, type: 2}
@@ -869,8 +871,8 @@ PlayerSettings:
   apiCompatibilityLevelPerPlatform: {}
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: Wide Area AR Attempt 4
-  metroPackageVersion: 
+  metroPackageName: WideAreaARAttempt4
+  metroPackageVersion: 1.0.0.0
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
@@ -878,7 +880,7 @@ PlayerSettings:
   metroCertificateNotAfter: 0000000000000000
   metroApplicationDescription: Wide Area AR Attempt 4
   wsaImages: {}
-  metroTileShortName: 
+  metroTileShortName: Wide Area AR Attempt 4
   metroTileShowName: 0
   metroMediumTileShowName: 0
   metroLargeTileShowName: 0
