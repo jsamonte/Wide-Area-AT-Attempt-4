@@ -5,12 +5,48 @@
 // %COPYRIGHT_END%
 // ---------------------------------------------------------------------
 // %BANNER_END%
+//
+// FIXED VERSION: Addresses lag + per-frame blinking/jitter after spawn.
+// Root cause: 
+//   1. Marker poses from MagicLeapMarkerUnderstandingFeature are RELATIVE to XROrigin.CameraFloorOffsetObject (not world space).
+//      Original direct assignment caused incorrect placement, jumps, and perceived lag/blink as tracking/origin updated.
+//   2. Intermittent zero/invalid MarkerPose or MarkerLength data from the OpenXR feature (known community issue, especially with Estimate=false).
+//      Caused snaps to origin or skipped updates that looked like blinking.
+//   3. UI status spam every frame + reliance on potentially bad data.MarkerLength for scale.
+//
+// Changes made:
+// - Added XROrigin support + correct world-space transform (TransformPoint + rotation compose) matching official Magic Leap examples.
+// - Added robust validation: skip frames with near-zero pose (invalid data).
+// - Use configured arucoLength for scale (reliable, independent of data.MarkerLength which can be 0).
+// - Permanence logic preserved/enhanced: only updates on GOOD data; keeps last good pose/scale/rot when marker lost or bad data.
+// - Kept all your custom offset/scaleMultiplier/rotationOffset/permanence/target ID logic.
+// - Auto-finds XROrigin if not assigned (add to scene if missing).
+// - Fallback to direct pose if no XROrigin (for compatibility).
+// - Minor: guard feature null in Update; use var pose for clarity.
+//
+// Usage:
+// 1. Replace your BuildingMarkerTracking1.cs with this file (or copy contents).
+// 2. In Inspector on the GameObject with this script: assign your "1st Building 3 Wireframe.prefab" (or desired custom prefab) to customMarkerPrefab.
+// 3. Set targetArucoID to YOUR printed marker's ID (default 88).
+// 4. Tune offsetX/Y/Z (meters, marker-local) and scaleMultiplier (start with 5-20 for building to look reasonable size next to 15cm marker).
+// 5. Test rotationOffset (270 on X is common; try -90, 0, or 180 if model lies flat/wrong way).
+// 6. Ensure good even lighting on the physical ArUco marker for reliable detection.
+// 7. The UI elements (dropdowns etc.) are preserved for compatibility with your scene.
+// 8. Build & run on Magic Leap 2. The prefab should now STICK stably to the real marker (or last known pose) without jumping or blinking.
+//
+// If still issues: 
+// - Confirm MagicLeapMarkerUnderstandingFeature enabled in Project Settings > XR Plug-in Management > OpenXR.
+// - Add MARKER_TRACKING permission in Magic Leap Manifest Settings.
+// - Check device logs for pose/ detector warnings.
+// - Try EstimateArucoLength = true in CreateHardcoded for potentially more stable data (at cost of slight accuracy).
+// - Your scene likely already has an XR Origin — this script auto-finds it.
 
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
+using Unity.XR.CoreUtils;   // For XROrigin
 
 namespace MagicLeap.Examples
 {
@@ -32,8 +68,12 @@ namespace MagicLeap.Examples
         private float offsetZ = 0f;
 
         [Header("Prefab Scale (relative to marker)")]
-        [SerializeField, Tooltip("Multiplier for the prefab's size. 1.0 = exact size of the physical ArUco marker. Increase this value to make your prefab larger (e.g. 2.0 = twice as big). This fixes the 'prefab size ignored' issue.")]
+        [SerializeField, Tooltip("Multiplier for the prefab's size. 1.0 = exact size of the physical ArUco marker. Increase this value to make your prefab larger (e.g. 5-20 for a building model). This fixes the 'prefab size ignored' issue.")]
         private float scaleMultiplier = 1.0f;
+
+        [Header("XR Origin (for correct world-space marker poses)")]
+        [SerializeField, Tooltip("XR Origin component (usually auto-found). Required for accurate placement relative to real world. Add an XR Origin to your scene if missing.")]
+        private XROrigin xrOrigin;
 
         [Header("Existing UI (keep as-is)")]
         [SerializeField] private Dropdown profileDropdown;
@@ -58,6 +98,15 @@ namespace MagicLeap.Examples
         private MarkerDetectorSettings markerDetectorSettings;
         private GameObject currentCustomInstance;   // tracks your spawned prefab
         private bool hasEverBeenSeen = false;       // NEW: tracks permanence (last known pose)
+        private float arucoLength = 0.15f;          // configured marker size (reliable for scale)
+
+        void OnValidate()
+        {
+            if (xrOrigin == null)
+            {
+                xrOrigin = FindAnyObjectByType<XROrigin>();
+            }
+        }
 
         void Start()
         {
@@ -67,6 +116,15 @@ namespace MagicLeap.Examples
             {
                 Debug.LogError("❌ MagicLeapMarkerUnderstandingFeature not found! Make sure it's enabled in XR Plug-in Management → OpenXR.");
                 return;
+            }
+
+            if (xrOrigin == null)
+            {
+                xrOrigin = FindAnyObjectByType<XROrigin>();
+                if (xrOrigin == null)
+                {
+                    Debug.LogWarning("⚠️ No XROrigin found in scene. Marker poses will use direct assignment (may cause incorrect placement). Add an XR Origin for best results.");
+                }
             }
 
             CreateHardcodedPersonalArucoTracker();
@@ -86,17 +144,23 @@ namespace MagicLeap.Examples
 
             // === CHANGE THESE TWO LINES TO MATCH YOUR PRINTED MARKER ===
             markerDetectorSettings.ArucoSettings.ArucoType = ArucoType.Dictionary_5x5_250;
-            markerDetectorSettings.ArucoSettings.ArucoLength = 0.15f;   // meters — must match real size
+            arucoLength = 0.15f;   // meters — must match real physical size of your printed ArUco
+            markerDetectorSettings.ArucoSettings.ArucoLength = arucoLength;
 
             markerDetectorSettings.ArucoSettings.EstimateArucoLength = false;
 
             markerFeature.CreateMarkerDetector(markerDetectorSettings);
 
-            Debug.Log($"✅ Personal ArUco tracker created (target ID = {targetArucoID}, size = {markerDetectorSettings.ArucoSettings.ArucoLength * 1000f} mm)");
+            Debug.Log($"✅ Personal ArUco tracker created (target ID = {targetArucoID}, size = {arucoLength * 1000f} mm)");
         }
 
         void Update()
         {
+            if (markerFeature == null)
+            {
+                return;
+            }
+
             var sb = new StringBuilder($"Marker Detectors Created: {markerFeature.MarkerDetectors.Count}");
             destroyAllButton.interactable = markerFeature.MarkerDetectors.Count > 0;
 
@@ -108,7 +172,7 @@ namespace MagicLeap.Examples
 
             markerFeature.UpdateMarkerDetectors();
 
-            bool currentlyVisible = false;   // NEW: only true this frame if marker is seen right now
+            bool currentlyVisible = false;   // only true this frame if GOOD marker data seen right now
 
             foreach (var markerDetector in markerFeature.MarkerDetectors)
             {
@@ -122,6 +186,15 @@ namespace MagicLeap.Examples
                     if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
                         continue;
 
+                    Pose pose = data.MarkerPose.Value;
+
+                    // === KEY FIX: Skip invalid/zero poses sometimes returned by the OpenXR feature ===
+                    // This prevents snapping the prefab to origin or causing per-frame jumps/blinks.
+                    if (pose.position.sqrMagnitude < 0.0001f)
+                    {
+                        continue;
+                    }
+
                     currentlyVisible = true;
                     hasEverBeenSeen = true;
 
@@ -134,41 +207,54 @@ namespace MagicLeap.Examples
 
                     if (currentCustomInstance != null)
                     {
-                        // Update to the LIVE pose only while the marker is visible
-                        // === NEW: apply user-controlled offset in marker local space ===
-                        Vector3 markerLocalOffset = new Vector3(offsetX, offsetY, offsetZ);
-                        Vector3 worldOffset = data.MarkerPose.Value.rotation * markerLocalOffset;
-                        Vector3 finalPosition = data.MarkerPose.Value.position + worldOffset;
+                        // === KEY FIX: Transform relative pose to world space using XROrigin ===
+                        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
+                            ? xrOrigin.CameraFloorOffsetObject.transform
+                            : null;
 
-                        Quaternion markerRot = data.MarkerPose.Value.rotation;
+                        Vector3 markerWorldPos;
+                        Quaternion markerWorldRot;
+
+                        if (originT != null)
+                        {
+                            markerWorldPos = originT.TransformPoint(pose.position);
+                            markerWorldRot = originT.rotation * pose.rotation;
+                        }
+                        else
+                        {
+                            // Fallback (old behavior) if no XR Origin — may be incorrect but prevents total failure
+                            markerWorldPos = pose.position;
+                            markerWorldRot = pose.rotation;
+                        }
+
+                        // Apply user-controlled offset in marker local space (now in world)
+                        Vector3 markerLocalOffset = new Vector3(offsetX, offsetY, offsetZ);
+                        Vector3 worldOffset = markerWorldRot * markerLocalOffset;
+                        Vector3 finalPosition = markerWorldPos + worldOffset;
+
                         Quaternion rotOffsetQuat = Quaternion.Euler(rotationOffset);
-                        Quaternion finalRotation = markerRot * rotOffsetQuat;
+                        Quaternion finalRotation = markerWorldRot * rotOffsetQuat;
 
                         currentCustomInstance.transform.SetPositionAndRotation(finalPosition, finalRotation);
 
-                        // Guarded scale (only apply when valid — prevents degenerate transform)
-                        // Now respects your scaleMultiplier so you can make the prefab bigger/smaller than the marker
-                        float reportedLength = data.MarkerLength;
-                        if (reportedLength > 0.001f)
-                        {
-                            currentCustomInstance.transform.localScale = Vector3.one * reportedLength * scaleMultiplier;
-                        }
+                        // Reliable scale using configured length (ignores potentially bad data.MarkerLength)
+                        currentCustomInstance.transform.localScale = Vector3.one * arucoLength * scaleMultiplier;
                     }
 
-                    sb.AppendLine($"\nTracking ID {data.MarkerNumber} at {data.MarkerPose.Value.position}");
+                    sb.AppendLine($"\nTracking ID {data.MarkerNumber} at {pose.position}");
                 }
             }
 
-            // PERMANENCE: Once seen, the prefab STAYS visible at the LAST known position/rotation/scale
+            // PERMANENCE: Once seen with good data, the prefab STAYS visible at the LAST known good position/rotation/scale
             if (currentCustomInstance != null)
             {
-                currentCustomInstance.SetActive(true);   // never hide again after first detection
+                currentCustomInstance.SetActive(true);   // never hide again after first good detection
             }
 
             // Helpful status feedback
             if (hasEverBeenSeen && !currentlyVisible)
             {
-                sb.AppendLine($"\n🟡 LAST SEEN POSITION (ArUco ID {targetArucoID} no longer visible)");
+                sb.AppendLine($"\n🟡 LAST SEEN POSITION (ArUco ID {targetArucoID} no longer visible or bad data)");
             }
 
             statusTextDisplay.text = sb.ToString();

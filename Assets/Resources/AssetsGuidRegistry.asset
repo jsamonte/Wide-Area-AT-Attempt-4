@@ -30,632 +30,331 @@ MonoBehaviour:
       guid: 18dc0cd2c080841dea60987a38ce93fa
       assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings,
         Unity.RenderPipelines.Universal.Runtime:Assets/UniversalRenderPipelineGlobalSettings.asset:UniversalRenderPipelineGlobalSettings
-    - object: {fileID: 5589497134372387904, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 21300000, guid: d0a69fcb4fcdd4a2782ebf45baaafd6d, type: 3}
-      guid: d0a69fcb4fcdd4a2782ebf45baaafd6d
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-hover.png:ui-tab-hover
-    - object: {fileID: -3730266099773404857, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Rotation
-    - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 4478eaa5582e4a1693fa763e65c939ad
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
     - object: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
       guid: 4df40d6667ee4ed5b0a91140d59a8715
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites/Default
-    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
-      guid: 8236c695e72414e7889fb3f4d8226fde
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
-    - object: {fileID: 124261382810072712, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.FlareLayer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 21300000, guid: b3e8ecd6597d24778aae035ee9fac5bc, type: 3}
-      guid: b3e8ecd6597d24778aae035ee9fac5bc
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-downarrow.png:ui-downarrow
-    - object: {fileID: 2100000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
-      guid: 2b303258409019f428ed17a87cda4ac9
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:Font
-        Material
-    - object: {fileID: 2800000, guid: a22450740a9224c4eb56c862e50b3fdc, type: 3}
-      guid: a22450740a9224c4eb56c862e50b3fdc
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-quit.png:ui-quit
-    - object: {fileID: 2100000, guid: 479521f96370b384d810a07599e7b084, type: 3}
-      guid: 479521f96370b384d810a07599e7b084
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBdIt.ttf:Font
-        Material
-    - object: {fileID: 2800000, guid: 42455ed49d7a8453aa4bae12dbde529e, type: 3}
-      guid: 42455ed49d7a8453aa4bae12dbde529e
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-default.png:ui-tab-default
-    - object: {fileID: 2800000, guid: a884ad4503bb34a19b0d1b27f0a0bd48, type: 3}
-      guid: a884ad4503bb34a19b0d1b27f0a0bd48
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-press.png:ui-tab-press
-    - object: {fileID: 716709262026818769, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TriggerButton
-    - object: {fileID: 20294507499185110, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Camera, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133001389820, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 2800000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
-      guid: adcae46baa3736748a69f9f489676bd7
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:Font
-        Texture
-    - object: {fileID: 21300000, guid: 58c5f9f970a25b145a1a2fb202915747, type: 3}
-      guid: 58c5f9f970a25b145a1a2fb202915747
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-radial-gradient.png:ui-radial-gradient
-    - object: {fileID: 2100000, guid: 9c9078c06443df049a2830962f9dd5ef, type: 3}
-      guid: 9c9078c06443df049a2830962f9dd5ef
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Bd.ttf:Font
-        Material
-    - object: {fileID: 2800000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
-      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:Font
-        Texture
-    - object: {fileID: 10100, guid: 0000000000000000e000000000000000, type: 0}
-      guid: 0f764ebf0f9d40b78ed50152c8c3d653
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Library/unity
-        default resources:Font Material
-    - object: {fileID: 5609791579423962305, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Camera, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
+    - object: {fileID: 207, guid: 0000000000000000f000000000000000, type: 0}
+      guid: eea22632c50740d0abd7145d74126783
+      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
+        Shaders/Particles/Alpha Blended Premultiply
     - object: {fileID: 10755, guid: 0000000000000000f000000000000000, type: 0}
       guid: dccbbe7e76104eda842b0269979f5896
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Unlit/Color
-    - object: {fileID: 2100000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
-      guid: 7f93338dc6150ea45b387e442e8102da
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:Font
-        Material
-    - object: {fileID: -5947695216445864204, guid: 5e636ac2c2022bd40bb2e45305a431cb,
-        type: 3}
-      guid: 5e636ac2c2022bd40bb2e45305a431cb
-      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.blend:1st Building 3
-    - object: {fileID: 5589497133034083134, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 5589659553817258997, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 12800000, guid: 51731a8a220e240478717934f6e99543, type: 3}
-      guid: 51731a8a220e240478717934f6e99543
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_XBd.ttf:LominoUI_A_XBd
-    - object: {fileID: 2100000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
-      guid: adcae46baa3736748a69f9f489676bd7
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:Font
-        Material
-    - object: {fileID: 8253148755706329020, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MLAudioOutputPluginBehavior,
-        MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 2a2eb8acec5b411aa080650cd97918cd
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:Knob
+    - object: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+      guid: ff9f41294c884909ad624447543aed47
+      assetBundlePath: Builtin:UnityEngine.Font, UnityEngine.TextRenderingModule:Library/unity
+        default resources:LegacyRuntime
+    - object: {fileID: 10900, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 4c8028ab2f8748de8441e4ebca9d00a1
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:Checkmark
     - object: {fileID: 21300000, guid: 8aa85eee28ef38b46a90196fc2412c17, type: 3}
       guid: 8aa85eee28ef38b46a90196fc2412c17
       assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-open.png:ui-open
-    - object: {fileID: 2800000, guid: 917dc8bcba1c29c4c8bd325b59088d1c, type: 3}
-      guid: 917dc8bcba1c29c4c8bd325b59088d1c
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Lt.ttf:Font
-        Texture
-    - object: {fileID: 2800000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
-      guid: 8401b9c91b47d6449a4be596c8138a90
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:Font
-        Texture
-    - object: {fileID: 2062985119602007160, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MagicLeapCamera, MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 5589497134372387907, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 451e6b480c2243cbbe0eaddfab2f0974
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
-    - object: {fileID: 5589497132288526104, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 5589497133001389822, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 3771369551179688024, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133593145648, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 2100000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
-      guid: 1e71f539decd80f4bb2541c46a153223
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:Font
-        Material
-    - object: {fileID: 2800000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
-      guid: 170c02e10c121294486c57133d65b5cc
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:Font
-        Texture
-    - object: {fileID: 12800000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
-      guid: 170c02e10c121294486c57133d65b5cc
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:LominoUI_A_LtIt
-    - object: {fileID: 21300000, guid: a884ad4503bb34a19b0d1b27f0a0bd48, type: 3}
-      guid: a884ad4503bb34a19b0d1b27f0a0bd48
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-press.png:ui-tab-press
-    - object: {fileID: 4546648909140631723, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MLAudioOutputPluginBehavior,
-        MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR Rig.prefab:Main
-        Camera
-    - object: {fileID: 2100000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
-      guid: 170c02e10c121294486c57133d65b5cc
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:Font
-        Material
-    - object: {fileID: 12800000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
-      guid: 8401b9c91b47d6449a4be596c8138a90
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:LominoUI_A_WideRg
-    - object: {fileID: 5589497132288526105, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 5589497133034083132, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
     - object: {fileID: 21300000, guid: a22450740a9224c4eb56c862e50b3fdc, type: 3}
       guid: a22450740a9224c4eb56c862e50b3fdc
       assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-quit.png:ui-quit
-    - object: {fileID: 479116178, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.Inputs.InputActionManager,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 5487800070631514527, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.FlareLayer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
+    - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
+      guid: e6e9a19c3678ded42a3bc431ebef7dbd
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
+        Render Pipeline/FallbackError
+    - object: {fileID: 4800000, guid: 36e335017ad71d54fbb10842863188ae, type: 3}
+      guid: 36e335017ad71d54fbb10842863188ae
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader:Hidden/Core/FallbackError
+    - object: {fileID: 2800000, guid: b3e8ecd6597d24778aae035ee9fac5bc, type: 3}
+      guid: b3e8ecd6597d24778aae035ee9fac5bc
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-downarrow.png:ui-downarrow
+    - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+      guid: 933532a4fcc9baf4fa0491de14d08ed7
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
+        Render Pipeline/Lit
+    - object: {fileID: 21300000, guid: 8a2a18903d49a4f5aa1601f400d70ea3, type: 3}
+      guid: 8a2a18903d49a4f5aa1601f400d70ea3
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-unlock.png:ui-unlock
+    - object: {fileID: 21300000, guid: 31323a47e241dce419e4b71537080de8, type: 3}
+      guid: 31323a47e241dce419e4b71537080de8
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-location.png:ui-location
+    - object: {fileID: 10904, guid: 0000000000000000f000000000000000, type: 0}
+      guid: ffd45a291fd5462583aa464535238e4a
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:UISprite
+    - object: {fileID: 12800000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
+      guid: 2b303258409019f428ed17a87cda4ac9
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:LominoUI_A_WideBd
     - object: {fileID: 10906, guid: 0000000000000000f000000000000000, type: 0}
       guid: a44678900acd4b7daaaabfbfb2f0208f
       assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:Background
+    - object: {fileID: 12800000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
+      guid: 170c02e10c121294486c57133d65b5cc
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:LominoUI_A_LtIt
     - object: {fileID: 2800000, guid: 51731a8a220e240478717934f6e99543, type: 3}
       guid: 51731a8a220e240478717934f6e99543
       assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBd.ttf:Font
         Texture
-    - object: {fileID: 10916, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 6b8878542ee34b82ad3b47e7e3e48e8d
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:UIMask
+    - object: {fileID: 2800000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
+      guid: adcae46baa3736748a69f9f489676bd7
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:Font
+        Texture
+    - object: {fileID: 21300000, guid: f5052869a78ab274c8d7d453c35b7487, type: 3}
+      guid: f5052869a78ab274c8d7d453c35b7487
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow-solid.png:ui-arrow-solid
+    - object: {fileID: 2800000, guid: 42455ed49d7a8453aa4bae12dbde529e, type: 3}
+      guid: 42455ed49d7a8453aa4bae12dbde529e
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-default.png:ui-tab-default
+    - object: {fileID: 12800000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
+      guid: 7f93338dc6150ea45b387e442e8102da
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:LominoUI_A_WideIt
+    - object: {fileID: 2800000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
+      guid: 170c02e10c121294486c57133d65b5cc
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:Font
+        Texture
+    - object: {fileID: 21300000, guid: 42455ed49d7a8453aa4bae12dbde529e, type: 3}
+      guid: 42455ed49d7a8453aa4bae12dbde529e
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-default.png:ui-tab-default
+    - object: {fileID: 10100, guid: 0000000000000000e000000000000000, type: 0}
+      guid: 0f764ebf0f9d40b78ed50152c8c3d653
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Library/unity
+        default resources:Font Material
+    - object: {fileID: 12800000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
+      guid: adcae46baa3736748a69f9f489676bd7
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:LominoUI_A_Md
+    - object: {fileID: 2800000, guid: f5052869a78ab274c8d7d453c35b7487, type: 3}
+      guid: f5052869a78ab274c8d7d453c35b7487
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow-solid.png:ui-arrow-solid
+    - object: {fileID: 2800000, guid: 58c5f9f970a25b145a1a2fb202915747, type: 3}
+      guid: 58c5f9f970a25b145a1a2fb202915747
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-radial-gradient.png:ui-radial-gradient
+    - object: {fileID: 2100000, guid: 31a726199c363df44bc494e781e37fe8, type: 2}
+      guid: 31a726199c363df44bc494e781e37fe8
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Materials/CanvasBackside.mat:CanvasBackside
+    - object: {fileID: 2800000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
+      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:Font
+        Texture
+    - object: {fileID: 2100000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
+      guid: 8401b9c91b47d6449a4be596c8138a90
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:Font
+        Material
+    - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 4478eaa5582e4a1693fa763e65c939ad
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
+    - object: {fileID: 10101, guid: 0000000000000000e000000000000000, type: 0}
+      guid: 8277117b101d426c8cfaa41eca14ef35
+      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Library/unity
+        default resources:GUI/Text Shader
+    - object: {fileID: 12800000, guid: 51731a8a220e240478717934f6e99543, type: 3}
+      guid: 51731a8a220e240478717934f6e99543
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_XBd.ttf:LominoUI_A_XBd
     - object: {fileID: 12800000, guid: 9c9078c06443df049a2830962f9dd5ef, type: 3}
       guid: 9c9078c06443df049a2830962f9dd5ef
       assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_Bd.ttf:LominoUI_A_Bd
-    - object: {fileID: 1731473441, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
+    - object: {fileID: 2800000, guid: 479521f96370b384d810a07599e7b084, type: 3}
+      guid: 479521f96370b384d810a07599e7b084
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBdIt.ttf:Font
+        Texture
+    - object: {fileID: 2800000, guid: b5d2f4b9a67b1e547bd3c6538096134e, type: 3}
+      guid: b5d2f4b9a67b1e547bd3c6538096134e
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-circle-fill.png:ui-circle-fill
+    - object: {fileID: 10103, guid: 0000000000000000e000000000000000, type: 0}
+      guid: 295803fc29f44f5886c26829fcc688fe
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Library/unity
+        default resources:Font Texture
+    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
+      guid: 8236c695e72414e7889fb3f4d8226fde
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
+    - object: {fileID: 2800000, guid: 8aa85eee28ef38b46a90196fc2412c17, type: 3}
+      guid: 8aa85eee28ef38b46a90196fc2412c17
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-open.png:ui-open
+    - object: {fileID: 2800000, guid: 54694e3f0f29342c4afc1fff00f9cd7d, type: 3}
+      guid: 54694e3f0f29342c4afc1fff00f9cd7d
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-lock.png:ui-lock
+    - object: {fileID: 2100000, guid: 9c9078c06443df049a2830962f9dd5ef, type: 3}
+      guid: 9c9078c06443df049a2830962f9dd5ef
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Bd.ttf:Font
+        Material
+    - object: {fileID: 2100000, guid: 51731a8a220e240478717934f6e99543, type: 3}
+      guid: 51731a8a220e240478717934f6e99543
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBd.ttf:Font
+        Material
+    - object: {fileID: 2100000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
+      guid: adcae46baa3736748a69f9f489676bd7
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:Font
+        Material
+    - object: {fileID: 12800000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
+      guid: 1e71f539decd80f4bb2541c46a153223
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:LominoUI_A_BdIt
+    - object: {fileID: 2100000, guid: 479521f96370b384d810a07599e7b084, type: 3}
+      guid: 479521f96370b384d810a07599e7b084
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBdIt.ttf:Font
+        Material
+    - object: {fileID: 21300000, guid: d458976bb8f5d9643b22baba5aa24276, type: 3}
+      guid: d458976bb8f5d9643b22baba5aa24276
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-x.png:ui-x
+    - object: {fileID: 21300000, guid: 54694e3f0f29342c4afc1fff00f9cd7d, type: 3}
+      guid: 54694e3f0f29342c4afc1fff00f9cd7d
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-lock.png:ui-lock
+    - object: {fileID: 10912, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 2a2eb8acec5b411aa080650cd97918cd
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:Knob
+    - object: {fileID: 2800000, guid: d458976bb8f5d9643b22baba5aa24276, type: 3}
+      guid: d458976bb8f5d9643b22baba5aa24276
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-x.png:ui-x
+    - object: {fileID: 21300000, guid: b5d2f4b9a67b1e547bd3c6538096134e, type: 3}
+      guid: b5d2f4b9a67b1e547bd3c6538096134e
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-circle-fill.png:ui-circle-fill
+    - object: {fileID: 2800000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
+      guid: 2b303258409019f428ed17a87cda4ac9
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:Font
+        Texture
+    - object: {fileID: 12800000, guid: 917dc8bcba1c29c4c8bd325b59088d1c, type: 3}
+      guid: 917dc8bcba1c29c4c8bd325b59088d1c
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_Lt.ttf:LominoUI_A_Lt
+    - object: {fileID: 2100000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
+      guid: 1e71f539decd80f4bb2541c46a153223
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:Font
+        Material
+    - object: {fileID: 2800000, guid: 9c9078c06443df049a2830962f9dd5ef, type: 3}
+      guid: 9c9078c06443df049a2830962f9dd5ef
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Bd.ttf:Font
+        Texture
+    - object: {fileID: 2800000, guid: 8a2a18903d49a4f5aa1601f400d70ea3, type: 3}
+      guid: 8a2a18903d49a4f5aa1601f400d70ea3
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-unlock.png:ui-unlock
+    - object: {fileID: 21300000, guid: a884ad4503bb34a19b0d1b27f0a0bd48, type: 3}
+      guid: a884ad4503bb34a19b0d1b27f0a0bd48
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-press.png:ui-tab-press
+    - object: {fileID: 2800000, guid: 008bc648f3dc2494cabf0dab16d708f3, type: 3}
+      guid: 008bc648f3dc2494cabf0dab16d708f3
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow.png:ui-arrow
+    - object: {fileID: 2800000, guid: d0a69fcb4fcdd4a2782ebf45baaafd6d, type: 3}
+      guid: d0a69fcb4fcdd4a2782ebf45baaafd6d
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-hover.png:ui-tab-hover
+    - object: {fileID: 2800000, guid: a22450740a9224c4eb56c862e50b3fdc, type: 3}
+      guid: a22450740a9224c4eb56c862e50b3fdc
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-quit.png:ui-quit
+    - object: {fileID: 2100000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
+      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:Font
+        Material
+    - object: {fileID: 21300000, guid: 008bc648f3dc2494cabf0dab16d708f3, type: 3}
+      guid: 008bc648f3dc2494cabf0dab16d708f3
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow.png:ui-arrow
+    - object: {fileID: 2800000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
+      guid: 8401b9c91b47d6449a4be596c8138a90
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:Font
+        Texture
     - object: {fileID: -6478536213147159724, guid: 5e636ac2c2022bd40bb2e45305a431cb,
         type: 3}
       guid: 5e636ac2c2022bd40bb2e45305a431cb
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Prefab/1st
         Building 3 Wireframe.blend:Material.001
-    - object: {fileID: 2800000, guid: b3e8ecd6597d24778aae035ee9fac5bc, type: 3}
-      guid: b3e8ecd6597d24778aae035ee9fac5bc
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-downarrow.png:ui-downarrow
-    - object: {fileID: 2800000, guid: 479521f96370b384d810a07599e7b084, type: 3}
-      guid: 479521f96370b384d810a07599e7b084
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBdIt.ttf:Font
-        Texture
-    - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
+    - object: {fileID: 12800000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
+      guid: 8401b9c91b47d6449a4be596c8138a90
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:LominoUI_A_WideRg
+    - object: {fileID: -5947695216445864204, guid: 5e636ac2c2022bd40bb2e45305a431cb,
         type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Position
-    - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-      guid: 933532a4fcc9baf4fa0491de14d08ed7
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
-        Render Pipeline/Lit
-    - object: {fileID: 2800000, guid: d458976bb8f5d9643b22baba5aa24276, type: 3}
-      guid: d458976bb8f5d9643b22baba5aa24276
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-x.png:ui-x
-    - object: {fileID: 10904, guid: 0000000000000000f000000000000000, type: 0}
-      guid: ffd45a291fd5462583aa464535238e4a
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:UISprite
+      guid: 5e636ac2c2022bd40bb2e45305a431cb
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.blend:1st Building 3
     - object: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
       guid: 3dd91f0e25894887ad11a17f4b556ad8
       assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
         default resources:Quad
-    - object: {fileID: 2800000, guid: d0a69fcb4fcdd4a2782ebf45baaafd6d, type: 3}
-      guid: d0a69fcb4fcdd4a2782ebf45baaafd6d
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-hover.png:ui-tab-hover
-    - object: {fileID: 5544746641166235747, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TouchpadPosition
-    - object: {fileID: 524692942289420819, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:Unity.XR.CoreUtils.XROrigin, Unity.XR.CoreUtils:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
-    - object: {fileID: 5589497132288526109, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 5582546048739310824, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3
-    - object: {fileID: 5589497133034083133, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 12800000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
-      guid: 2b303258409019f428ed17a87cda4ac9
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:LominoUI_A_WideBd
-    - object: {fileID: 6169045109616253027, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 2800000, guid: b5d2f4b9a67b1e547bd3c6538096134e, type: 3}
-      guid: b5d2f4b9a67b1e547bd3c6538096134e
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-circle-fill.png:ui-circle-fill
-    - object: {fileID: 21300000, guid: 008bc648f3dc2494cabf0dab16d708f3, type: 3}
-      guid: 008bc648f3dc2494cabf0dab16d708f3
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow.png:ui-arrow
-    - object: {fileID: 21300000, guid: 31323a47e241dce419e4b71537080de8, type: 3}
-      guid: 31323a47e241dce419e4b71537080de8
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-location.png:ui-location
-    - object: {fileID: 1011244501761250, guid: 24158fb1437dc8e418d893939758764d, type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 477023104333596001, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3
-    - object: {fileID: 5589497133593145654, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.ARFoundation.ARSession, Unity.XR.ARFoundation:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 10103, guid: 0000000000000000e000000000000000, type: 0}
-      guid: 295803fc29f44f5886c26829fcc688fe
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Library/unity
-        default resources:Font Texture
-    - object: {fileID: 4800000, guid: 36e335017ad71d54fbb10842863188ae, type: 3}
-      guid: 36e335017ad71d54fbb10842863188ae
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader:Hidden/Core/FallbackError
-    - object: {fileID: 2800000, guid: 54694e3f0f29342c4afc1fff00f9cd7d, type: 3}
-      guid: 54694e3f0f29342c4afc1fff00f9cd7d
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-lock.png:ui-lock
-    - object: {fileID: 12800000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
-      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:LominoUI_A_WideBdIt
-    - object: {fileID: 2800000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
-      guid: 7f93338dc6150ea45b387e442e8102da
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:Font
-        Texture
-    - object: {fileID: 21300000, guid: 54694e3f0f29342c4afc1fff00f9cd7d, type: 3}
-      guid: 54694e3f0f29342c4afc1fff00f9cd7d
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-lock.png:ui-lock
-    - object: {fileID: 5589497133001389816, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-      guid: ff9f41294c884909ad624447543aed47
-      assetBundlePath: Builtin:UnityEngine.Font, UnityEngine.TextRenderingModule:Library/unity
-        default resources:LegacyRuntime
-    - object: {fileID: 21300000, guid: b5d2f4b9a67b1e547bd3c6538096134e, type: 3}
-      guid: b5d2f4b9a67b1e547bd3c6538096134e
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-circle-fill.png:ui-circle-fill
-    - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
-      guid: e6e9a19c3678ded42a3bc431ebef7dbd
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
-        Render Pipeline/FallbackError
-    - object: {fileID: 207, guid: 0000000000000000f000000000000000, type: 0}
-      guid: eea22632c50740d0abd7145d74126783
-      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
-        Shaders/Particles/Alpha Blended Premultiply
-    - object: {fileID: 21300000, guid: d458976bb8f5d9643b22baba5aa24276, type: 3}
-      guid: d458976bb8f5d9643b22baba5aa24276
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-x.png:ui-x
-    - object: {fileID: 5589497134372387911, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 4715436822718277786, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Position
-    - object: {fileID: 8623942054352416058, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3
-    - object: {fileID: 5589497133001389823, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 2800000, guid: 9c9078c06443df049a2830962f9dd5ef, type: 3}
-      guid: 9c9078c06443df049a2830962f9dd5ef
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Bd.ttf:Font
-        Texture
-    - object: {fileID: 5589497132288526111, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 1376285391053900452, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3
-    - object: {fileID: 7355625742694434231, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3 Wireframe
-    - object: {fileID: 21300000, guid: 42455ed49d7a8453aa4bae12dbde529e, type: 3}
-      guid: 42455ed49d7a8453aa4bae12dbde529e
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-default.png:ui-tab-default
-    - object: {fileID: 5589497133034083128, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 4227068377641142523, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 2100000, guid: 51731a8a220e240478717934f6e99543, type: 3}
-      guid: 51731a8a220e240478717934f6e99543
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_XBd.ttf:Font
-        Material
-    - object: {fileID: 10900, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 4c8028ab2f8748de8441e4ebca9d00a1
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:Checkmark
-    - object: {fileID: 12800000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
-      guid: 1e71f539decd80f4bb2541c46a153223
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:LominoUI_A_BdIt
-    - object: {fileID: 81260711824966714, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.AudioListener, UnityEngine.AudioModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 8775117256685371215, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
-    - object: {fileID: -2331432644492341259, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalAdditionalCameraData,
-        Unity.RenderPipelines.Universal.Runtime:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 601750489641515592, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Rotation
-    - object: {fileID: 8891581726717710060, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
-        type: 3}
-      guid: ca7507e83fcf9e441a28e8d93f6af7e2
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/1st
-        Building 3 Wireframe.prefab:1st Building 3 Wireframe
-    - object: {fileID: 5589497132891496770, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
+    - object: {fileID: 10914, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 3f442b12a6a74da08e75b501d5985cbc
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:DropdownArrow
     - object: {fileID: 12800000, guid: 479521f96370b384d810a07599e7b084, type: 3}
       guid: 479521f96370b384d810a07599e7b084
       assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_XBdIt.ttf:LominoUI_A_XBdIt
-    - object: {fileID: 21300000, guid: 8a2a18903d49a4f5aa1601f400d70ea3, type: 3}
-      guid: 8a2a18903d49a4f5aa1601f400d70ea3
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-unlock.png:ui-unlock
-    - object: {fileID: 4214550324010282, guid: 24158fb1437dc8e418d893939758764d, type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 2100000, guid: 31a726199c363df44bc494e781e37fe8, type: 2}
-      guid: 31a726199c363df44bc494e781e37fe8
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Materials/CanvasBackside.mat:CanvasBackside
-    - object: {fileID: -4607609863168903279, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Rotation
-    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
-      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
-    - object: {fileID: 1418243606, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 12800000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
-      guid: 7f93338dc6150ea45b387e442e8102da
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:LominoUI_A_WideIt
-    - object: {fileID: 2800000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
+    - object: {fileID: 2100000, guid: 2b303258409019f428ed17a87cda4ac9, type: 3}
       guid: 2b303258409019f428ed17a87cda4ac9
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:Font
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBd.ttf:Font
+        Material
+    - object: {fileID: 12800000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
+      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
+      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:LominoUI_A_WideBdIt
+    - object: {fileID: 2800000, guid: a884ad4503bb34a19b0d1b27f0a0bd48, type: 3}
+      guid: a884ad4503bb34a19b0d1b27f0a0bd48
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-press.png:ui-tab-press
+    - object: {fileID: 10916, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 6b8878542ee34b82ad3b47e7e3e48e8d
+      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:UIMask
+    - object: {fileID: 2800000, guid: 917dc8bcba1c29c4c8bd325b59088d1c, type: 3}
+      guid: 917dc8bcba1c29c4c8bd325b59088d1c
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Lt.ttf:Font
         Texture
+    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 451e6b480c2243cbbe0eaddfab2f0974
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
+    - object: {fileID: 21300000, guid: d0a69fcb4fcdd4a2782ebf45baaafd6d, type: 3}
+      guid: d0a69fcb4fcdd4a2782ebf45baaafd6d
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-tab-hover.png:ui-tab-hover
     - object: {fileID: 2800000, guid: 31323a47e241dce419e4b71537080de8, type: 3}
       guid: 31323a47e241dce419e4b71537080de8
       assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-location.png:ui-location
-    - object: {fileID: 12800000, guid: 917dc8bcba1c29c4c8bd325b59088d1c, type: 3}
-      guid: 917dc8bcba1c29c4c8bd325b59088d1c
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_Lt.ttf:LominoUI_A_Lt
-    - object: {fileID: 7155312890581622954, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 2800000, guid: 8aa85eee28ef38b46a90196fc2412c17, type: 3}
-      guid: 8aa85eee28ef38b46a90196fc2412c17
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-open.png:ui-open
-    - object: {fileID: -4319516118568744573, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Position
-    - object: {fileID: 2800000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
-      guid: 1e71f539decd80f4bb2541c46a153223
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:Font
-        Texture
-    - object: {fileID: 5589497134372387906, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 5589497133001389821, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 2800000, guid: 58c5f9f970a25b145a1a2fb202915747, type: 3}
-      guid: 58c5f9f970a25b145a1a2fb202915747
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-radial-gradient.png:ui-radial-gradient
-    - object: {fileID: 2800000, guid: f5052869a78ab274c8d7d453c35b7487, type: 3}
-      guid: f5052869a78ab274c8d7d453c35b7487
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow-solid.png:ui-arrow-solid
-    - object: {fileID: 5589497133593145652, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 5526286354170663725, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.AudioListener, UnityEngine.AudioModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 10101, guid: 0000000000000000e000000000000000, type: 0}
-      guid: 8277117b101d426c8cfaa41eca14ef35
-      assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Library/unity
-        default resources:GUI/Text Shader
     - object: {fileID: 2100000, guid: 917dc8bcba1c29c4c8bd325b59088d1c, type: 3}
       guid: 917dc8bcba1c29c4c8bd325b59088d1c
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_Lt.ttf:Font
         Material
-    - object: {fileID: 5593219067060734525, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 5589497134372387905, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 2100000, guid: 8401b9c91b47d6449a4be596c8138a90, type: 3}
-      guid: 8401b9c91b47d6449a4be596c8138a90
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideRg.ttf:Font
+    - object: {fileID: 21300000, guid: 58c5f9f970a25b145a1a2fb202915747, type: 3}
+      guid: 58c5f9f970a25b145a1a2fb202915747
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-radial-gradient.png:ui-radial-gradient
+    - object: {fileID: 21300000, guid: b3e8ecd6597d24778aae035ee9fac5bc, type: 3}
+      guid: b3e8ecd6597d24778aae035ee9fac5bc
+      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-downarrow.png:ui-downarrow
+    - object: {fileID: 2100000, guid: 170c02e10c121294486c57133d65b5cc, type: 3}
+      guid: 170c02e10c121294486c57133d65b5cc
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_LtIt.ttf:Font
         Material
-    - object: {fileID: 2800000, guid: 008bc648f3dc2494cabf0dab16d708f3, type: 3}
-      guid: 008bc648f3dc2494cabf0dab16d708f3
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow.png:ui-arrow
-    - object: {fileID: 1418243607, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 21300000, guid: f5052869a78ab274c8d7d453c35b7487, type: 3}
-      guid: f5052869a78ab274c8d7d453c35b7487
-      assetBundlePath: Custom:UnityEngine.Sprite, UnityEngine.CoreModule:Assets/Assets/Textures/ui-arrow-solid.png:ui-arrow-solid
-    - object: {fileID: 12800000, guid: adcae46baa3736748a69f9f489676bd7, type: 3}
-      guid: adcae46baa3736748a69f9f489676bd7
-      assetBundlePath: Custom:UnityEngine.Font, UnityEngine.TextRenderingModule:Assets/Assets/Fonts/LominoUI_A_Md.ttf:LominoUI_A_Md
-    - object: {fileID: 5589497132288526110, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 5589497132891496769, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
-    - object: {fileID: 10914, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 3f442b12a6a74da08e75b501d5985cbc
-      assetBundlePath: Builtin:UnityEngine.Texture2D, UnityEngine.CoreModule:Resources/unity_builtin_extra:DropdownArrow
-    - object: {fileID: 4466084576785863238, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 5850404675360181103, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MagicLeapCamera, MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133034083135, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 2800000, guid: 8a2a18903d49a4f5aa1601f400d70ea3, type: 3}
-      guid: 8a2a18903d49a4f5aa1601f400d70ea3
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Textures/New/ui-unlock.png:ui-unlock
-    - object: {fileID: 2100000, guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1, type: 3}
-      guid: 63e7f9bd47d71334aa0ffb67cc5bbfb1
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideBdIt.ttf:Font
+    - object: {fileID: 2100000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
+      guid: 7f93338dc6150ea45b387e442e8102da
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:Font
         Material
+    - object: {fileID: 2800000, guid: 7f93338dc6150ea45b387e442e8102da, type: 3}
+      guid: 7f93338dc6150ea45b387e442e8102da
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_WideIt.ttf:Font
+        Texture
+    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
+      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
+    - object: {fileID: 2800000, guid: 1e71f539decd80f4bb2541c46a153223, type: 3}
+      guid: 1e71f539decd80f4bb2541c46a153223
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/Assets/Fonts/LominoUI_A_BdIt.ttf:Font
+        Texture
     - object: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
       guid: 2e6218cf78e04c978aa3c18feb7252a5
       assetBundlePath: Builtin:UnityEngine.Sprite, UnityEngine.CoreModule:Resources/unity_builtin_extra:Checkmark
     - object: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
       guid: c1b5783039fe49b6a76a2510d9aeb38b
       assetBundlePath: Builtin:UnityEngine.Sprite, UnityEngine.CoreModule:Resources/unity_builtin_extra:Background
+    - object: {fileID: 4715436822718277786, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Position
+    - object: {fileID: 7998434591058138003, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.EventSystems.EventTrigger, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: 357688129918804043, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:Text
+        - Scene Name
+    - object: {fileID: 5582546048739310824, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
+        type: 3}
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3
+    - object: {fileID: -3730266099773404857, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Rotation
+    - object: {fileID: 716709262026818769, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TriggerButton
+    - object: {fileID: 5544746641166235747, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TouchpadPosition
     - object: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
       guid: 077987213fff4767b5dc6e40333613af
       assetBundlePath: Builtin:UnityEngine.Sprite, UnityEngine.CoreModule:Resources/unity_builtin_extra:Knob
@@ -668,15 +367,99 @@ MonoBehaviour:
     - object: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
       guid: d4b40535fd604424bf14a3af68c390f2
       assetBundlePath: Builtin:UnityEngine.Sprite, UnityEngine.CoreModule:Resources/unity_builtin_extra:DropdownArrow
-    - object: {fileID: 7998434591058138003, guid: 595bf53a41798c640b0eb12bcad31e51,
+    - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Position
+    - object: {fileID: -4607609863168903279, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Rotation
+    - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
+    - object: {fileID: 7355625742694434231, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
+        type: 3}
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3 Wireframe
+    - object: {fileID: -944628639613478452, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:MLInput
+    - object: {fileID: 2188567022586841978, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerRotation
+    - object: {fileID: 1135095490449659579, guid: 595bf53a41798c640b0eb12bcad31e51,
         type: 3}
       guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.EventSystems.EventTrigger, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: 357688129918804043, guid: 595bf53a41798c640b0eb12bcad31e51,
+      assetBundlePath: Custom:MagicLeap.Examples.UISceneSelectionButton, Assembly-CSharp:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: 5977407710341231898, guid: 8fce303e6d0a7a64ea0d22b711dade57,
+        type: 3}
+      guid: 8fce303e6d0a7a64ea0d22b711dade57
+      assetBundlePath: Custom:UnityEngine.CanvasRenderer, UnityEngine.UIModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
+    - object: {fileID: 5977407710341231893, guid: 8fce303e6d0a7a64ea0d22b711dade57,
+        type: 3}
+      guid: 8fce303e6d0a7a64ea0d22b711dade57
+      assetBundlePath: Custom:UnityEngine.RectTransform, UnityEngine.CoreModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
+    - object: {fileID: 8623942054352416058, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
+        type: 3}
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3
+    - object: {fileID: 4166490040311234227, guid: 595bf53a41798c640b0eb12bcad31e51,
         type: 3}
       guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:Text
+      assetBundlePath: Custom:UnityEngine.UI.Image, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: 6816979620590638634, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.UI.Text, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:Text
         - Scene Name
+    - object: {fileID: 5977407710341231896, guid: 8fce303e6d0a7a64ea0d22b711dade57,
+        type: 3}
+      guid: 8fce303e6d0a7a64ea0d22b711dade57
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
+    - object: {fileID: 601750489641515592, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Rotation
+    - object: {fileID: 1376285391053900452, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
+        type: 3}
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3
+    - object: {fileID: 3733390453042379695, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.RectTransform, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: 5877810208055164404, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.CanvasRenderer, UnityEngine.UIModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: -4319516118568744573, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Position
+    - object: {fileID: 971518578729158012, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerPosition
+    - object: {fileID: 5977407710341231899, guid: 8fce303e6d0a7a64ea0d22b711dade57,
+        type: 3}
+      guid: 8fce303e6d0a7a64ea0d22b711dade57
+      assetBundlePath: Custom:UnityEngine.UI.Text, UnityEngine.UI:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
+    - object: {fileID: 1477449250954466854, guid: 595bf53a41798c640b0eb12bcad31e51,
+        type: 3}
+      guid: 595bf53a41798c640b0eb12bcad31e51
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
+    - object: {fileID: 8891581726717710060, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
+        type: 3}
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3 Wireframe
     - object: {fileID: 633303460754475344, guid: 595bf53a41798c640b0eb12bcad31e51,
         type: 3}
       guid: 595bf53a41798c640b0eb12bcad31e51
@@ -692,56 +475,8 @@ MonoBehaviour:
       guid: 595bf53a41798c640b0eb12bcad31e51
       assetBundlePath: Custom:UnityEngine.UI.Shadow, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:Text
         - Scene Name
-    - object: {fileID: 2188567022586841978, guid: a7b3d28b346833f4ea10936be7a9f18c,
+    - object: {fileID: 477023104333596001, guid: ca7507e83fcf9e441a28e8d93f6af7e2,
         type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerRotation
-    - object: {fileID: 971518578729158012, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerPosition
-    - object: {fileID: 1135095490449659579, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:MagicLeap.Examples.UISceneSelectionButton, Assembly-CSharp:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: 3733390453042379695, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.RectTransform, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: 5977407710341231899, guid: 8fce303e6d0a7a64ea0d22b711dade57,
-        type: 3}
-      guid: 8fce303e6d0a7a64ea0d22b711dade57
-      assetBundlePath: Custom:UnityEngine.UI.Text, UnityEngine.UI:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
-    - object: {fileID: 5977407710341231898, guid: 8fce303e6d0a7a64ea0d22b711dade57,
-        type: 3}
-      guid: 8fce303e6d0a7a64ea0d22b711dade57
-      assetBundlePath: Custom:UnityEngine.CanvasRenderer, UnityEngine.UIModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
-    - object: {fileID: 5977407710341231893, guid: 8fce303e6d0a7a64ea0d22b711dade57,
-        type: 3}
-      guid: 8fce303e6d0a7a64ea0d22b711dade57
-      assetBundlePath: Custom:UnityEngine.RectTransform, UnityEngine.CoreModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
-    - object: {fileID: 4166490040311234227, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.UI.Image, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: 5977407710341231896, guid: 8fce303e6d0a7a64ea0d22b711dade57,
-        type: 3}
-      guid: 8fce303e6d0a7a64ea0d22b711dade57
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UserInterface_TextEntry.prefab:UserInterface_TextEntry
-    - object: {fileID: 5877810208055164404, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.CanvasRenderer, UnityEngine.UIModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: 6816979620590638634, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.UI.Text, UnityEngine.UI:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:Text
-        - Scene Name
-    - object: {fileID: 1477449250954466854, guid: 595bf53a41798c640b0eb12bcad31e51,
-        type: 3}
-      guid: 595bf53a41798c640b0eb12bcad31e51
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Assets/Prefabs/UISceneSelectionButton.prefab:UISceneSelectionButton
-    - object: {fileID: -944628639613478452, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:MLInput
+      guid: ca7507e83fcf9e441a28e8d93f6af7e2
+      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/1st
+        Building 3 Wireframe.prefab:1st Building 3
