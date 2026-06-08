@@ -6,6 +6,7 @@ TagManager:
   tags:
   - CodeButton
   - GazeDestroyTarget
+  - Invisible
   layers:
   - Default
   - TransparentFX
@@ -20,7 +21,7 @@ TagManager:
   - 
   - 
   - 
-  - 
+  - Invisible
   - 
   - 
   - 
