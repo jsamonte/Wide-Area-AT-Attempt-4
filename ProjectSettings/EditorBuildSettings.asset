@@ -44,11 +44,11 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/PermanenceMarkerTracking 1.unity
     guid: d524c9c6355d287439021d6d8f9c8547
-  - enabled: 1
+  - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/HeadAndEyeTracking.unity
     guid: 4ba4b7a1597406c41976aea605dc5184
-  - enabled: 0
-    path: Assets/EyeGaze/Assets/Scenes/PermanenceMarkerTracking 1.unity
+  - enabled: 1
+    path: Assets/EyeGaze/Assets/Scenes/ArUcoSpatialAnchor.unity
     guid: 2c6897f248478394585a041c876be37c
   - enabled: 0
     path: Assets/Scenes/BuildingWireframe.unity

@@ -338,6 +338,14 @@
       },
       "url": "https://packages.unity.com"
     },
+    "com.xgrids.lccsdk": {
+      "version": "file:C:/Users/yujnkm/Documents/LCCSDK(v2.0.14)",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.6"
+      }
+    },
     "fr.liris.plume.recorder": {
       "version": "https://github.com/liris-xr/PLUME-Recorder.git",
       "depth": 0,
