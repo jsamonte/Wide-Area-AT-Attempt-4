@@ -1,6 +1,7 @@
 // ArucoTriggeredSpatialAnchor.cs
-// Fixed version — handles nullable MarkerNumber from Magic Leap API.
-// Per-ArUco offset/scale/rotation + automatic spatial anchor creation + publish.
+// Final version - Prefab + Spatial Anchor lock to LAST KNOWN position of the ArUco.
+// While tracked: updates live. When lost: freezes at last good pose.
+// One anchor per ArUco ID. Full per-ArUco offset/scale/rotation support.
 
 using System;
 using System.Collections;
@@ -20,7 +21,7 @@ using Unity.XR.CoreUtils;
 
 public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 {
-    [Header("=== ARUCO → PREFAB MAPPINGS (one row per ArUco code) ===")]
+    [Header("=== ARUCO → PREFAB MAPPINGS ===")]
     [SerializeField] private List<ArucoPrefabMapping> arucoMappings = new List<ArucoPrefabMapping>();
 
     [Header("Global ArUco Detector Settings")]
@@ -28,14 +29,13 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
     [SerializeField] private float arucoPhysicalLengthMeters = 0.15f;
     [SerializeField] private bool estimateArucoLength = false;
 
-    [Header("XR Origin (auto-found if empty)")]
+    [Header("XR Origin")]
     [SerializeField] private XROrigin xrOrigin;
 
-    // Internal state
+    // State
     private MagicLeapMarkerUnderstandingFeature markerFeature;
     private MagicLeapSpatialAnchorsFeature spatialAnchorsFeature;
     private MagicLeapSpatialAnchorsStorageFeature storageFeature;
-    private MagicLeapLocalizationMapFeature localizationMapFeature;
     private MLXrAnchorSubsystem activeSubsystem;
 
     private Dictionary<ulong, ARAnchor> createdAnchorsByArucoID = new Dictionary<ulong, ARAnchor>();
@@ -52,17 +52,10 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         public GameObject prefab;
 
         [Header("Per-ArUco Settings (marker local space)")]
-        [Tooltip("Left (negative) / Right (positive) — along marker X")]
         public float offsetX = 0f;
-        [Tooltip("Down (negative) / Up (positive) — along marker Y")]
         public float offsetY = 0f;
-        [Tooltip("Backward (negative) / Forward (positive) — along marker Z")]
         public float offsetZ = 0f;
-
-        [Tooltip("Scale multiplier relative to the physical ArUco size")]
         public float scaleMultiplier = 1.0f;
-
-        [Tooltip("Rotation offset in degrees (X is most commonly used, e.g. 270 or 275)")]
         public Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
     }
 
@@ -79,11 +72,10 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
         spatialAnchorsFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsFeature>();
         storageFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsStorageFeature>();
-        localizationMapFeature = OpenXRSettings.Instance.GetFeature<MagicLeapLocalizationMapFeature>();
 
         if (markerFeature == null || spatialAnchorsFeature == null || storageFeature == null)
         {
-            Debug.LogError("❌ Required Magic Leap features missing. Enable Marker Understanding + Spatial Anchors in OpenXR settings.");
+            Debug.LogError("❌ Required Magic Leap features missing. Enable them in OpenXR settings.");
             enabled = false;
             yield break;
         }
@@ -124,13 +116,12 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 
         markerFeature.CreateMarkerDetector(settings);
         hasInitializedDetector = true;
-        Debug.Log($"✅ ArUco detector ready (dictionary: {arucoDictionary}, size: {arucoPhysicalLengthMeters * 1000f} mm)");
+        Debug.Log($"✅ ArUco detector ready");
     }
 
     private void OnSpacePermissionGranted(string permission)
     {
         permissionGranted = true;
-        Debug.Log("✅ Space permission granted. Auto-publish enabled.");
         if (storageFeature != null && xrOrigin != null)
             storageFeature.QueryStoredSpatialAnchors(xrOrigin.transform.position, 15f);
     }
@@ -138,7 +129,6 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
     private void OnPermissionDenied(string permission)
     {
         permissionGranted = false;
-        Debug.LogError("Publishing disabled — SpaceImportExport permission required.");
     }
 
     void Update()
@@ -153,19 +143,24 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 
             foreach (var data in detector.Data)
             {
-                // === FIX: Handle nullable MarkerNumber from Magic Leap API ===
                 if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
 
-                ulong id = data.MarkerNumber.Value;           // safe unwrap
+                ulong id = data.MarkerNumber.Value;
                 Pose pose = data.MarkerPose.Value;
 
-                if (pose.position.sqrMagnitude < 0.0001f) continue; // skip bad/zero poses
+                if (pose.position.sqrMagnitude < 0.0001f) continue;
 
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
                 if (mapping == null || mapping.prefab == null) continue;
 
-                if (createdAnchorsByArucoID.ContainsKey(id)) continue; // only ONE anchor per ArUco
+                // If we already created an anchor for this ID, just update the visual to current pose
+                if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existingAnchor) && existingAnchor != null)
+                {
+                    UpdateInstanceTransform(existingAnchor.gameObject, mapping, pose);
+                    continue;
+                }
 
+                // First time → create prefab + spatial anchor at current pose
                 CreateAndPublishAnchorFromMarker(id, mapping, pose);
             }
         }
@@ -175,7 +170,6 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 
     private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerRelativePose)
     {
-        // World-space transform using XROrigin (prevents lag/jitter)
         Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
             ? xrOrigin.CameraFloorOffsetObject.transform
             : null;
@@ -183,18 +177,35 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
         Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
 
-        // Spawn
         GameObject instance = Instantiate(mapping.prefab, markerWorldPos, markerWorldRot);
         instance.SetActive(true);
 
         ARAnchor arAnchor = instance.AddComponent<ARAnchor>();
-        var renderer = instance.GetComponent<MeshRenderer>();
-        if (renderer != null) renderer.material.color = Color.grey;
+        var rend = instance.GetComponent<MeshRenderer>();
+        if (rend != null) rend.material.color = Color.grey;
 
         createdAnchorsByArucoID[arucoID] = arAnchor;
         localAnchors.Add(arAnchor);
 
-        // === Apply YOUR per-ArUco offset / scale / rotation ===
+        // Apply per-ArUco settings
+        UpdateInstanceTransform(instance, mapping, markerRelativePose);
+
+        Debug.Log($"✅ Created + published spatial anchor for ArUco {arucoID} at last known position");
+
+        PublishSingleAnchor(arAnchor);
+    }
+
+    private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerRelativePose)
+    {
+        if (instance == null) return;
+
+        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
+            ? xrOrigin.CameraFloorOffsetObject.transform
+            : null;
+
+        Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
+        Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
+
         Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
         Vector3 worldOffset = markerWorldRot * localOffset;
         Vector3 finalPos = markerWorldPos + worldOffset;
@@ -204,10 +215,6 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 
         instance.transform.SetPositionAndRotation(finalPos, finalRot);
         instance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
-
-        Debug.Log($"✅ Anchor created + published for ArUco {arucoID}");
-
-        PublishSingleAnchor(arAnchor);
     }
 
     private void PublishSingleAnchor(ARAnchor anchor)

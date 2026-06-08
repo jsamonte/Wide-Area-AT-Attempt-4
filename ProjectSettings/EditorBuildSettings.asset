@@ -48,11 +48,14 @@ EditorBuildSettings:
     path: Assets/EyeGaze/Assets/Scenes/HeadAndEyeTracking.unity
     guid: 4ba4b7a1597406c41976aea605dc5184
   - enabled: 1
-    path: Assets/EyeGaze/Assets/Scenes/ArUcoSpatialAnchor.unity
+    path: Assets/EyeGaze/Assets/Scenes/Everything Demo.unity
     guid: 2c6897f248478394585a041c876be37c
   - enabled: 0
     path: Assets/Scenes/BuildingWireframe.unity
     guid: b4e4ff552e475a044a51ee9fd89810c5
+  - enabled: 0
+    path: Assets/EyeGaze/Assets/Scenes/ArUcoSpatialAnchor.unity
+    guid: 44fda451c7cc7134bb955d33cc1c1abf
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
