@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Android;
-using Logger = LearnXR.Core.Logger;
 
 public class EyeAndHeadTracker : MonoBehaviour
 {
@@ -174,7 +173,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                 .Where(r => r != null)
                 .ToArray();
 
-            Logger.Instance.LogInfo($"Found {targetRenderers.Length} GazeDestroyTarget objects.");
+            Debug.Log($"Found {targetRenderers.Length} GazeDestroyTarget objects.");
         }
 
         if (Application.platform == RuntimePlatform.Android)
@@ -414,7 +413,7 @@ public class EyeAndHeadTracker : MonoBehaviour
             string json = JsonUtility.ToJson(root, true);
             File.WriteAllText(summaryPath, json);
 
-            Logger.Instance.LogInfo($"✅ Summary saved: {summaryPath}");
+            Debug.Log($"✅ Summary saved: {summaryPath}");
 
             // Optional combined JSON with trackingData array (your requested format)
             if (alsoExportCombinedJson && !useEfficientRawLogging && trackingFrames.Count > 0)
@@ -427,7 +426,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
                 string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}.json");
                 File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
-                Logger.Instance.LogInfo($"Combined tracking JSON saved: {combinedPath}");
+                Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }
 
             if (rawNdjsonWriter != null)
@@ -438,7 +437,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         }
         catch (Exception ex)
         {
-            Logger.Instance.LogError($"Save failed: {ex.Message}");
+            Debug.LogError($"Save failed: {ex.Message}");
             Debug.LogError(ex);
         }
     }

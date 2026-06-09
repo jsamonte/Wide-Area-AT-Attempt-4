@@ -56,6 +56,9 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/ArUcoSpatialAnchor.unity
     guid: 44fda451c7cc7134bb955d33cc1c1abf
+  - enabled: 0
+    path: Assets/Scenes/Permanence Demo.unity
+    guid: 936edb011dc934543be59d9919316ffe
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
