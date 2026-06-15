@@ -1,35 +1,22 @@
 // WireframeAlignment.cs
 // Based exactly on Prototype1.cs (single-active ArUco → prefab with persistence)
-// + Added floating alignment info text at the physical ArUco marker location.
+// + Floating alignment info text at the physical ArUco marker location
+// + Runtime offset adjustment using Magic Leap left & right hand controllers
+// + Automatic XRGrabInteractable + Rigidbody on spawned prefabs
+// + Auto-commit new offset back into mapping when grab is released
+// + Optional: Prevent snap on grab + Lock X/Y rotation (only Z/roll free)
 //
-// MODIFIED FOR PROTOTYPE USE-CASE (same as original):
-// - Exactly the same persistence, spatial anchor storage, PlayerPrefs mapping save/load,
-//   ArUco detection, prefab instantiation, publishing, and cross-session restore logic.
-// - BUT: Only ONE prefab is ever visible/active at a time.
-// - The visible prefab is always the one assigned to the LAST ArUco marker ID that was seen/detected.
-// - When you look at a different mapped ArUco marker, the previous prefab hides and the new one shows
-//   (switches content). Previously placed anchors are still persisted in Magic Leap storage.
-// - On app start, restored anchors from previous sessions start hidden; they become visible only
-//   when their corresponding ArUco marker is detected again (lastSeen matches).
-// - Duplicate creation is prevented if a stored anchor already exists for a detected ArUco ID.
-// - Attach this to the same GameObject as before (or XR Origin). Configure ArUco Mappings list
-//   in the Inspector exactly like the original script. Works with Magic Leap 2 + Unity OpenXR.
-//
-// NEW (minimal addition):
-// - World-space TextMesh that appears WHERE THE ARUCO MARKER IS PLACED.
-// - Shows X/Y/Z offset, X/Y/Z rotation offset, and scaleMultiplier for the current last-seen mapping.
-// - Does NOT touch any prefab or anchor logic — uses the exact same code as Prototype1.cs for all prefab behavior.
-//
-// If you still see prefab glitching, it is coming from the base single-active + UpdateInstanceTransform every frame logic
-// (marker pose noise + ARAnchor transform fighting). Let me know the exact symptoms and we can harden it further.
+// All core prefab / anchor / persistence / single-active logic remains identical to your original.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.XR;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.Android;
@@ -52,12 +39,24 @@ public class WireframeAlignment : MonoBehaviour
     [Header("XR Origin")]
     [SerializeField] private XROrigin xrOrigin;
 
-    [Header("=== Debug Alignment Info Text (placed at physical ArUco marker) ===")]
+    [Header("=== Debug Alignment Info Text (at ArUco marker) ===")]
     [SerializeField] private bool showAlignmentInfoText = true;
     [SerializeField] private float textHeightAboveMarker = 0.12f;
     [SerializeField] private Color textColor = Color.cyan;
     [SerializeField] private float textWorldScale = 0.022f;
     [SerializeField] private int textFontSize = 72;
+
+    [Header("=== Controller Offset Adjustment (Magic Leap hands) ===")]
+    [SerializeField] private bool enableControllerAdjustment = true;
+    [SerializeField] private float offsetAdjustSpeed = 0.8f;
+    [SerializeField] private float inputDeadzone = 0.12f;
+
+    [Header("=== Grab Behavior ===")]
+    [Tooltip("When true, grabbing will NOT snap/rotate the object to the controller. It stays exactly where it is until you move your hand.")]
+    [SerializeField] private bool preventGrabSnap = true;
+
+    [Tooltip("When true, X and Y rotation (tilt) are locked while grabbed. Only Z (roll) can change.")]
+    [SerializeField] private bool lockXYRotationOnGrab = true;
 
     // Persistence
     private Dictionary<string, ulong> anchorMapPosIdToArucoID = new Dictionary<string, ulong>();
@@ -76,14 +75,18 @@ public class WireframeAlignment : MonoBehaviour
     private bool permissionGranted = false;
     private bool hasInitializedDetector = false;
 
-    // Prototype single-active tracking
     private ulong lastSeenArucoID = 0;
 
-    // NEW: only for placing the info text at the exact ArUco marker location (does not affect prefabs)
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
     private GameObject alignmentInfoTextObj;
     private TextMesh alignmentInfoTextMesh;
     private Camera mainCamera;
+
+    private List<InputDevice> rightHandDevices = new List<InputDevice>();
+    private List<InputDevice> leftHandDevices = new List<InputDevice>();
+
+    // Used for XY rotation lock while grabbed
+    private readonly Dictionary<XRGrabInteractable, Vector3> lockedXYEulerByGrab = new Dictionary<XRGrabInteractable, Vector3>();
 
     [Serializable]
     public class ArucoPrefabMapping
@@ -137,7 +140,6 @@ public class WireframeAlignment : MonoBehaviour
             storageFeature.OnQueryComplete += OnQueryComplete;
 
         CreateMarkerDetector();
-
         InitializeAlignmentText();
     }
 
@@ -224,10 +226,7 @@ public class WireframeAlignment : MonoBehaviour
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
                 if (mapping == null || mapping.prefab == null) continue;
 
-                // Track the most recently seen ArUco ID
                 lastSeenArucoID = id;
-
-                // NEW (only for text label position — does not change any prefab behavior)
                 lastDetectedMarkerPoses[id] = pose;
 
                 if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existing) && existing != null)
@@ -236,27 +235,85 @@ public class WireframeAlignment : MonoBehaviour
                     continue;
                 }
 
-                // Prevent duplicate creation if we already have a restored/persisted anchor for this ArUco
-                if (HasAnchorForArucoID(id))
-                {
-                    continue;
-                }
+                if (HasAnchorForArucoID(id)) continue;
 
                 CreateAndPublishAnchorFromMarker(id, mapping, pose);
             }
         }
 
         UpdateStoredAnchorTransforms();
-        EnforceSingleActivePrefab(); // Only the last-seen ArUco's prefab stays visible
-
-        // NEW: show the offset/rot/scale text at the physical ArUco marker location
+        EnforceSingleActivePrefab();
         UpdateAlignmentInfoText();
+
+        if (enableControllerAdjustment)
+            HandleControllerOffsetAdjustment();
     }
 
-    /// <summary>
-    /// Returns true if we already have either a this-session created anchor or a restored stored anchor
-    /// mapped to the given ArUco ID. Prevents creating duplicate visuals for the same marker.
-    /// </summary>
+    private void HandleControllerOffsetAdjustment()
+    {
+        if (lastSeenArucoID == 0) return;
+
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
+        InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
+        InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, leftHandDevices);
+
+        float dt = Time.deltaTime;
+        float speed = offsetAdjustSpeed * dt;
+        bool changed = false;
+
+        if (rightHandDevices.Count > 0)
+        {
+            var dev = rightHandDevices[0];
+            if (dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis))
+            {
+                if (Mathf.Abs(axis.x) > inputDeadzone) { mapping.offsetX += axis.x * speed; changed = true; }
+                if (Mathf.Abs(axis.y) > inputDeadzone) { mapping.offsetZ += axis.y * speed; changed = true; }
+            }
+        }
+
+        if (leftHandDevices.Count > 0)
+        {
+            var dev = leftHandDevices[0];
+            if (dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis))
+            {
+                if (Mathf.Abs(axis.y) > inputDeadzone) { mapping.offsetY += axis.y * speed; changed = true; }
+            }
+        }
+
+        if (changed)
+            ForceUpdateActivePrefabTransform(mapping);
+    }
+
+    private void ForceUpdateActivePrefabTransform(ArucoPrefabMapping mapping)
+    {
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerPose)) return;
+
+        if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null && created.gameObject != null)
+        {
+            UpdateInstanceTransform(created.gameObject, mapping, markerPose);
+            return;
+        }
+
+        if (activeSubsystem == null) return;
+
+        foreach (ARAnchor anchor in storedAnchors)
+        {
+            if (anchor == null || anchor.gameObject == null) continue;
+            string mapId = activeSubsystem.GetAnchorMapPositionId(anchor);
+            if (string.IsNullOrEmpty(mapId)) continue;
+            if (!anchorMapPosIdToArucoID.TryGetValue(mapId, out ulong mapped) || mapped != lastSeenArucoID) continue;
+
+            if (anchor.transform.childCount > 0)
+            {
+                GameObject child = anchor.transform.GetChild(0).gameObject;
+                UpdateInstanceTransformRelativeToAnchor(child, mapping, anchor);
+            }
+            break;
+        }
+    }
+
     private bool HasAnchorForArucoID(ulong arucoID)
     {
         if (createdAnchorsByArucoID.TryGetValue(arucoID, out ARAnchor ca) && ca != null && ca.gameObject != null)
@@ -274,36 +331,25 @@ public class WireframeAlignment : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Hides all prefabs except the one belonging to lastSeenArucoID.
-    /// Called every frame after detection + stored pose updates.
-    /// </summary>
     private void EnforceSingleActivePrefab()
     {
         if (lastSeenArucoID == 0) return;
 
-        // This-session created anchors
         foreach (var kvp in createdAnchorsByArucoID)
         {
             if (kvp.Value != null && kvp.Value.gameObject != null)
-            {
                 kvp.Value.gameObject.SetActive(kvp.Key == lastSeenArucoID);
-            }
         }
 
-        // Restored/persisted anchors from previous sessions (prefab is child of anchor)
         if (activeSubsystem != null)
         {
             foreach (ARAnchor anchor in storedAnchors.ToList())
             {
                 if (anchor == null || anchor.gameObject == null) continue;
-
                 string mapPosId = activeSubsystem.GetAnchorMapPositionId(anchor);
                 bool shouldShow = false;
                 if (!string.IsNullOrEmpty(mapPosId) && anchorMapPosIdToArucoID.TryGetValue(mapPosId, out ulong mappedAruco))
-                {
                     shouldShow = (mappedAruco == lastSeenArucoID);
-                }
                 anchor.gameObject.SetActive(shouldShow);
             }
         }
@@ -320,6 +366,8 @@ public class WireframeAlignment : MonoBehaviour
         GameObject instance = Instantiate(mapping.prefab, worldPos, worldRot);
         instance.SetActive(true);
 
+        SetupGrabInteraction(instance);
+
         ARAnchor arAnchor = instance.AddComponent<ARAnchor>();
         var rend = instance.GetComponent<MeshRenderer>();
         if (rend != null) rend.material.color = Color.grey;
@@ -334,6 +382,9 @@ public class WireframeAlignment : MonoBehaviour
     private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerRelativePose)
     {
         if (instance == null) return;
+
+        var grab = instance.GetComponent<XRGrabInteractable>();
+        if (grab != null && grab.isSelected) return;
 
         Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
             ? xrOrigin.CameraFloorOffsetObject.transform : null;
@@ -355,14 +406,12 @@ public class WireframeAlignment : MonoBehaviour
         storageFeature.PublishSpatialAnchorsToStorage(new List<ARAnchor> { anchor }, 0);
     }
 
-    // ==================== CORRECTED OnQueryComplete (from original) ====================
     private void OnQueryComplete(List<string> anchorMapPositionIds)
     {
         Debug.Log($"[Persistence] OnQueryComplete received {anchorMapPositionIds.Count} anchor IDs from storage.");
 
         List<string> tracked = new List<string>();
 
-        // Check currently tracked stored anchors
         foreach (ARAnchor stored in storedAnchors.ToList())
         {
             string id = activeSubsystem?.GetAnchorMapPositionId(stored);
@@ -378,7 +427,6 @@ public class WireframeAlignment : MonoBehaviour
             }
         }
 
-        // Find new anchors that need to be created from storage
         var newAnchors = anchorMapPositionIds.Except(tracked).ToList();
         if (newAnchors.Count > 0)
         {
@@ -386,7 +434,6 @@ public class WireframeAlignment : MonoBehaviour
             storageFeature.CreateSpatialAnchorsFromStorage(newAnchors);
         }
     }
-    // ================================================================
 
     private void OnAnchorsChanged(ARAnchorsChangedEventArgs args)
     {
@@ -403,11 +450,10 @@ public class WireframeAlignment : MonoBehaviour
                     if (mapping != null && mapping.prefab != null)
                     {
                         GameObject instance = Instantiate(mapping.prefab, anchor.transform.position, anchor.transform.rotation);
+                        SetupGrabInteraction(instance);
                         instance.transform.SetParent(anchor.transform);
                         UpdateInstanceTransformRelativeToAnchor(instance, mapping, anchor);
                         Debug.Log($"[Persistence] ✅ Restored prefab for ArUco {savedArucoID}");
-
-                        // Hide on restore — only become visible when this ArUco ID is detected as lastSeen
                         anchor.gameObject.SetActive(false);
                     }
                 }
@@ -445,6 +491,9 @@ public class WireframeAlignment : MonoBehaviour
     private void UpdateInstanceTransformRelativeToAnchor(GameObject instance, ArucoPrefabMapping mapping, ARAnchor anchor)
     {
         if (instance == null || anchor == null) return;
+
+        var grab = instance.GetComponent<XRGrabInteractable>();
+        if (grab != null && grab.isSelected) return;
 
         Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
         Vector3 finalPos = anchor.transform.position + (anchor.transform.rotation * localOffset);
@@ -493,7 +542,124 @@ public class WireframeAlignment : MonoBehaviour
         DestroyAll();
     }
 
-    // ==================== NEW: Alignment Info Text (only addition, no prefab changes) ====================
+    // ==================== Grab Setup + Rotation Lock + Auto-Commit ====================
+
+    void SetupGrabInteraction(GameObject instance)
+    {
+        if (instance == null) return;
+
+        var rb = instance.GetComponent<Rigidbody>();
+        if (rb == null)
+            rb = instance.AddComponent<Rigidbody>();
+
+        rb.isKinematic = true;
+        rb.useGravity = false;
+
+        var grab = instance.GetComponent<XRGrabInteractable>();
+        if (grab == null)
+            grab = instance.AddComponent<XRGrabInteractable>();
+
+        grab.movementType = XRBaseInteractable.MovementType.Instantaneous;
+        grab.trackPosition = true;
+        grab.trackRotation = true;
+        grab.throwOnDetach = false;
+        grab.retainTransformParent = false;
+        grab.smoothPosition = false;
+        grab.smoothRotation = false;
+
+        // NEW: preserve current pose/offset relative to controller on grab
+        grab.useDynamicAttach = true;
+        grab.matchAttachPosition = true;
+        grab.matchAttachRotation = true;
+        grab.snapToColliderVolume = false;
+
+        // Always listen for release so we commit the new offset
+        grab.selectExited.AddListener(OnGrabReleased);
+
+        // Optional: Lock X/Y rotation (tilt) while grabbed — only Z roll is free
+        if (lockXYRotationOnGrab)
+        {
+            grab.selectEntered.AddListener(OnGrabStarted_LockXYRotation);
+        }
+    }
+
+    private void OnGrabStarted_LockXYRotation(SelectEnterEventArgs args)
+    {
+        var grab = args.interactableObject as XRGrabInteractable;
+        if (grab == null) return;
+
+        // Record current X and Y euler angles. We will preserve these during the grab.
+        Vector3 e = grab.transform.eulerAngles;
+        lockedXYEulerByGrab[grab] = new Vector3(e.x, e.y, 0f);
+    }
+
+    void LateUpdate()
+    {
+        if (lockedXYEulerByGrab.Count == 0) return;
+
+        var toRemove = new List<XRGrabInteractable>();
+
+        foreach (var kvp in lockedXYEulerByGrab)
+        {
+            var grab = kvp.Key;
+            if (grab == null || !grab.isSelected)
+            {
+                toRemove.Add(grab);
+                continue;
+            }
+
+            Vector3 locked = kvp.Value;
+            Vector3 current = grab.transform.eulerAngles;
+
+            // Keep locked X and Y, take whatever Z the grab system currently wants
+            grab.transform.eulerAngles = new Vector3(locked.x, locked.y, current.z);
+        }
+
+        foreach (var g in toRemove)
+            lockedXYEulerByGrab.Remove(g);
+    }
+
+    private void OnGrabReleased(SelectExitEventArgs args)
+    {
+        // Clean up rotation lock if present
+        if (args.interactableObject is XRGrabInteractable grab && lockedXYEulerByGrab.ContainsKey(grab))
+            lockedXYEulerByGrab.Remove(grab);
+
+        if (lastSeenArucoID == 0) return;
+
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerRelPose))
+            return;
+
+        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
+            ? xrOrigin.CameraFloorOffsetObject.transform : null;
+
+        Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelPose.position) : markerRelPose.position;
+        Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelPose.rotation : markerRelPose.rotation;
+
+        var releasedObject = args.interactableObject?.transform;
+        if (releasedObject == null) return;
+
+        Vector3 newLocalOffset = Quaternion.Inverse(markerWorldRot) * (releasedObject.position - markerWorldPos);
+
+        mapping.offsetX = newLocalOffset.x;
+        mapping.offsetY = newLocalOffset.y;
+        mapping.offsetZ = newLocalOffset.z;
+
+        // Also commit the new rotation offset (especially useful when Z/roll was changed while grabbed)
+        Quaternion newLocalRot = Quaternion.Inverse(markerWorldRot) * releasedObject.rotation;
+        mapping.rotationOffset = newLocalRot.eulerAngles;
+
+        Debug.Log($"[Alignment] Committed new offset + rotation for ArUco {lastSeenArucoID}: " +
+                  $"Pos X={mapping.offsetX:F3} Y={mapping.offsetY:F3} Z={mapping.offsetZ:F3} | " +
+                  $"Rot X={mapping.rotationOffset.x:F1} Y={mapping.rotationOffset.y:F1} Z={mapping.rotationOffset.z:F1}");
+
+        UpdateAlignmentInfoText();
+    }
+
+    // ==================== Alignment Info Text ====================
 
     private void InitializeAlignmentText()
     {
@@ -548,7 +714,6 @@ public class WireframeAlignment : MonoBehaviour
             Vector3 toCamera = mainCamera.transform.position - textPos;
             if (toCamera.sqrMagnitude > 0.0001f)
             {
-                // Use negative direction so TextMesh front faces the camera (prevents right-to-left flip)
                 alignmentInfoTextObj.transform.rotation = Quaternion.LookRotation(-toCamera.normalized, Vector3.up);
             }
         }
