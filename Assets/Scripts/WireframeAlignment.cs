@@ -3,10 +3,8 @@
 // + Floating alignment info text at the physical ArUco marker location
 // + Runtime offset adjustment using Magic Leap left & right hand controllers
 // + Automatic XRGrabInteractable + Rigidbody on spawned prefabs
-// + Auto-commit new offset back into mapping when grab is released
-// + Optional: Prevent snap on grab + Lock X/Y rotation (only Z/roll free)
-//
-// All core prefab / anchor / persistence / single-active logic remains identical to your original.
+// + Auto-commit new offset + rotation + scale when grab is released
+// + Lock X/Y rotation while grabbed (hardcoded behavior) + Scale adjustment
 
 using System;
 using System.Collections;
@@ -52,11 +50,14 @@ public class WireframeAlignment : MonoBehaviour
     [SerializeField] private float inputDeadzone = 0.12f;
 
     [Header("=== Grab Behavior ===")]
-    [Tooltip("When true, grabbing will NOT snap/rotate the object to the controller. It stays exactly where it is until you move your hand.")]
+    [Tooltip("When true, grabbing will NOT snap/rotate the object to the controller.")]
     [SerializeField] private bool preventGrabSnap = true;
 
     [Tooltip("When true, X and Y rotation (tilt) are locked while grabbed. Only Z (roll) can change.")]
     [SerializeField] private bool lockXYRotationOnGrab = true;
+
+    [Tooltip("How fast scale changes while grabbed (Right thumbstick vertical).")]
+    [SerializeField] private float scaleAdjustSpeed = 0.6f;
 
     // Persistence
     private Dictionary<string, ulong> anchorMapPosIdToArucoID = new Dictionary<string, ulong>();
@@ -85,7 +86,7 @@ public class WireframeAlignment : MonoBehaviour
     private List<InputDevice> rightHandDevices = new List<InputDevice>();
     private List<InputDevice> leftHandDevices = new List<InputDevice>();
 
-    // Used for XY rotation lock while grabbed
+    // Rotation lock data
     private readonly Dictionary<XRGrabInteractable, Vector3> lockedXYEulerByGrab = new Dictionary<XRGrabInteractable, Vector3>();
 
     [Serializable]
@@ -245,8 +246,31 @@ public class WireframeAlignment : MonoBehaviour
         EnforceSingleActivePrefab();
         UpdateAlignmentInfoText();
 
-        if (enableControllerAdjustment)
+        // Only adjust offset when nothing is grabbed
+        if (enableControllerAdjustment && !IsAnyActiveObjectGrabbed())
             HandleControllerOffsetAdjustment();
+    }
+
+    private bool IsAnyActiveObjectGrabbed()
+    {
+        if (lastSeenArucoID == 0) return false;
+
+        if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null)
+        {
+            var grab = created.GetComponent<XRGrabInteractable>();
+            if (grab != null && grab.isSelected) return true;
+        }
+
+        foreach (var anchor in storedAnchors)
+        {
+            if (anchor != null && anchor.transform.childCount > 0)
+            {
+                var child = anchor.transform.GetChild(0).gameObject;
+                var grab = child.GetComponent<XRGrabInteractable>();
+                if (grab != null && grab.isSelected) return true;
+            }
+        }
+        return false;
     }
 
     private void HandleControllerOffsetAdjustment()
@@ -542,7 +566,7 @@ public class WireframeAlignment : MonoBehaviour
         DestroyAll();
     }
 
-    // ==================== Grab Setup + Rotation Lock + Auto-Commit ====================
+    // ==================== Grab + Rotation Lock + Scale + Commit ====================
 
     void SetupGrabInteraction(GameObject instance)
     {
@@ -571,12 +595,10 @@ public class WireframeAlignment : MonoBehaviour
         grab.useDynamicAttach = true;
         grab.matchAttachPosition = true;
         grab.matchAttachRotation = true;
-        grab.snapToColliderVolume = false;
+        grab.snapToColliderVolume = false; // don't re-center on the collider either
 
-        // Always listen for release so we commit the new offset
         grab.selectExited.AddListener(OnGrabReleased);
 
-        // Optional: Lock X/Y rotation (tilt) while grabbed — only Z roll is free
         if (lockXYRotationOnGrab)
         {
             grab.selectEntered.AddListener(OnGrabStarted_LockXYRotation);
@@ -588,40 +610,90 @@ public class WireframeAlignment : MonoBehaviour
         var grab = args.interactableObject as XRGrabInteractable;
         if (grab == null) return;
 
-        // Record current X and Y euler angles. We will preserve these during the grab.
+        // Record current X and Y so we can hard-lock them
         Vector3 e = grab.transform.eulerAngles;
         lockedXYEulerByGrab[grab] = new Vector3(e.x, e.y, 0f);
     }
 
     void LateUpdate()
     {
-        if (lockedXYEulerByGrab.Count == 0) return;
-
-        var toRemove = new List<XRGrabInteractable>();
-
-        foreach (var kvp in lockedXYEulerByGrab)
+        // === XY Rotation Lock (hardcoded lock while grabbed) ===
+        if (lockedXYEulerByGrab.Count > 0)
         {
-            var grab = kvp.Key;
-            if (grab == null || !grab.isSelected)
+            var toRemove = new List<XRGrabInteractable>();
+
+            foreach (var kvp in lockedXYEulerByGrab)
             {
-                toRemove.Add(grab);
-                continue;
+                var grab = kvp.Key;
+                if (grab == null || !grab.isSelected)
+                {
+                    toRemove.Add(grab);
+                    continue;
+                }
+
+                Vector3 locked = kvp.Value;
+                Vector3 current = grab.transform.eulerAngles;
+
+                // Hard lock X and Y, allow Z
+                grab.transform.eulerAngles = new Vector3(locked.x, locked.y, current.z);
             }
 
-            Vector3 locked = kvp.Value;
-            Vector3 current = grab.transform.eulerAngles;
-
-            // Keep locked X and Y, take whatever Z the grab system currently wants
-            grab.transform.eulerAngles = new Vector3(locked.x, locked.y, current.z);
+            foreach (var g in toRemove)
+                lockedXYEulerByGrab.Remove(g);
         }
 
-        foreach (var g in toRemove)
-            lockedXYEulerByGrab.Remove(g);
+        // === Scale while grabbed (Right thumbstick vertical) ===
+        if (lastSeenArucoID == 0) return;
+
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
+        GameObject grabbedObject = null;
+
+        if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null)
+        {
+            var grab = created.GetComponent<XRGrabInteractable>();
+            if (grab != null && grab.isSelected) grabbedObject = created.gameObject;
+        }
+        else
+        {
+            foreach (var anchor in storedAnchors)
+            {
+                if (anchor != null && anchor.transform.childCount > 0)
+                {
+                    var child = anchor.transform.GetChild(0).gameObject;
+                    var grab = child.GetComponent<XRGrabInteractable>();
+                    if (grab != null && grab.isSelected)
+                    {
+                        grabbedObject = child;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (grabbedObject != null)
+        {
+            InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
+            if (rightHandDevices.Count > 0)
+            {
+                var dev = rightHandDevices[0];
+                if (dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis))
+                {
+                    if (Mathf.Abs(axis.y) > 0.1f)
+                    {
+                        mapping.scaleMultiplier += axis.y * scaleAdjustSpeed * Time.deltaTime;
+                        mapping.scaleMultiplier = Mathf.Max(0.1f, mapping.scaleMultiplier);
+
+                        grabbedObject.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
+                    }
+                }
+            }
+        }
     }
 
     private void OnGrabReleased(SelectExitEventArgs args)
     {
-        // Clean up rotation lock if present
         if (args.interactableObject is XRGrabInteractable grab && lockedXYEulerByGrab.ContainsKey(grab))
             lockedXYEulerByGrab.Remove(grab);
 
@@ -642,19 +714,17 @@ public class WireframeAlignment : MonoBehaviour
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
 
+        // Position
         Vector3 newLocalOffset = Quaternion.Inverse(markerWorldRot) * (releasedObject.position - markerWorldPos);
-
         mapping.offsetX = newLocalOffset.x;
         mapping.offsetY = newLocalOffset.y;
         mapping.offsetZ = newLocalOffset.z;
 
-        // Also commit the new rotation offset (especially useful when Z/roll was changed while grabbed)
+        // Rotation
         Quaternion newLocalRot = Quaternion.Inverse(markerWorldRot) * releasedObject.rotation;
         mapping.rotationOffset = newLocalRot.eulerAngles;
 
-        Debug.Log($"[Alignment] Committed new offset + rotation for ArUco {lastSeenArucoID}: " +
-                  $"Pos X={mapping.offsetX:F3} Y={mapping.offsetY:F3} Z={mapping.offsetZ:F3} | " +
-                  $"Rot X={mapping.rotationOffset.x:F1} Y={mapping.rotationOffset.y:F1} Z={mapping.rotationOffset.z:F1}");
+        Debug.Log($"[Alignment] Committed for ArUco {lastSeenArucoID} → Offset: ({mapping.offsetX:F3}, {mapping.offsetY:F3}, {mapping.offsetZ:F3}) | Rot: ({mapping.rotationOffset.x:F1}, {mapping.rotationOffset.y:F1}, {mapping.rotationOffset.z:F1}) | Scale: {mapping.scaleMultiplier:F2}x");
 
         UpdateAlignmentInfoText();
     }
