@@ -145,8 +145,6 @@ PlayerSettings:
   preloadedAssets:
   - {fileID: 0}
   - {fileID: 0}
-  - {fileID: 11400000, guid: 145c1adb97f04194a9054bc328377bc9, type: 2}
-  - {fileID: 11400000, guid: 0889480e919847a4fac0104d6812c18f, type: 2}
   - {fileID: 200753018772540543, guid: 583a29f9e3f74304d869096f91238eb6, type: 2}
   - {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78, type: 2}
   - {fileID: -3693710367517097684, guid: dec0e520e55de8044b64aa4971c504e6, type: 2}
@@ -825,7 +823,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Android: MAGICLEAP;USE_ML_OPENXR;USE_INPUT_SYSTEM_POSE_CONTROL;USE_STICK_CONTROL_THUMBSTICKS
+    Android: MAGICLEAP;USE_ML_OPENXR;USE_INPUT_SYSTEM_POSE_CONTROL;USE_STICK_CONTROL_THUMBSTICKS;DISABLE_MAGICLEAP_CLIP_ENFORCEMENT
     EmbeddedLinux: MAGICLEAP;USE_ML_OPENXR
     GameCoreXboxOne: MAGICLEAP;USE_ML_OPENXR
     Nintendo Switch: MAGICLEAP;USE_ML_OPENXR

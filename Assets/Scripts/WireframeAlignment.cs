@@ -64,7 +64,8 @@ public class WireframeAlignment : MonoBehaviour
     private bool permissionGranted = false;
     private bool hasInitializedDetector = false;
 
-    private ulong lastSeenArucoID = 0;
+    private const ulong INVALID_ARUCO_ID = ulong.MaxValue;
+    private ulong lastSeenArucoID = INVALID_ARUCO_ID;
 
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
     private GameObject alignmentInfoTextObj;
@@ -229,7 +230,7 @@ public class WireframeAlignment : MonoBehaviour
 
     private bool IsAnyActiveObjectGrabbed()
     {
-        if (lastSeenArucoID == 0) return false;
+        if (lastSeenArucoID == INVALID_ARUCO_ID) return false;
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null)
         {
@@ -251,7 +252,7 @@ public class WireframeAlignment : MonoBehaviour
 
     private void HandleControllerOffsetAdjustment()
     {
-        if (lastSeenArucoID == 0) return;
+        if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
@@ -333,7 +334,7 @@ public class WireframeAlignment : MonoBehaviour
 
     private void EnforceSingleActivePrefab()
     {
-        if (lastSeenArucoID == 0) return;
+        if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
         foreach (var kvp in createdAnchorsByArucoID)
         {
@@ -579,7 +580,7 @@ public class WireframeAlignment : MonoBehaviour
 
     private void OnGrabReleased(SelectExitEventArgs args)
     {
-        if (lastSeenArucoID == 0) return;
+        if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
@@ -612,7 +613,7 @@ public class WireframeAlignment : MonoBehaviour
 
     void LateUpdate()
     {
-        if (lastSeenArucoID == 0) return;
+        if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
