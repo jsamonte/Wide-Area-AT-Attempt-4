@@ -30,19 +30,15 @@ MonoBehaviour:
       guid: 18dc0cd2c080841dea60987a38ce93fa
       assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings,
         Unity.RenderPipelines.Universal.Runtime:Assets/UniversalRenderPipelineGlobalSettings.asset:UniversalRenderPipelineGlobalSettings
-    - object: {fileID: 5589497133034083135, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+    - object: {fileID: -6465566751694194690, guid: c6d8159087e557b44a7d450e3d87ee4c,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 5589659553817258997, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: c6d8159087e557b44a7d450e3d87ee4c
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Shader/Grid
+        Shader.shadergraph:Shader Graphs/Grid Shader
+    - object: {fileID: 3404728818349867043, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
-      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Map
     - object: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
       guid: 4df40d6667ee4ed5b0a91140d59a8715
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites/Default
@@ -50,529 +46,190 @@ MonoBehaviour:
       guid: 3440251350f542718f3656d4cfff132a
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
         Shaders/Particles/Alpha Blended Premultiply
-    - object: {fileID: 7392721154702182552, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: 7134043336269528555, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (7)
-    - object: {fileID: 5589497133593145654, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Control_Body
+    - object: {fileID: -944628639613478452, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.ARFoundation.ARSession, Unity.XR.ARFoundation:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 1418243607, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 5526286354170663725, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:MagicLeapInput
+    - object: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.AudioListener, UnityEngine.AudioModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 5589497132891496770, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
-    - object: {fileID: 9011129295985889322, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (2)
-    - object: {fileID: 4214550324010282, guid: 24158fb1437dc8e418d893939758764d, type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 8718582907162144080, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (4)
-    - object: {fileID: 5807666887152673532, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (8)
-    - object: {fileID: 5589497134372387906, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 5907229112578554590, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (7)
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Map
+    - object: {fileID: 4800000, guid: 36e335017ad71d54fbb10842863188ae, type: 3}
+      guid: 36e335017ad71d54fbb10842863188ae
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader:Hidden/Core/FallbackError
+    - object: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      guid: 4f06d875f82c40d3a0945c3ff8db0311
+      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
+        default resources:Cube
+    - object: {fileID: 2800000, guid: b7e7faca7fd58d147ad4889d2c521c2c, type: 3}
+      guid: b7e7faca7fd58d147ad4889d2c521c2c
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Textures/prototype_normal.png:prototype_normal
+    - object: {fileID: 2100000, guid: 2db96338cc56c8742a25a24eca60b53c, type: 2}
+      guid: 2db96338cc56c8742a25a24eca60b53c
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Prefab/Materials/Map.mat:Map
     - object: {fileID: 4800000, guid: da07703fcc09f8d4799221050659bd55, type: 3}
       guid: da07703fcc09f8d4799221050659bd55
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.shadergraph/Editor/Resources/Shaders/FallbackError.shader:Hidden/Shader
         Graph/FallbackError
-    - object: {fileID: 4472230941862334273, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: 8400000, guid: d83e1e934d94a7441aa529e7c64adbcf, type: 2}
+      guid: d83e1e934d94a7441aa529e7c64adbcf
+      assetBundlePath: Custom:UnityEngine.RenderTexture, UnityEngine.CoreModule:Assets/Prefab/Map.renderTexture:Map
+    - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+      guid: 933532a4fcc9baf4fa0491de14d08ed7
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
+        Render Pipeline/Lit
+    - object: {fileID: -6410226071134231700, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (8)
-    - object: {fileID: 2955698465651807080, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/Status
+    - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
+      guid: e6e9a19c3678ded42a3bc431ebef7dbd
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
+        Render Pipeline/FallbackError
+    - object: {fileID: 9206538911062242383, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (7)
-    - object: {fileID: 5529315607146284371, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalAdditionalCameraData,
+        Unity.RenderPipelines.Universal.Runtime:Assets/Prefab/Map.prefab:Main Camera
+    - object: {fileID: 2800000, guid: f3fda86b5946f734a9a3ff491f163a96, type: 3}
+      guid: f3fda86b5946f734a9a3ff491f163a96
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Textures/1x1_grid_quarter_lines_numbered.png:1x1_grid_quarter_lines_numbered
+    - object: {fileID: 7927463330472195468, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (8)
-    - object: {fileID: 3846500233620136649, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (3)
-    - object: {fileID: 4902190171097961883, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (5)
-    - object: {fileID: 3771369551179688024, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133034083134, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
-      guid: a7098732929e4fe284ba3cedf22d8e6e
-      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
-        default resources:Plane
-    - object: {fileID: 8610521841581117495, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (5)
-    - object: {fileID: 5589497132288526105, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 1418243606, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 1011244501761250, guid: 24158fb1437dc8e418d893939758764d, type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133593145652, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 5330140640350987399, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (7)
-    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
-      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
-    - object: {fileID: 7056738712856288147, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (6)
-    - object: {fileID: 8944836716268893272, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (8)
-    - object: {fileID: 524692942289420819, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:Unity.XR.CoreUtils.XROrigin, Unity.XR.CoreUtils:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
-    - object: {fileID: 5589497133001389820, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 3142943468538159763, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (8)
-    - object: {fileID: 5487800070631514527, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.FlareLayer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Map
     - object: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
       guid: b7457432f68a4465abe7445a6dbf0669
       assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
         default resources:Sphere
-    - object: {fileID: 6514634079983636491, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: -8841330723028000658, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (5)
-    - object: {fileID: 4227068377641142523, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:M_Controller_Trigger
+    - object: {fileID: -7342047093304028865, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 6730844128574392668, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/TriggerValue
+    - object: {fileID: -3315807312945130409, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (1)
-    - object: {fileID: 5850404675360181103, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MagicLeapCamera, MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 8253148755706329020, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MLAudioOutputPluginBehavior,
-        MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/PointerPosition
     - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
       guid: 4478eaa5582e4a1693fa763e65c939ad
       assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
-    - object: {fileID: 1731473441, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 479116178, guid: fe799b2d0a84dfe43b001b56276fd2fb, type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.Inputs.InputActionManager,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 4466084576785863238, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+    - object: {fileID: 286597297993742976, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 7155312890581622954, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/Haptics
+    - object: {fileID: 1664750410918142856, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.ActionBasedController,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 5589497133001389816, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 124261382810072712, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.FlareLayer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 1372953901434461146, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (2)
-    - object: {fileID: 2780596567721147789, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Spheres
-    - object: {fileID: 4546648909140631723, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MLAudioOutputPluginBehavior,
-        MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR Rig.prefab:Main
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Main
         Camera
-    - object: {fileID: 3703564328725640662, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: -1987549183160369658, guid: 89d28d493797f004a8244c4f6ac0ebf8,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (3)
-    - object: {fileID: 8271128990812317197, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (3)
-    - object: {fileID: 20294507499185110, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Camera, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5589497133001389823, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 5589497133034083133, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 5589497132288526109, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
-      guid: a31509a9b7064f13a04ccee9ab35d4c2
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
-    - object: {fileID: 5556788987238126660, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (3)
-    - object: {fileID: 5589497133034083128, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 1002789632484558846, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (1)
-    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
-      guid: 8236c695e72414e7889fb3f4d8226fde
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
-    - object: {fileID: 5589497133001389822, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 9141804835531431865, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (2)
-    - object: {fileID: 6169045109616253027, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: -2331432644492341259, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalAdditionalCameraData,
-        Unity.RenderPipelines.Universal.Runtime:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 5593219067060734525, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 5589497134372387904, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 745821061859243993, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (5)
-    - object: {fileID: 518758959220614798, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (2)
-    - object: {fileID: 5589497132288526104, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.LineRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 5892838086180472874, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (2)
-    - object: {fileID: 1357000653586693184, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (4)
-    - object: {fileID: 5589497132288526111, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
+      guid: 89d28d493797f004a8244c4f6ac0ebf8
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray2.fbx:Baseline
     - object: {fileID: -6465566751694194690, guid: 5802ac1538fd94cc58b4d5202ed2abe6,
         type: 3}
       guid: 5802ac1538fd94cc58b4d5202ed2abe6
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Shaders/FillMaterial.shadergraph:Shader
         Graphs/FillMaterial
-    - object: {fileID: 1367939001011233674, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: 8384397801317415834, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (3)
-    - object: {fileID: 3154325404514399606, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.Camera, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Main
+        Camera
+    - object: {fileID: -1250625137801475051, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (7)
-    - object: {fileID: 9152018269046039462, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/Trigger
+    - object: {fileID: 2800000, guid: 915f3ba7e259f1743b56f1d197b2586a, type: 3}
+      guid: 915f3ba7e259f1743b56f1d197b2586a
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Materials/Controller/Controller.png:Controller
+    - object: {fileID: 3244388259350010939, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (6)
-    - object: {fileID: 664836143004484987, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:M_Controller_Primary
+    - object: {fileID: -2502940855302290388, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (4)
-    - object: {fileID: 5589497133001389821, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TrackingState
+    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+      guid: a31509a9b7064f13a04ccee9ab35d4c2
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
+    - object: {fileID: 2100000, guid: 81fd8823aa1e26c44b5c45a4141ffbb3, type: 2}
+      guid: 81fd8823aa1e26c44b5c45a4141ffbb3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Shader/M_Grid.mat:M_Grid
+    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
+      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
+    - object: {fileID: 6868637420290493019, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:RightHand Controller
-    - object: {fileID: 5589497132288526110, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Map
+    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
+      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
+    - object: {fileID: 8590101329447955210, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Game Controller
-    - object: {fileID: 4608725208090669813, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/Map.prefab:Main
+        Camera
+    - object: {fileID: -492306341159536569, guid: bb4daeceea261404d9e9069323220d1b,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (4)
+      guid: bb4daeceea261404d9e9069323220d1b
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Assets/Assets/MagicLeapInput.inputactions:Controller/PointerRotation
+    - object: {fileID: -6465566751694194690, guid: 74686ab863fe0dc4598560e65eb847eb,
+        type: 3}
+      guid: 74686ab863fe0dc4598560e65eb847eb
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/ShaderGraphs/ScaleTilingShader.shadergraph:Shader
+        Graphs/ScaleTilingShader
+    - object: {fileID: 2100000, guid: 88b3961b9a9bd064ebcc2f4cbf42faf0, type: 2}
+      guid: 88b3961b9a9bd064ebcc2f4cbf42faf0
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Materials/Dark_Blue_Prototype.mat:Dark_Blue_Prototype
     - object: {fileID: 2100000, guid: b49987f28d68948acb0d617df4824786, type: 2}
       guid: b49987f28d68948acb0d617df4824786
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/Fill.mat:Fill
-    - object: {fileID: 5100958051569892040, guid: 9380c47172a3be54492ede280911d0a0,
+    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
+      guid: 8236c695e72414e7889fb3f4d8226fde
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
+    - object: {fileID: 4037258214709129551, guid: 8f3cc2d1822be1f408ed87ba98f45815,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (6)
-    - object: {fileID: 7129086342113679081, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: 8f3cc2d1822be1f408ed87ba98f45815
+      assetBundlePath: Custom:UnityEngine.BoxCollider, UnityEngine.PhysicsModule:Assets/Prefab/Map.prefab:Map
+    - object: {fileID: 8026257132262412112, guid: acd5b5fa9b7548f4883e853b023e1cb3,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (1)
-    - object: {fileID: 802871080766525160, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
+    - object: {fileID: -8679921383154817045, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (6)
-    - object: {fileID: 5589497132891496769, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Controller
+    - object: {fileID: 1783984754581212209, guid: acd5b5fa9b7548f4883e853b023e1cb3,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Session Origin
-    - object: {fileID: 4053354848001788500, guid: 9380c47172a3be54492ede280911d0a0,
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
+    - object: {fileID: 919132149155446097, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Spheres
-    - object: {fileID: 5589497133034083132, guid: fe799b2d0a84dfe43b001b56276fd2fb,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Controller
+    - object: {fileID: -7511558181221131132, guid: 809c02ccafe6d624d89c31be47f4a9bd,
         type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Eyes Controller
-    - object: {fileID: 5589497134372387911, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 1472098678511036335, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (6)
-    - object: {fileID: 81260711824966714, guid: 24158fb1437dc8e418d893939758764d,
-        type: 3}
-      guid: 24158fb1437dc8e418d893939758764d
-      assetBundlePath: Custom:UnityEngine.AudioListener, UnityEngine.AudioModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/Main
-        Camera.prefab:Main Camera
-    - object: {fileID: 8775117256685371215, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.InputSystem.XR.TrackedPoseDriver, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 2062985119602007160, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.MagicLeap.MagicLeapCamera, MagicLeap.SDK:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 5589497134372387907, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRRayInteractor,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 5589497134372387905, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.XR.Interaction.Toolkit.XRInteractorLineVisual,
-        Unity.XR.Interaction.Toolkit:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:LeftHand Controller
-    - object: {fileID: 2417606586418675118, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (1)
-    - object: {fileID: 5609791579423962305, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Camera, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:Main Camera
-    - object: {fileID: 1440592809051858480, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (1)
-    - object: {fileID: 2573565978218999637, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (4)
-    - object: {fileID: 5589497133593145648, guid: fe799b2d0a84dfe43b001b56276fd2fb,
-        type: 3}
-      guid: fe799b2d0a84dfe43b001b56276fd2fb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Prefabs/XR
-        Rig.prefab:XR Rig
-    - object: {fileID: 623200104825366519, guid: 9380c47172a3be54492ede280911d0a0,
-        type: 3}
-      guid: 9380c47172a3be54492ede280911d0a0
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Prefabs/Spheres.prefab:Sphere
-        (5)
-    - object: {fileID: 7293693279052504670, guid: 6f34019f0a84976478b7a69ba76a95eb,
-        type: 3}
-      guid: 6f34019f0a84976478b7a69ba76a95eb
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/TempMap.prefab:TempMap
-    - object: {fileID: 5509215088763733931, guid: 6f34019f0a84976478b7a69ba76a95eb,
-        type: 3}
-      guid: 6f34019f0a84976478b7a69ba76a95eb
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/TempMap.prefab:TempMap
-    - object: {fileID: 169244628944019436, guid: 6f34019f0a84976478b7a69ba76a95eb,
-        type: 3}
-      guid: 6f34019f0a84976478b7a69ba76a95eb
-      assetBundlePath: Custom:UnityEngine.MeshCollider, UnityEngine.PhysicsModule:Assets/Prefab/TempMap.prefab:TempMap
-    - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Controller
+    - object: {fileID: 4715436822718277786, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
-    - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Position
-    - object: {fileID: -4607609863168903279, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Rotation
-    - object: {fileID: -944628639613478452, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:MLInput
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Position
     - object: {fileID: -3730266099773404857, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
@@ -581,18 +238,22 @@ MonoBehaviour:
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
       assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TriggerButton
-    - object: {fileID: 4715436822718277786, guid: a7b3d28b346833f4ea10936be7a9f18c,
+    - object: {fileID: 5544746641166235747, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/Position
-    - object: {fileID: 6315007630890255079, guid: 6f34019f0a84976478b7a69ba76a95eb,
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TouchpadPosition
+    - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
-      guid: 6f34019f0a84976478b7a69ba76a95eb
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/TempMap.prefab:TempMap
-    - object: {fileID: 1243966728851439389, guid: 6f34019f0a84976478b7a69ba76a95eb,
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Position
+    - object: {fileID: -4607609863168903279, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
-      guid: 6f34019f0a84976478b7a69ba76a95eb
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/TempMap.prefab:TempMap
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:RightHand/Rotation
+    - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
     - object: {fileID: 971518578729158012, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
@@ -601,10 +262,6 @@ MonoBehaviour:
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
       assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/PointerRotation
-    - object: {fileID: 5544746641166235747, guid: a7b3d28b346833f4ea10936be7a9f18c,
-        type: 3}
-      guid: a7b3d28b346833f4ea10936be7a9f18c
-      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Controller/TouchpadPosition
     - object: {fileID: -4319516118568744573, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
@@ -613,3 +270,23 @@ MonoBehaviour:
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
       assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:LeftHand/Rotation
+    - object: {fileID: -944628639613478452, guid: a7b3d28b346833f4ea10936be7a9f18c,
+        type: 3}
+      guid: a7b3d28b346833f4ea10936be7a9f18c
+      assetBundlePath: Custom:UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:MLInput
+    - object: {fileID: 5650899201794158854, guid: acd5b5fa9b7548f4883e853b023e1cb3,
+        type: 3}
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
+    - object: {fileID: 1770586531232524188, guid: acd5b5fa9b7548f4883e853b023e1cb3,
+        type: 3}
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
+    - object: {fileID: 5439870854983775740, guid: acd5b5fa9b7548f4883e853b023e1cb3,
+        type: 3}
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.MeshCollider, UnityEngine.PhysicsModule:Assets/Prefab/4Baseline.prefab:4Baseline
+    - object: {fileID: -5754084199372789682, guid: 809c02ccafe6d624d89c31be47f4a9bd,
+        type: 3}
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Controller

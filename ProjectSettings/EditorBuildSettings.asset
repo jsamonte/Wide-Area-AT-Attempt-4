@@ -67,7 +67,7 @@ EditorBuildSettings:
     guid: 30ad17740d39352428ca92b0b0c4f57b
   - enabled: 1
     path: Assets/EyeGaze/Assets/Scenes/Map Demo.unity
-    guid: 900156a67b4496c46978af72c9373154
+    guid: 7ae57cd2e6fba6749b3176baadb0d718
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
       type: 2}
