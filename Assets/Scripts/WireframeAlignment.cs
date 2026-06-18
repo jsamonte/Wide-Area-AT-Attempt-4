@@ -1,5 +1,21 @@
 // WireframeAlignment.cs
 // trackRotation = false + Manual Z rotation via right thumbstick horizontal
+//
+// Detection + persistence updated to reuse the approach from
+// ArucoCalibrationManager.cs / CalibrationManager.cs / RoomAnchorCalibrationStore.cs:
+//   - Marker poses are converted tracking-space -> world-space once, centrally
+//     (ToWorld), instead of being re-converted inline in five different places.
+//   - Marker poses are smoothed via a per-marker rolling sample window
+//     (poseAverageSeconds) and held briefly after the last real detection
+//     (visibleHoldSeconds) so the detector's intermittent dropouts don't cause
+//     prefab jitter or flicker.
+//   - A brand-new anchor is only created once a marker has accumulated
+//     minSamplesForAnchorCreate stable recent samples, so a single noisy frame
+//     can't permanently place an anchor in the wrong spot. Already-placed
+//     prefabs keep tracking continuously off the smoothed pose.
+//   - Persistence moved from PlayerPrefs to a JSON file via
+//     WireframeMarkerAnchorStore (mirrors RoomAnchorCalibrationStore), with a
+//     one-time automatic migration from the old PlayerPrefs data.
 
 using System;
 using System.Collections;
@@ -32,6 +48,14 @@ public class WireframeAlignment : MonoBehaviour
     [Header("XR Origin")]
     [SerializeField] private XROrigin xrOrigin;
 
+    [Header("=== Detection Smoothing (ported from ArucoCalibrationManager) ===")]
+    [Tooltip("Seconds to keep treating a marker as visible/tracked after the last detector hit. ML2's marker detector returns intermittently even when the marker is clearly in view; this debounces that flicker.")]
+    [SerializeField] private float visibleHoldSeconds = 0.75f;
+    [Tooltip("Seconds of recent samples to average together for the reported marker pose. Higher = more stable but slower to react. Kept short here (vs. the room-snap manager) so grabbed/placed prefabs stay responsive.")]
+    [SerializeField] private float poseAverageSeconds = 0.25f;
+    [Tooltip("Minimum number of recent samples required before a NEW anchor is created for a marker we haven't placed yet. Prevents permanently placing an anchor from a single noisy frame. Does not affect already-placed prefabs, which keep tracking every frame they're visible. Lower = more responsive placement, higher = more resistant to jitter.")]
+    [SerializeField] private int minSamplesForAnchorCreate = 2;
+
     [Header("=== Debug Alignment Info Text ===")]
     [SerializeField] private bool showAlignmentInfoText = true;
     [SerializeField] private float textHeightAboveMarker = 0.12f;
@@ -48,9 +72,8 @@ public class WireframeAlignment : MonoBehaviour
     [SerializeField] private float scaleAdjustSpeed = 0.6f;
     [SerializeField] private float rotationSpeed = 90f; // degrees per second for Z rotation
 
-    // Persistence
+    // Persistence (now file-backed via WireframeMarkerAnchorStore; see LoadAnchorMappings/SaveAnchorMappings)
     private Dictionary<string, ulong> anchorMapPosIdToArucoID = new Dictionary<string, ulong>();
-    private const string PREFS_KEY = "ArucoToSpatialAnchorMappings";
 
     private MagicLeapMarkerUnderstandingFeature markerFeature;
     private MagicLeapSpatialAnchorsFeature spatialAnchorsFeature;
@@ -67,13 +90,25 @@ public class WireframeAlignment : MonoBehaviour
     private const ulong INVALID_ARUCO_ID = ulong.MaxValue;
     private ulong lastSeenArucoID = INVALID_ARUCO_ID;
 
+    // Smoothed, WORLD-SPACE pose per currently-tracked marker (refreshed each
+    // Update from the per-marker sample window). This replaces the old
+    // raw/tracking-space single-frame pose dictionary of the same name -- every
+    // consumer below now receives an already-world-space pose and no longer
+    // does its own origin conversion.
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
+
     private GameObject alignmentInfoTextObj;
     private TextMesh alignmentInfoTextMesh;
     private Camera mainCamera;
 
     private List<InputDevice> rightHandDevices = new List<InputDevice>();
     private List<InputDevice> leftHandDevices = new List<InputDevice>();
+
+    // ---- Smoothing internals (mirrors ArucoCalibrationManager) ----
+    private struct MarkerSample { public Pose pose; public float t; }
+    private readonly Dictionary<ulong, Queue<MarkerSample>> _samples = new Dictionary<ulong, Queue<MarkerSample>>();
+    private readonly Dictionary<ulong, float> _lastSeen = new Dictionary<ulong, float>();
+    private List<ulong> _evictBuf;
 
     [Serializable]
     public class ArucoPrefabMapping
@@ -134,27 +169,21 @@ public class WireframeAlignment : MonoBehaviour
         return activeSubsystem != null;
     }
 
+    // ------------------------------------------------------------------
+    // Persistence (file-backed via WireframeMarkerAnchorStore, mirrors
+    // RoomAnchorCalibrationStore's pattern). Migrates old PlayerPrefs data
+    // automatically the first time LoadAnchorMappings runs after upgrade.
+    // ------------------------------------------------------------------
+
     private void LoadAnchorMappings()
     {
-        if (PlayerPrefs.HasKey(PREFS_KEY))
-        {
-            string json = PlayerPrefs.GetString(PREFS_KEY);
-            var wrapper = JsonUtility.FromJson<AnchorMappingWrapper>(json);
-            if (wrapper?.mappings != null)
-                anchorMapPosIdToArucoID = wrapper.mappings.ToDictionary(m => m.mapPosId, m => m.arucoID);
-        }
+        anchorMapPosIdToArucoID = WireframeMarkerAnchorStore.LoadAll();
     }
 
     private void SaveAnchorMappings()
     {
-        var list = anchorMapPosIdToArucoID.Select(kvp => new AnchorMapping { mapPosId = kvp.Key, arucoID = kvp.Value }).ToList();
-        var wrapper = new AnchorMappingWrapper { mappings = list };
-        PlayerPrefs.SetString(PREFS_KEY, JsonUtility.ToJson(wrapper));
-        PlayerPrefs.Save();
+        WireframeMarkerAnchorStore.SaveAll(anchorMapPosIdToArucoID);
     }
-
-    [Serializable] private class AnchorMapping { public string mapPosId; public ulong arucoID; }
-    [Serializable] private class AnchorMappingWrapper { public List<AnchorMapping> mappings; }
 
     private void CreateMarkerDetector()
     {
@@ -189,7 +218,9 @@ public class WireframeAlignment : MonoBehaviour
         if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0) return;
 
         markerFeature.UpdateMarkerDetectors();
+        float now = Time.time;
 
+        // ---- Pass 1: collect raw detections into the per-marker sample window ----
         foreach (var detector in markerFeature.MarkerDetectors)
         {
             if (detector.Settings.MarkerType != MarkerType.Aruco) continue;
@@ -199,25 +230,49 @@ public class WireframeAlignment : MonoBehaviour
                 if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
 
                 ulong id = data.MarkerNumber.Value;
-                Pose pose = data.MarkerPose.Value;
-                if (pose.position.sqrMagnitude < 0.0001f) continue;
+                Pose trackingPose = data.MarkerPose.Value;
+                if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
 
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
                 if (mapping == null || mapping.prefab == null) continue;
 
-                lastSeenArucoID = id;
-                lastDetectedMarkerPoses[id] = pose;
-
-                if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existing) && existing != null)
-                {
-                    UpdateInstanceTransform(existing.gameObject, mapping, pose);
-                    continue;
-                }
-
-                if (HasAnchorForArucoID(id)) continue;
-
-                CreateAndPublishAnchorFromMarker(id, mapping, pose);
+                Pose worldPose = ToWorld(trackingPose);
+                PushSample(id, worldPose, now);
+                _lastSeen[id] = now;
             }
+        }
+
+        // ---- Evict markers we haven't actually seen in a while (debounce) ----
+        EvictStaleMarkers(now);
+
+        // ---- Recompute the smoothed world pose for every still-tracked marker ----
+        RefreshSmoothedPoses(now);
+
+        // ---- Pass 2: drive placement / anchors / grab logic off the smoothed poses ----
+        foreach (var kvp in lastDetectedMarkerPoses)
+        {
+            ulong id = kvp.Key;
+            Pose markerWorldPose = kvp.Value;
+
+            var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
+            if (mapping == null || mapping.prefab == null) continue;
+
+            lastSeenArucoID = id;
+
+            if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existing) && existing != null)
+            {
+                UpdateInstanceTransform(existing.gameObject, mapping, markerWorldPose);
+                continue;
+            }
+
+            if (HasAnchorForArucoID(id)) continue;
+
+            // Don't commit a brand-new permanent anchor from a single noisy frame --
+            // require a short run of stable samples first. Already-placed prefabs
+            // (handled above) are exempt from this and just track every frame.
+            if (RecentSampleCount(id) < Mathf.Max(1, minSamplesForAnchorCreate)) continue;
+
+            CreateAndPublishAnchorFromMarker(id, mapping, markerWorldPose);
         }
 
         UpdateStoredAnchorTransforms();
@@ -289,11 +344,11 @@ public class WireframeAlignment : MonoBehaviour
 
     private void ForceUpdateActivePrefabTransform(ArucoPrefabMapping mapping)
     {
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerPose)) return;
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)) return;
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null && created.gameObject != null)
         {
-            UpdateInstanceTransform(created.gameObject, mapping, markerPose);
+            UpdateInstanceTransform(created.gameObject, mapping, markerWorldPose);
             return;
         }
 
@@ -356,15 +411,9 @@ public class WireframeAlignment : MonoBehaviour
         }
     }
 
-    private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerRelativePose)
+    private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerWorldPose)
     {
-        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
-            ? xrOrigin.CameraFloorOffsetObject.transform : null;
-
-        Vector3 worldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
-        Quaternion worldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
-
-        GameObject instance = Instantiate(mapping.prefab, worldPos, worldRot);
+        GameObject instance = Instantiate(mapping.prefab, markerWorldPose.position, markerWorldPose.rotation);
         instance.SetActive(true);
 
         SetupGrabInteraction(instance);
@@ -376,26 +425,20 @@ public class WireframeAlignment : MonoBehaviour
         createdAnchorsByArucoID[arucoID] = arAnchor;
         localAnchors.Add(arAnchor);
 
-        UpdateInstanceTransform(instance, mapping, markerRelativePose);
+        UpdateInstanceTransform(instance, mapping, markerWorldPose);
         PublishSingleAnchor(arAnchor);
     }
 
-    private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerRelativePose)
+    private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerWorldPose)
     {
         if (instance == null) return;
 
         var grab = instance.GetComponent<XRGrabInteractable>();
         if (grab != null && grab.isSelected) return;
 
-        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
-            ? xrOrigin.CameraFloorOffsetObject.transform : null;
-
-        Vector3 worldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
-        Quaternion worldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
-
         Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
-        Vector3 finalPos = worldPos + (worldRot * localOffset);
-        Quaternion finalRot = worldRot * Quaternion.Euler(mapping.rotationOffset);
+        Vector3 finalPos = markerWorldPose.position + (markerWorldPose.rotation * localOffset);
+        Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(mapping.rotationOffset);
 
         instance.transform.SetPositionAndRotation(finalPos, finalRot);
         instance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
@@ -529,6 +572,8 @@ public class WireframeAlignment : MonoBehaviour
         storedAnchors.Clear();
         createdAnchorsByArucoID.Clear();
         lastDetectedMarkerPoses.Clear();
+        _samples.Clear();
+        _lastSeen.Clear();
         lastSeenArucoID = 0;
 
         if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
@@ -585,25 +630,19 @@ public class WireframeAlignment : MonoBehaviour
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
 
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerRelPose)) return;
-
-        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
-            ? xrOrigin.CameraFloorOffsetObject.transform : null;
-
-        Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelPose.position) : markerRelPose.position;
-        Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelPose.rotation : markerRelPose.rotation;
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)) return;
 
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
 
         // Position
-        Vector3 newLocalOffset = Quaternion.Inverse(markerWorldRot) * (releasedObject.position - markerWorldPos);
+        Vector3 newLocalOffset = Quaternion.Inverse(markerWorldPose.rotation) * (releasedObject.position - markerWorldPose.position);
         mapping.offsetX = newLocalOffset.x;
         mapping.offsetY = newLocalOffset.y;
         mapping.offsetZ = newLocalOffset.z;
 
         // Rotation
-        Quaternion newLocalRot = Quaternion.Inverse(markerWorldRot) * releasedObject.rotation;
+        Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
         mapping.rotationOffset = newLocalRot.eulerAngles;
 
         UpdateAlignmentInfoText();
@@ -702,19 +741,13 @@ public class WireframeAlignment : MonoBehaviour
             return;
         }
 
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose relPose))
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose))
         {
             if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
             return;
         }
 
-        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
-            ? xrOrigin.CameraFloorOffsetObject.transform : null;
-
-        Vector3 markerWorldPos = originT != null ? originT.TransformPoint(relPose.position) : relPose.position;
-        Quaternion markerWorldRot = originT != null ? originT.rotation * relPose.rotation : relPose.rotation;
-
-        Vector3 textPos = markerWorldPos + Vector3.up * textHeightAboveMarker;
+        Vector3 textPos = markerWorldPose.position + Vector3.up * textHeightAboveMarker;
         alignmentInfoTextObj.transform.position = textPos;
 
         if (mainCamera != null)
@@ -727,7 +760,7 @@ public class WireframeAlignment : MonoBehaviour
         }
         else
         {
-            alignmentInfoTextObj.transform.rotation = markerWorldRot;
+            alignmentInfoTextObj.transform.rotation = markerWorldPose.rotation;
         }
 
         alignmentInfoTextObj.transform.localScale = Vector3.one * textWorldScale;
@@ -739,5 +772,95 @@ public class WireframeAlignment : MonoBehaviour
             $"Scale: {mapping.scaleMultiplier:F2}x";
 
         alignmentInfoTextObj.SetActive(true);
+    }
+
+    // ------------------------------------------------------------------
+    // Detection smoothing internals (ported from ArucoCalibrationManager.cs)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Convert a marker pose reported by Magic Leap (in XR Origin tracking
+    /// space) into world space. Centralizes the conversion that used to be
+    /// duplicated inline in CreateAndPublishAnchorFromMarker,
+    /// UpdateInstanceTransform, OnGrabReleased, and UpdateAlignmentInfoText.
+    /// </summary>
+    private Pose ToWorld(Pose tracking)
+    {
+        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
+            ? xrOrigin.CameraFloorOffsetObject.transform : null;
+        if (originT == null) return tracking;
+
+        Vector3 worldPos = originT.TransformPoint(tracking.position);
+        Quaternion worldRot = originT.rotation * tracking.rotation;
+        return new Pose(worldPos, worldRot);
+    }
+
+    private void PushSample(ulong id, Pose worldPose, float t)
+    {
+        if (!_samples.TryGetValue(id, out var q))
+        {
+            q = new Queue<MarkerSample>();
+            _samples[id] = q;
+        }
+        q.Enqueue(new MarkerSample { pose = worldPose, t = t });
+        // Hard cap so the queue can't grow unbounded if poseAverageSeconds is huge.
+        while (q.Count > 240) q.Dequeue();
+    }
+
+    /// <summary>Number of samples currently in the averaging window for a given marker.</summary>
+    private int RecentSampleCount(ulong markerId)
+    {
+        return _samples.TryGetValue(markerId, out var q) ? q.Count : 0;
+    }
+
+    /// <summary>Evict markers we haven't actually seen in over visibleHoldSeconds.</summary>
+    private void EvictStaleMarkers(float now)
+    {
+        float cutoff = now - Mathf.Max(0f, visibleHoldSeconds);
+        if (_evictBuf == null) _evictBuf = new List<ulong>();
+        _evictBuf.Clear();
+        foreach (var kv in _lastSeen) if (kv.Value < cutoff) _evictBuf.Add(kv.Key);
+        for (int i = 0; i < _evictBuf.Count; i++)
+        {
+            ulong id = _evictBuf[i];
+            _lastSeen.Remove(id);
+            _samples.Remove(id);
+            lastDetectedMarkerPoses.Remove(id);
+        }
+    }
+
+    /// <summary>Recompute lastDetectedMarkerPoses[id] as the average of samples within poseAverageSeconds.</summary>
+    private void RefreshSmoothedPoses(float now)
+    {
+        float winCutoff = now - Mathf.Max(0.001f, poseAverageSeconds);
+        foreach (var kv in _samples)
+        {
+            ulong id = kv.Key;
+            var buf = kv.Value;
+            while (buf.Count > 0 && buf.Peek().t < winCutoff) buf.Dequeue();
+            if (buf.Count == 0) continue;
+            lastDetectedMarkerPoses[id] = AveragePose(buf);
+        }
+    }
+
+    private static Pose AveragePose(Queue<MarkerSample> samples)
+    {
+        Vector3 sumPos = Vector3.zero;
+        Vector4 sumQ = Vector4.zero;
+        Quaternion first = Quaternion.identity;
+        bool haveFirst = false;
+        int n = 0;
+        foreach (var s in samples)
+        {
+            sumPos += s.pose.position;
+            Quaternion r = s.pose.rotation;
+            if (!haveFirst) { first = r; haveFirst = true; }
+            if (Quaternion.Dot(first, r) < 0f) r = new Quaternion(-r.x, -r.y, -r.z, -r.w);
+            sumQ += new Vector4(r.x, r.y, r.z, r.w);
+            n++;
+        }
+        if (n == 0) return new Pose(Vector3.zero, Quaternion.identity);
+        sumQ.Normalize();
+        return new Pose(sumPos / n, new Quaternion(sumQ.x, sumQ.y, sumQ.z, sumQ.w));
     }
 }
