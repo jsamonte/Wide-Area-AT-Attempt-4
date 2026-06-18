@@ -389,6 +389,16 @@ MonoBehaviour:
       guid: 9b03bd68239841bfb249b505deabf034
     - object: {fileID: 864017329}
       guid: a30ce789c34242aeaf80b30116a22534
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
+    - object: {fileID: 233706974}
+      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
+    - object: {fileID: 233706975}
+      guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 233706977}
+      guid: 43098aca48ac4d088d86166d344a674c
     - object: {fileID: 233706976}
       guid: 7f2ec95574ac4af388465dbc7b51888c
     - object: {fileID: 7771136013120700886}
@@ -397,10 +407,14 @@ MonoBehaviour:
       guid: a1c3b2075ddd4b91bee3ee47a1c27091
     - object: {fileID: 234454530}
       guid: 61e81f66ae764fcc96974ab71f801dc6
-    - object: {fileID: 7659755457791520106}
-      guid: d91a2dbd817045f9bd82e54673159595
     - object: {fileID: 1654396639}
       guid: bbe653788a35490dae8baf8ac26125b0
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 7659755457791520106}
+      guid: d91a2dbd817045f9bd82e54673159595
     - object: {fileID: 9025074884364572658}
       guid: bef6b54d029c47739b865f11d3d12291
     - object: {fileID: 7276002552315758418}
@@ -599,20 +613,6 @@ MonoBehaviour:
       guid: f412b4e2213a4991a157554a60519be3
     - object: {fileID: 3137140674111421266}
       guid: 9c56101bfacb4a818cf11da47442b66c
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706974}
-      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
-    - object: {fileID: 233706975}
-      guid: 752a8fe3fe434c25847862446d15c833
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
-    - object: {fileID: 233706977}
-      guid: 43098aca48ac4d088d86166d344a674c
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -766,43 +766,67 @@ MonoBehaviour:
   - arucoID: 2
     prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
       type: 3}
-    offsetX: -4.783
-    offsetY: -59.86
-    offsetZ: -3.977
-    scaleMultiplier: 637.48
-    rotationOffset: {x: 180, y: 0, z: 15.5}
+    offsetX: -5.283
+    offsetY: -59.723
+    offsetZ: -4.383
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 16.4}
   - arucoID: 4
     prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
       type: 3}
-    offsetX: -4.989
-    offsetY: -60.189
-    offsetZ: -4.17
-    scaleMultiplier: 637.48
-    rotationOffset: {x: 180, y: 0, z: 15.5}
+    offsetX: -57.295
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 8
     prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
       type: 3}
-    offsetX: -4.989
-    offsetY: -60.189
-    offsetZ: -4.17
-    scaleMultiplier: 637.48
-    rotationOffset: {x: 180, y: 0, z: 15.5}
+    offsetX: -57.295
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 20
     prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
       type: 3}
-    offsetX: -4.989
-    offsetY: -60.189
-    offsetZ: -4.17
-    scaleMultiplier: 637.48
-    rotationOffset: {x: 180, y: 0, z: 15.5}
+    offsetX: -57.295
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 22
     prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
       type: 3}
-    offsetX: -4.989
-    offsetY: -60.189
-    offsetZ: -4.17
-    scaleMultiplier: 637.48
-    rotationOffset: {x: 180, y: 0, z: 15.5}
+    offsetX: -57.295
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 108.3}
+  - arucoID: 80
+    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+      type: 3}
+    offsetX: 10.285
+    offsetY: -5.439
+    offsetZ: -3.46
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 12.6}
+  - arucoID: 82
+    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+      type: 3}
+    offsetX: 10.285
+    offsetY: -5.439
+    offsetZ: -3.46
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 12.6}
+  - arucoID: 84
+    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+      type: 3}
+    offsetX: 10.285
+    offsetY: -5.439
+    offsetZ: -3.46
+    scaleMultiplier: 637.41
+    rotationOffset: {x: 180, y: 0, z: 12.6}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.15
   estimateArucoLength: 0
