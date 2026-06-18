@@ -389,6 +389,10 @@ MonoBehaviour:
       guid: 9b03bd68239841bfb249b505deabf034
     - object: {fileID: 864017329}
       guid: a30ce789c34242aeaf80b30116a22534
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
     - object: {fileID: 203844590}
       guid: 600ea8de9fa8427d8bacb88a93a418b4
     - object: {fileID: 233706974}
@@ -409,14 +413,12 @@ MonoBehaviour:
       guid: 61e81f66ae764fcc96974ab71f801dc6
     - object: {fileID: 1654396639}
       guid: bbe653788a35490dae8baf8ac26125b0
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
     - object: {fileID: 7659755457791520106}
       guid: d91a2dbd817045f9bd82e54673159595
     - object: {fileID: 9025074884364572658}
       guid: bef6b54d029c47739b865f11d3d12291
+    - object: {fileID: 6056548551015543604}
+      guid: fee93362933f491aa37669cdec8439a8
     - object: {fileID: 7276002552315758418}
       guid: 9f334eb8eec14e8f952e0b657ed01d15
     - object: {fileID: 3655016792138941558}
@@ -427,8 +429,6 @@ MonoBehaviour:
       guid: cdbaf8e623cf477386dc4b3f3a0f2e24
     - object: {fileID: 969004515}
       guid: e6a42ea241724c89a304a6435cef6d9f
-    - object: {fileID: 6056548551015543604}
-      guid: fee93362933f491aa37669cdec8439a8
     - object: {fileID: 1176231336484459911}
       guid: 937e835a9f63417c942a382c434c68bf
     - object: {fileID: 6098766776673263121}
@@ -437,12 +437,12 @@ MonoBehaviour:
       guid: d42f63e03fc24b538e0a0cee8758c662
     - object: {fileID: 6641076858881817613}
       guid: 69790857a1bb4fd69edd9dea971aaaba
+    - object: {fileID: 2140524055936550800}
+      guid: 270d110259394c39bbbcd9a54f632a1d
     - object: {fileID: 749111786168796108}
       guid: b965bd5372744a8d80342ccd6487e438
     - object: {fileID: 4314807960827539279}
       guid: 23a0cb2a5d314ae885fb57d4b77238c3
-    - object: {fileID: 2140524055936550800}
-      guid: 270d110259394c39bbbcd9a54f632a1d
     - object: {fileID: 5107281276437298667}
       guid: 61c0b1c8f0d84674bbff722b81bfd265
     - object: {fileID: 734528664235825176}
@@ -473,6 +473,8 @@ MonoBehaviour:
       guid: 1d555296dec84da289068afcdc277aed
     - object: {fileID: 3059006080803518683}
       guid: 26255cc77be24bacb051a21489682830
+    - object: {fileID: 5018859738246603694}
+      guid: 25111c8efff94b84971e4ab0e9dd2cc7
     - object: {fileID: 6898923192549159858}
       guid: ad22ea7b47d9402e970204b40f09da2d
     - object: {fileID: 3327004805326919576}
@@ -525,8 +527,6 @@ MonoBehaviour:
       guid: 23c85d556c9b42aab2674aebb96aedfa
     - object: {fileID: 4213558022443236702}
       guid: 1a7c82e57bce4a07a64d8d448377be8f
-    - object: {fileID: 5018859738246603694}
-      guid: 25111c8efff94b84971e4ab0e9dd2cc7
     - object: {fileID: 7960873787619314386}
       guid: ce3823a4181c499cb3263c47383e08d9
     - object: {fileID: 8706249050323127717}
@@ -764,69 +764,77 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoMappings:
   - arucoID: 2
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -5.283
     offsetY: -59.723
     offsetZ: -4.383
-    scaleMultiplier: 637.41
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 16.4}
   - arucoID: 4
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -57.295
     offsetY: -4.51
     offsetZ: -3.194
-    scaleMultiplier: 637.41
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 8
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -57.295
     offsetY: -4.51
     offsetZ: -3.194
-    scaleMultiplier: 637.41
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 20
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -57.295
     offsetY: -4.51
     offsetZ: -3.194
-    scaleMultiplier: 637.41
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 108.3}
   - arucoID: 22
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -57.295
     offsetY: -4.51
     offsetZ: -3.194
-    scaleMultiplier: 637.41
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 108.3}
-  - arucoID: 80
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+  - arucoID: 88
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
-    offsetX: 10.285
-    offsetY: -5.439
-    offsetZ: -3.46
-    scaleMultiplier: 637.41
+    offsetX: -57.295
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 644.02
+    rotationOffset: {x: 180, y: 0, z: 106}
+  - arucoID: 80
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: 10.228
+    offsetY: -5.92
+    offsetZ: -3.434
+    scaleMultiplier: 644.02
     rotationOffset: {x: 180, y: 0, z: 12.6}
   - arucoID: 82
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
-    offsetX: 10.285
-    offsetY: -5.439
-    offsetZ: -3.46
-    scaleMultiplier: 637.41
-    rotationOffset: {x: 180, y: 0, z: 12.6}
+    offsetX: -1.992
+    offsetY: -33.574
+    offsetZ: -3.092
+    scaleMultiplier: 644.02
+    rotationOffset: {x: 180, y: 0, z: 103.8}
   - arucoID: 84
-    prefab: {fileID: 8026257132262412112, guid: cd1664e2d09163141834d8a6c28af36f,
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
-    offsetX: 10.285
-    offsetY: -5.439
-    offsetZ: -3.46
-    scaleMultiplier: 637.41
-    rotationOffset: {x: 180, y: 0, z: 12.6}
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    scaleMultiplier: 644.02
+    rotationOffset: {x: 180, y: 0, z: 105.2}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.15
   estimateArucoLength: 0
