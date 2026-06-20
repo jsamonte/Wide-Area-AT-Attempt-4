@@ -97,6 +97,20 @@ public class WireframeAlignment : MonoBehaviour
     // does its own origin conversion.
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
 
+    // ---- Lock-on-snap (ported from CalibrationManager.TryArucoAutoSnap) ----
+    // A placed prefab's pose is captured ONCE from a fresh, stable detection and
+    // then held -- it is NOT re-set every frame from the live marker pose. This
+    // is what stops the prefab from drifting/wobbling as the viewing angle
+    // changes (ArUco rotation estimates get noisier off-axis; chasing them every
+    // frame chases that noise). The lock is recomputed only when the marker is
+    // re-acquired after being lost (or on the initial placement), exactly like
+    // CalibrationManager's "snap once, hard-set, and lock" pattern.
+    [Header("=== Lock-on-Snap (stops perspective-shift drift) ===")]
+    [Tooltip("How fresh a sample must be (seconds since last real detector hit) to be trusted for a (re)lock. Mirrors ArucoCalibrationManager.SecondsSinceSeen freshness gating in CalibrationManager.")]
+    [SerializeField] private float freshLockSeconds = 0.20f;
+    private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
+    private readonly HashSet<ulong> _lockedThisAcquisition = new HashSet<ulong>();
+
     private GameObject alignmentInfoTextObj;
     private TextMesh alignmentInfoTextMesh;
     private Camera mainCamera;
@@ -259,20 +273,42 @@ public class WireframeAlignment : MonoBehaviour
 
             lastSeenArucoID = id;
 
+            // Is this sample fresh (a true detector hit, not just held over via
+            // visibleHoldSeconds) and stable (enough recent samples)? Only fresh+
+            // stable samples are allowed to (re)lock the pose -- this is the same
+            // gating CalibrationManager.TryArucoAutoSnap uses before it hard-sets
+            // and locks the twin.
+            bool isFresh = SecondsSinceSeen(id) <= Mathf.Max(0.01f, freshLockSeconds);
+            bool isStable = RecentSampleCount(id) >= Mathf.Max(1, minSamplesForAnchorCreate);
+
             if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existing) && existing != null)
             {
-                UpdateInstanceTransform(existing.gameObject, mapping, markerWorldPose);
+                // Lock once per acquisition instead of chasing the live pose every
+                // frame -- this is what stops the prefab from drifting as the
+                // viewing angle/perspective shifts. _lockedThisAcquisition is
+                // cleared in EvictStaleMarkers when the marker is actually lost,
+                // so the next fresh, stable sighting re-locks (self-corrects)
+                // exactly once, then holds again.
+                if (isFresh && isStable && !_lockedThisAcquisition.Contains(id))
+                {
+                    _lockedMarkerPose[id] = markerWorldPose;
+                    _lockedThisAcquisition.Add(id);
+                    UpdateInstanceTransform(existing.gameObject, mapping, markerWorldPose);
+                }
+                // else: already locked this acquisition (or not fresh/stable yet) --
+                // hold the existing transform, do NOT re-snap from the live pose.
                 continue;
             }
 
             if (HasAnchorForArucoID(id)) continue;
 
             // Don't commit a brand-new permanent anchor from a single noisy frame --
-            // require a short run of stable samples first. Already-placed prefabs
-            // (handled above) are exempt from this and just track every frame.
-            if (RecentSampleCount(id) < Mathf.Max(1, minSamplesForAnchorCreate)) continue;
+            // require a short run of stable samples first.
+            if (!isStable) continue;
 
             CreateAndPublishAnchorFromMarker(id, mapping, markerWorldPose);
+            _lockedMarkerPose[id] = markerWorldPose;
+            _lockedThisAcquisition.Add(id);
         }
 
         UpdateStoredAnchorTransforms();
@@ -344,7 +380,14 @@ public class WireframeAlignment : MonoBehaviour
 
     private void ForceUpdateActivePrefabTransform(ArucoPrefabMapping mapping)
     {
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)) return;
+        // Use the locked pose (same one the prefab is currently held at), not the
+        // live/raw marker pose -- otherwise nudging the offset with the thumbstick
+        // while the headset moves would reintroduce the same perspective-shift
+        // jitter this fix removes. Fall back to the live pose only if we don't
+        // have a lock yet (e.g. very first frame before Pass 2 has locked once).
+        if (!_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)
+            && !lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out markerWorldPose))
+            return;
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null && created.gameObject != null)
         {
@@ -572,6 +615,8 @@ public class WireframeAlignment : MonoBehaviour
         storedAnchors.Clear();
         createdAnchorsByArucoID.Clear();
         lastDetectedMarkerPoses.Clear();
+        _lockedMarkerPose.Clear();
+        _lockedThisAcquisition.Clear();
         _samples.Clear();
         _lastSeen.Clear();
         lastSeenArucoID = 0;
@@ -630,7 +675,12 @@ public class WireframeAlignment : MonoBehaviour
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
 
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)) return;
+        // Use the locked pose -- the prefab's displayed transform was computed
+        // against this pose, not necessarily the current live one, so the
+        // recorded offset must be measured against the same reference.
+        if (!_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)
+            && !lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out markerWorldPose))
+            return;
 
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
@@ -813,6 +863,18 @@ public class WireframeAlignment : MonoBehaviour
         return _samples.TryGetValue(markerId, out var q) ? q.Count : 0;
     }
 
+    /// <summary>
+    /// Seconds since this marker was last *actually* detected by the ML2 detector
+    /// (not just held over via visibleHoldSeconds). Mirrors
+    /// ArucoCalibrationManager.SecondsSinceSeen -- used to gate (re)locking so we
+    /// only trust a true, fresh detection rather than a held/stale one.
+    /// </summary>
+    private float SecondsSinceSeen(ulong markerId)
+    {
+        if (!_lastSeen.TryGetValue(markerId, out var t)) return float.PositiveInfinity;
+        return Time.time - t;
+    }
+
     /// <summary>Evict markers we haven't actually seen in over visibleHoldSeconds.</summary>
     private void EvictStaleMarkers(float now)
     {
@@ -826,6 +888,11 @@ public class WireframeAlignment : MonoBehaviour
             _lastSeen.Remove(id);
             _samples.Remove(id);
             lastDetectedMarkerPoses.Remove(id);
+            // Marker genuinely lost (not just a held-over hiccup) -- allow the
+            // next fresh, stable re-acquisition to re-lock the prefab pose once.
+            // Note: _lockedMarkerPose is intentionally left in place (it's the
+            // last good pose, still rendered) until a new lock overwrites it.
+            _lockedThisAcquisition.Remove(id);
         }
     }
 
