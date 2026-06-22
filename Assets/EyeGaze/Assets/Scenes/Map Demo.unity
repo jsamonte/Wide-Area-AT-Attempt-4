@@ -775,7 +775,7 @@ MonoBehaviour:
   arucoType: 6
   arucoLengthMeters: 0.02
   estimateArucoLength: 0
-  rotationOffset: {x: 0, y: 0.1, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1654396639
 GameObject:
   m_ObjectHideFlags: 0
