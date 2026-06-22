@@ -840,7 +840,7 @@ MonoBehaviour:
       type: 3}
     offsetX: -0.963
     offsetY: -102.785
-    offsetZ: -3.608
+    offsetZ: -0.963
     scaleMultiplier: 653
     rotationOffset: {x: 180, y: 0, z: 103.5}
   - arucoID: 200
@@ -883,6 +883,30 @@ MonoBehaviour:
     offsetZ: -1.021
     scaleMultiplier: 655
     rotationOffset: {x: 180, y: 0, z: 103.5}
+  - arucoID: 30
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -11.884
+    offsetY: -30.538
+    offsetZ: -3.46
+    scaleMultiplier: 658
+    rotationOffset: {x: 180, y: 0, z: 13.9}
+  - arucoID: 48
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -26.53
+    offsetY: -51.109
+    offsetZ: -4.039
+    scaleMultiplier: 658
+    rotationOffset: {x: 180, y: 0, z: 107.3}
+  - arucoID: 40
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: 3.635
+    offsetY: -24.879
+    offsetZ: -4.227
+    scaleMultiplier: 658
+    rotationOffset: {x: 180, y: 0, z: 17.4}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.15
   estimateArucoLength: 0

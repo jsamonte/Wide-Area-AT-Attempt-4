@@ -30,6 +30,15 @@ MonoBehaviour:
       guid: 18dc0cd2c080841dea60987a38ce93fa
       assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings,
         Unity.RenderPipelines.Universal.Runtime:Assets/UniversalRenderPipelineGlobalSettings.asset:UniversalRenderPipelineGlobalSettings
+    - object: {fileID: -6465566751694194690, guid: c6d8159087e557b44a7d450e3d87ee4c,
+        type: 3}
+      guid: c6d8159087e557b44a7d450e3d87ee4c
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Shader/Grid
+        Shader.shadergraph:Shader Graphs/Grid Shader
+    - object: {fileID: -8841330723028000658, guid: 809c02ccafe6d624d89c31be47f4a9bd,
+        type: 3}
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:M_Controller_Trigger
     - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
       guid: 8236c695e72414e7889fb3f4d8226fde
       assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
@@ -40,10 +49,13 @@ MonoBehaviour:
       guid: 3440251350f542718f3656d4cfff132a
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
         Shaders/Particles/Alpha Blended Premultiply
-    - object: {fileID: 7134043336269528555, guid: 809c02ccafe6d624d89c31be47f4a9bd,
-        type: 3}
-      guid: 809c02ccafe6d624d89c31be47f4a9bd
-      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Control_Body
+    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
+      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
+    - object: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+      guid: b7457432f68a4465abe7445a6dbf0669
+      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
+        default resources:Sphere
     - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
       guid: e6e9a19c3678ded42a3bc431ebef7dbd
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
@@ -51,21 +63,13 @@ MonoBehaviour:
     - object: {fileID: 4800000, guid: 36e335017ad71d54fbb10842863188ae, type: 3}
       guid: 36e335017ad71d54fbb10842863188ae
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader:Hidden/Core/FallbackError
-    - object: {fileID: 2800000, guid: b7e7faca7fd58d147ad4889d2c521c2c, type: 3}
-      guid: b7e7faca7fd58d147ad4889d2c521c2c
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
-        Grid Prototype Materials/Textures/prototype_normal.png:prototype_normal
-    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
-      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
-    - object: {fileID: 2800000, guid: f3fda86b5946f734a9a3ff491f163a96, type: 3}
-      guid: f3fda86b5946f734a9a3ff491f163a96
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
-        Grid Prototype Materials/Textures/1x1_grid_quarter_lines_numbered.png:1x1_grid_quarter_lines_numbered
     - object: {fileID: 2100000, guid: 88b3961b9a9bd064ebcc2f4cbf42faf0, type: 2}
       guid: 88b3961b9a9bd064ebcc2f4cbf42faf0
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
         Grid Prototype Materials/Materials/Dark_Blue_Prototype.mat:Dark_Blue_Prototype
+    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+      guid: a31509a9b7064f13a04ccee9ab35d4c2
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
     - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
       guid: 933532a4fcc9baf4fa0491de14d08ed7
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
@@ -96,38 +100,34 @@ MonoBehaviour:
         type: 3}
       guid: 37ce70e88f94aba4c9af3af288e65e6f
       assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray3.fbx:Baseline
-    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
-      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
-    - object: {fileID: 2100000, guid: 81fd8823aa1e26c44b5c45a4141ffbb3, type: 2}
-      guid: 81fd8823aa1e26c44b5c45a4141ffbb3
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Shader/M_Grid.mat:M_Grid
-    - object: {fileID: -6465566751694194690, guid: c6d8159087e557b44a7d450e3d87ee4c,
-        type: 3}
-      guid: c6d8159087e557b44a7d450e3d87ee4c
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Shader/Grid
-        Shader.shadergraph:Shader Graphs/Grid Shader
-    - object: {fileID: -8841330723028000658, guid: 809c02ccafe6d624d89c31be47f4a9bd,
-        type: 3}
-      guid: 809c02ccafe6d624d89c31be47f4a9bd
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:M_Controller_Trigger
+    - object: {fileID: 2800000, guid: f3fda86b5946f734a9a3ff491f163a96, type: 3}
+      guid: f3fda86b5946f734a9a3ff491f163a96
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Textures/1x1_grid_quarter_lines_numbered.png:1x1_grid_quarter_lines_numbered
     - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
       guid: 4478eaa5582e4a1693fa763e65c939ad
       assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
-    - object: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
-      guid: b7457432f68a4465abe7445a6dbf0669
-      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
-        default resources:Sphere
-    - object: {fileID: 2800000, guid: 915f3ba7e259f1743b56f1d197b2586a, type: 3}
-      guid: 915f3ba7e259f1743b56f1d197b2586a
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Materials/Controller/Controller.png:Controller
-    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
-      guid: a31509a9b7064f13a04ccee9ab35d4c2
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
+    - object: {fileID: 2800000, guid: b7e7faca7fd58d147ad4889d2c521c2c, type: 3}
+      guid: b7e7faca7fd58d147ad4889d2c521c2c
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Textures/prototype_normal.png:prototype_normal
     - object: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
       guid: 4f06d875f82c40d3a0945c3ff8db0311
       assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
         default resources:Cube
+    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
+      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
+    - object: {fileID: 2100000, guid: 81fd8823aa1e26c44b5c45a4141ffbb3, type: 2}
+      guid: 81fd8823aa1e26c44b5c45a4141ffbb3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Shader/M_Grid.mat:M_Grid
+    - object: {fileID: 2800000, guid: 915f3ba7e259f1743b56f1d197b2586a, type: 3}
+      guid: 915f3ba7e259f1743b56f1d197b2586a
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Materials/Controller/Controller.png:Controller
+    - object: {fileID: 7134043336269528555, guid: 809c02ccafe6d624d89c31be47f4a9bd,
+        type: 3}
+      guid: 809c02ccafe6d624d89c31be47f4a9bd
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Packages/com.magicleap.unitysdk/Runtime/Tools/Meshes/Controller.fbx:Control_Body
     - object: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d
