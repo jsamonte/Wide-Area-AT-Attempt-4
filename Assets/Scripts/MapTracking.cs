@@ -3,6 +3,7 @@
 // All settings exposed in the Inspector. No dropdowns, buttons, or text fields required.
 // Drop this component on a GameObject in your scene and configure via Inspector.
 
+using System.Collections;
 using System.Text;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
@@ -33,6 +34,7 @@ namespace MagicLeap.Examples
         private MagicLeapMarkerUnderstandingFeature markerFeature;
         private GameObject currentCustomInstance;
         private bool markerVisible = false;
+        private WaitForEndOfFrame _waitForEndOfFrame;
 
         void Start()
         {
@@ -47,10 +49,21 @@ namespace MagicLeap.Examples
             }
 
             CreateMarkerDetector();
+
+            _waitForEndOfFrame = new WaitForEndOfFrame();
+            StartCoroutine(DetectionLoop());
         }
 
         private void CreateMarkerDetector()
         {
+            if (markerFeature == null) return;
+
+            if (ArucoTrackerSync.GlobalDetectorExists(markerFeature, MarkerType.Aruco))
+            {
+                Debug.Log("[Console] MapTracking: Detector already exists globally. Skipping duplicate creation.");
+                return;
+            }
+
             var settings = new MarkerDetectorSettings
             {
                 MarkerDetectorProfile = profile,
@@ -71,52 +84,56 @@ namespace MagicLeap.Examples
 
         void Update()
         {
-            if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
-                return;
-
-            markerFeature.UpdateMarkerDetectors();
-
-            markerVisible = false;
-
-            foreach (var markerDetector in markerFeature.MarkerDetectors)
-            {
-                if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
-                    continue;
-
-                for (int i = 0; i < markerDetector.Data.Count; i++)
-                {
-                    var data = markerDetector.Data[i];
-
-                    if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
-                        continue;
-
-                    markerVisible = true;
-
-                    // Spawn once, then just move it — never re-instantiate every frame
-                    if (currentCustomInstance == null && customMarkerPrefab != null)
-                    {
-                        currentCustomInstance = Instantiate(customMarkerPrefab);
-                        currentCustomInstance.SetActive(true);
-                    }
-
-                    if (currentCustomInstance != null)
-                    {
-                        Quaternion offsetRot = Quaternion.Euler(rotationOffset);
-                        currentCustomInstance.transform.SetPositionAndRotation(
-                            data.MarkerPose.Value.position,
-                            data.MarkerPose.Value.rotation * offsetRot);
-
-                        // IMPORTANT: Do NOT scale here using data.MarkerLength.
-                        // It can be 0 on first detection and will crash with degenerate scale.
-                        // Author your prefab at the correct real-world size instead.
-                    }
-                }
-            }
-
             // Hide (but don't destroy) the prefab when the marker leaves view
             if (currentCustomInstance != null)
             {
                 currentCustomInstance.SetActive(markerVisible);
+            }
+        }
+
+        private IEnumerator DetectionLoop()
+        {
+            while (true)
+            {
+                yield return _waitForEndOfFrame;
+
+                if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
+                    continue;
+
+                ArucoTrackerSync.UpdateDetectorsOncePerFrame(markerFeature);
+
+                markerVisible = false;
+
+                foreach (var markerDetector in markerFeature.MarkerDetectors)
+                {
+                    if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
+                        continue;
+
+                    for (int i = 0; i < markerDetector.Data.Count; i++)
+                    {
+                        var data = markerDetector.Data[i];
+
+                        if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
+                            continue;
+
+                        markerVisible = true;
+
+                        // Spawn once, then just move it — never re-instantiate every frame
+                        if (currentCustomInstance == null && customMarkerPrefab != null)
+                        {
+                            currentCustomInstance = Instantiate(customMarkerPrefab);
+                            currentCustomInstance.SetActive(true);
+                        }
+
+                        if (currentCustomInstance != null)
+                        {
+                            Quaternion offsetRot = Quaternion.Euler(rotationOffset);
+                            currentCustomInstance.transform.SetPositionAndRotation(
+                                data.MarkerPose.Value.position,
+                                data.MarkerPose.Value.rotation * offsetRot);
+                        }
+                    }
+                }
             }
         }
 
@@ -136,8 +153,8 @@ namespace MagicLeap.Examples
                 currentCustomInstance = null;
             }
 
-            if (markerFeature != null)
-                markerFeature.DestroyAllMarkerDetectors();
+            // Removed markerFeature.DestroyAllMarkerDetectors() to prevent destroying 
+            // detectors that might be used by other scripts (like WireframeAlignment).
         }
     }
 }

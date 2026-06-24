@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -51,6 +52,8 @@ public class ArucoCalibrationManager : MonoBehaviour
     // using it, otherwise visualizers and the saved snap offsets are off by
     // exactly the XR Origin's transform.
     Transform _xrOriginXform;
+    // Reusable yield instruction for DetectionLoop; allocated once to avoid GC.
+    WaitForEndOfFrame _waitForEndOfFrame;
 
     /// <summary>
     /// Snapshot of currently-visible accepted markers (id -> world pose) refreshed each Update.
@@ -86,6 +89,8 @@ public class ArucoCalibrationManager : MonoBehaviour
             return;
         }
         _ready = true;
+        _waitForEndOfFrame = new WaitForEndOfFrame();
+        StartCoroutine(DetectionLoop());
         Debug.LogWarning($"[Console] ARUCO: detector created. dict={arucoDictionary} length={markerLengthMeters:F4}m accepted=[{string.Join(",", acceptedMarkerIds)}]");
     }
 
@@ -103,29 +108,11 @@ public class ArucoCalibrationManager : MonoBehaviour
     void Update()
     {
         if (!_ready || _feature == null || _detector == null) return;
-        _feature.UpdateMarkerDetectors();
-
+        // UpdateMarkerDetectors() and raw sample collection have been moved to
+        // DetectionLoop() (WaitForEndOfFrame coroutine). That coroutine fires
+        // after xrEndFrame so any ML2 pipeline stall can't delay frame submission
+        // and can't cause the "camera stuck" display freeze.
         float now = Time.time;
-        if (_detector.Status == MarkerDetectorStatus.Ready)
-        {
-            var data = _detector.Data;
-            if (data != null)
-            {
-                for (int i = 0; i < data.Count; i++)
-                {
-                    var d = data[i];
-                    if (!d.MarkerNumber.HasValue) continue;
-                    if (!d.MarkerPose.HasValue) continue;
-                    int id = (int)d.MarkerNumber.Value;
-                    if (acceptedMarkerIds != null && acceptedMarkerIds.Count > 0 && !acceptedMarkerIds.Contains(id)) continue;
-
-                    // Convert tracking-space marker pose -> world space.
-                    Pose worldPose = ToWorld(d.MarkerPose.Value);
-                    PushSample(id, worldPose, now);
-                    _lastSeen[id] = now;
-                }
-            }
-        }
 
         // Evict markers we haven't seen in a while. ML2's detector returns intermittently
         // (often ~1 Hz) even when the marker is in clear view, so we hold the last pose
@@ -155,6 +142,44 @@ public class ArucoCalibrationManager : MonoBehaviour
         }
 
         UpdateVisualizers();
+    }
+
+    /// <summary>
+    /// Runs UpdateMarkerDetectors() and raw sample collection in a WaitForEndOfFrame
+    /// coroutine so the blocking ML2 perception-pipeline sync fires after xrEndFrame.
+    /// Any stall here cannot delay the current frame's submission to the compositor
+    /// and therefore cannot cause the "camera stuck" display freeze.
+    /// VisibleMarkers is updated from these samples on the NEXT Update(), introducing
+    /// at most one frame of latency -- acceptable for calibration snap logic.
+    /// </summary>
+    private IEnumerator DetectionLoop()
+    {
+        while (true)
+        {
+            yield return _waitForEndOfFrame;
+            if (!_ready || _feature == null || _detector == null) continue;
+            _feature.UpdateMarkerDetectors();
+            float now = Time.time;
+            if (_detector.Status == MarkerDetectorStatus.Ready)
+            {
+                var data = _detector.Data;
+                if (data != null)
+                {
+                    for (int i = 0; i < data.Count; i++)
+                    {
+                        var d = data[i];
+                        if (!d.MarkerNumber.HasValue) continue;
+                        if (!d.MarkerPose.HasValue) continue;
+                        int id = (int)d.MarkerNumber.Value;
+                        if (acceptedMarkerIds != null && acceptedMarkerIds.Count > 0 && !acceptedMarkerIds.Contains(id)) continue;
+                        // Convert tracking-space marker pose -> world space.
+                        Pose worldPose = ToWorld(d.MarkerPose.Value);
+                        PushSample(id, worldPose, now);
+                        _lastSeen[id] = now;
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>Number of samples currently in the averaging window for a given marker.</summary>

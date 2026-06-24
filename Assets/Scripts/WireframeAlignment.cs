@@ -35,6 +35,39 @@ using MagicLeap.OpenXR.Features.LocalizationMaps;
 using MagicLeap.OpenXR.Subsystems;
 using Unity.XR.CoreUtils;
 
+/// <summary>
+/// Global synchronization for ArUco marker tracking across multiple scripts.
+/// Prevents multiple scripts from independently calling UpdateMarkerDetectors() 
+/// in the same frame, which blocks the ML2 OS perception pipeline and causes 
+/// the main thread to freeze (the "camera stuck" bug). Also prevents redundant
+/// detector instances from being created.
+/// </summary>
+public static class ArucoTrackerSync
+{
+    private static int lastUpdateFrame = -1;
+
+    public static void UpdateDetectorsOncePerFrame(MagicLeapMarkerUnderstandingFeature feature)
+    {
+        if (feature == null || feature.MarkerDetectors.Count == 0) return;
+
+        if (Time.frameCount != lastUpdateFrame)
+        {
+            feature.UpdateMarkerDetectors();
+            lastUpdateFrame = Time.frameCount;
+        }
+    }
+
+    public static bool GlobalDetectorExists(MagicLeapMarkerUnderstandingFeature feature, MarkerType type)
+    {
+        if (feature == null) return false;
+        foreach (var detector in feature.MarkerDetectors)
+        {
+            if (detector.Settings.MarkerType == type) return true;
+        }
+        return false;
+    }
+}
+
 public class WireframeAlignment : MonoBehaviour
 {
     [Header("=== ARUCO → PREFAB MAPPINGS ===")]
@@ -110,6 +143,11 @@ public class WireframeAlignment : MonoBehaviour
     [SerializeField] private float freshLockSeconds = 0.20f;
     private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
     private readonly HashSet<ulong> _lockedThisAcquisition = new HashSet<ulong>();
+    // Tracks markers whose rotationOffset has been edited by the user (thumbstick
+    // or grab-release). On re-acquisition we still update the locked marker pose
+    // reference, but we do NOT call UpdateInstanceTransform -- that would snap the
+    // prefab back to the raw marker pose and discard the user's edits.
+    private readonly HashSet<ulong> _userEditedRotation = new HashSet<ulong>();
 
     private GameObject alignmentInfoTextObj;
     private TextMesh alignmentInfoTextMesh;
@@ -123,6 +161,17 @@ public class WireframeAlignment : MonoBehaviour
     private readonly Dictionary<ulong, Queue<MarkerSample>> _samples = new Dictionary<ulong, Queue<MarkerSample>>();
     private readonly Dictionary<ulong, float> _lastSeen = new Dictionary<ulong, float>();
     private List<ulong> _evictBuf;
+    // O(1) mapping lookup built once from arucoMappings in Start().
+    // Replaces per-frame LINQ FirstOrDefault calls that allocate a new delegate
+    // closure each invocation and add GC pressure on the main thread.
+    private readonly Dictionary<ulong, ArucoPrefabMapping> _mappingLookup = new Dictionary<ulong, ArucoPrefabMapping>();
+    // EnforceSingleActivePrefab IPC skip: tracks the last ID we evaluated so we
+    // can skip the GetAnchorMapPositionId() loop when nothing has changed.
+    // Reset to INVALID_ARUCO_ID by OnAnchorsChanged whenever storedAnchors changes.
+    private ulong _lastEnforcedArucoID = INVALID_ARUCO_ID;
+    // Reusable yield object for DetectionCollectionLoop; avoids allocating a new
+    // WaitForEndOfFrame every iteration (each allocation creates GC pressure).
+    private WaitForEndOfFrame _waitForEndOfFrame;
 
     [Serializable]
     public class ArucoPrefabMapping
@@ -166,6 +215,7 @@ public class WireframeAlignment : MonoBehaviour
         }
 
         LoadAnchorMappings();
+        BuildMappingLookup();
 
         Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
 
@@ -174,6 +224,12 @@ public class WireframeAlignment : MonoBehaviour
 
         CreateMarkerDetector();
         InitializeAlignmentText();
+
+        // Move the blocking UpdateMarkerDetectors() call to a post-render coroutine
+        // so ML2 perception-pipeline stalls happen after xrEndFrame and cannot
+        // delay the current frame's submission to the compositor.
+        _waitForEndOfFrame = new WaitForEndOfFrame();
+        StartCoroutine(DetectionCollectionLoop());
     }
 
     private bool AreSubsystemsLoaded()
@@ -199,9 +255,27 @@ public class WireframeAlignment : MonoBehaviour
         WireframeMarkerAnchorStore.SaveAll(anchorMapPosIdToArucoID);
     }
 
+    /// <summary>
+    /// Builds _mappingLookup from arucoMappings for O(1) ID lookup.
+    /// Call once in Start() after arucoMappings is populated.
+    /// </summary>
+    private void BuildMappingLookup()
+    {
+        _mappingLookup.Clear();
+        foreach (var m in arucoMappings)
+            if (m != null) _mappingLookup[m.arucoID] = m;
+    }
+
     private void CreateMarkerDetector()
     {
         if (hasInitializedDetector || markerFeature == null) return;
+
+        if (ArucoTrackerSync.GlobalDetectorExists(markerFeature, MarkerType.Aruco))
+        {
+            Debug.Log("[Console] ARUCO: Detector already exists globally. Skipping duplicate creation.");
+            hasInitializedDetector = true;
+            return;
+        }
 
         var settings = new MarkerDetectorSettings
         {
@@ -231,30 +305,13 @@ public class WireframeAlignment : MonoBehaviour
     {
         if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0) return;
 
-        markerFeature.UpdateMarkerDetectors();
+        // UpdateMarkerDetectors() and Pass 1 (raw sample collection) live in
+        // DetectionCollectionLoop() -- a WaitForEndOfFrame coroutine that fires
+        // after xrEndFrame (the ML2 compositor commit point). Any ML2 pipeline
+        // stall there cannot delay the current frame and cannot cause the
+        // "camera stuck" freeze. Detection has <=1 frame latency, which is
+        // acceptable for anchor placement (smoothing window spans 0.25 s).
         float now = Time.time;
-
-        // ---- Pass 1: collect raw detections into the per-marker sample window ----
-        foreach (var detector in markerFeature.MarkerDetectors)
-        {
-            if (detector.Settings.MarkerType != MarkerType.Aruco) continue;
-
-            foreach (var data in detector.Data)
-            {
-                if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
-
-                ulong id = data.MarkerNumber.Value;
-                Pose trackingPose = data.MarkerPose.Value;
-                if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
-
-                var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
-                if (mapping == null || mapping.prefab == null) continue;
-
-                Pose worldPose = ToWorld(trackingPose);
-                PushSample(id, worldPose, now);
-                _lastSeen[id] = now;
-            }
-        }
 
         // ---- Evict markers we haven't actually seen in a while (debounce) ----
         EvictStaleMarkers(now);
@@ -268,8 +325,7 @@ public class WireframeAlignment : MonoBehaviour
             ulong id = kvp.Key;
             Pose markerWorldPose = kvp.Value;
 
-            var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
-            if (mapping == null || mapping.prefab == null) continue;
+            if (!_mappingLookup.TryGetValue(id, out var mapping) || mapping.prefab == null) continue;
 
             lastSeenArucoID = id;
 
@@ -293,7 +349,11 @@ public class WireframeAlignment : MonoBehaviour
                 {
                     _lockedMarkerPose[id] = markerWorldPose;
                     _lockedThisAcquisition.Add(id);
-                    UpdateInstanceTransform(existing.gameObject, mapping, markerWorldPose);
+                    // Only snap the prefab transform on the very first lock.
+                    // If the user has edited the rotation via thumbstick or grab,
+                    // skip UpdateInstanceTransform so their changes aren't overwritten.
+                    if (!_userEditedRotation.Contains(id))
+                        UpdateInstanceTransform(existing.gameObject, mapping, markerWorldPose);
                 }
                 // else: already locked this acquisition (or not fresh/stable yet) --
                 // hold the existing transform, do NOT re-snap from the live pose.
@@ -317,6 +377,52 @@ public class WireframeAlignment : MonoBehaviour
 
         if (enableControllerAdjustment && !IsAnyActiveObjectGrabbed())
             HandleControllerOffsetAdjustment();
+    }
+
+    /// <summary>
+    /// Runs UpdateMarkerDetectors() and the raw-sample-collection pass in a
+    /// WaitForEndOfFrame coroutine so the potentially-blocking ML2 perception-
+    /// pipeline sync fires AFTER xrEndFrame -- after the frame is committed to
+    /// the ML2 compositor. Even if it stalls for >16ms, the committed frame is
+    /// already in the compositor queue and ATW can reproject it correctly.
+    /// This eliminates the root cause of the "camera stuck" display freeze:
+    /// UpdateMarkerDetectors() can no longer block Unity's Update loop.
+    /// Detection results have at most one frame of latency, which is acceptable
+    /// for anchor placement (the pose-smoothing window already spans 0.25 s).
+    /// </summary>
+    private IEnumerator DetectionCollectionLoop()
+    {
+        while (true)
+        {
+            yield return _waitForEndOfFrame;
+
+            if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
+                continue;
+
+            ArucoTrackerSync.UpdateDetectorsOncePerFrame(markerFeature);
+            float now = Time.time;
+
+            // ---- Pass 1: collect raw detections into the per-marker sample window ----
+            foreach (var detector in markerFeature.MarkerDetectors)
+            {
+                if (detector.Settings.MarkerType != MarkerType.Aruco) continue;
+
+                foreach (var data in detector.Data)
+                {
+                    if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
+
+                    ulong id = data.MarkerNumber.Value;
+                    Pose trackingPose = data.MarkerPose.Value;
+                    if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
+
+                    if (!_mappingLookup.TryGetValue(id, out var mapping) || mapping.prefab == null) continue;
+
+                    Pose worldPose = ToWorld(trackingPose);
+                    PushSample(id, worldPose, now);
+                    _lastSeen[id] = now;
+                }
+            }
+        }
     }
 
     private bool IsAnyActiveObjectGrabbed()
@@ -345,8 +451,7 @@ public class WireframeAlignment : MonoBehaviour
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
-        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-        if (mapping == null) return;
+        if (!_mappingLookup.TryGetValue(lastSeenArucoID, out var mapping)) return;
 
         InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
         InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, leftHandDevices);
@@ -433,23 +538,37 @@ public class WireframeAlignment : MonoBehaviour
     private void EnforceSingleActivePrefab()
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
+        // Skip the per-anchor IPC pass entirely when the active marker ID is
+        // unchanged. GetAnchorMapPositionId is a synchronous ML2 subsystem call;
+        // firing it for every stored anchor every frame adds pipeline stalls.
+        // _lastEnforcedArucoID is reset by OnAnchorsChanged when storedAnchors
+        // changes, so a newly added/removed anchor always triggers a fresh pass.
+        if (lastSeenArucoID == _lastEnforcedArucoID) return;
+        _lastEnforcedArucoID = lastSeenArucoID;
 
         foreach (var kvp in createdAnchorsByArucoID)
         {
             if (kvp.Value != null && kvp.Value.gameObject != null)
-                kvp.Value.gameObject.SetActive(kvp.Key == lastSeenArucoID);
+            {
+                bool shouldBeActive = kvp.Key == lastSeenArucoID;
+                if (kvp.Value.gameObject.activeSelf != shouldBeActive)
+                    kvp.Value.gameObject.SetActive(shouldBeActive);
+            }
         }
 
         if (activeSubsystem != null)
         {
-            foreach (ARAnchor anchor in storedAnchors.ToList())
+            // Direct iteration (no .ToList() allocation): SetActive and
+            // GetAnchorMapPositionId do not modify storedAnchors, so safe.
+            foreach (ARAnchor anchor in storedAnchors)
             {
                 if (anchor == null || anchor.gameObject == null) continue;
                 string mapPosId = activeSubsystem.GetAnchorMapPositionId(anchor);
                 bool shouldShow = false;
                 if (!string.IsNullOrEmpty(mapPosId) && anchorMapPosIdToArucoID.TryGetValue(mapPosId, out ulong mappedAruco))
                     shouldShow = (mappedAruco == lastSeenArucoID);
-                anchor.gameObject.SetActive(shouldShow);
+                if (anchor.gameObject.activeSelf != shouldShow)
+                    anchor.gameObject.SetActive(shouldShow);
             }
         }
     }
@@ -533,7 +652,7 @@ public class WireframeAlignment : MonoBehaviour
                 string mapPosId = activeSubsystem.GetAnchorMapPositionId(anchor);
                 if (!string.IsNullOrEmpty(mapPosId) && anchorMapPosIdToArucoID.TryGetValue(mapPosId, out ulong savedArucoID))
                 {
-                    var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == savedArucoID);
+                    _mappingLookup.TryGetValue(savedArucoID, out var mapping);
                     if (mapping != null && mapping.prefab != null)
                     {
                         GameObject instance = Instantiate(mapping.prefab, anchor.transform.position, anchor.transform.rotation);
@@ -573,6 +692,9 @@ public class WireframeAlignment : MonoBehaviour
 
         foreach (ARAnchor anchor in args.removed)
             storedAnchors.Remove(anchor);
+        // Anchor list changed; force EnforceSingleActivePrefab to re-evaluate
+        // visibility on the next Update instead of using the cached result.
+        _lastEnforcedArucoID = INVALID_ARUCO_ID;
     }
 
     private void UpdateInstanceTransformRelativeToAnchor(GameObject instance, ArucoPrefabMapping mapping, ARAnchor anchor)
@@ -594,7 +716,11 @@ public class WireframeAlignment : MonoBehaviour
     {
         if (activeSubsystem == null) return;
         foreach (var anchor in storedAnchors)
-            if (anchor != null)
+            // Only update pose for active anchors. EnforceSingleActivePrefab
+            // hides all anchors except the currently-matched one, so calling
+            // GetAnchorPose (a synchronous ML2 IPC call) for every inactive
+            // anchor every frame wastes pipeline bandwidth unnecessarily.
+            if (anchor != null && anchor.gameObject.activeSelf)
             {
                 var p = activeSubsystem.GetAnchorPose(anchor);
                 anchor.transform.SetPositionAndRotation(p.position, p.rotation);
@@ -617,9 +743,11 @@ public class WireframeAlignment : MonoBehaviour
         lastDetectedMarkerPoses.Clear();
         _lockedMarkerPose.Clear();
         _lockedThisAcquisition.Clear();
+        _userEditedRotation.Clear();
         _samples.Clear();
         _lastSeen.Clear();
         lastSeenArucoID = 0;
+        _lastEnforcedArucoID = INVALID_ARUCO_ID;
 
         if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
 
@@ -672,8 +800,7 @@ public class WireframeAlignment : MonoBehaviour
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
-        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-        if (mapping == null) return;
+        if (!_mappingLookup.TryGetValue(lastSeenArucoID, out var mapping)) return;
 
         // Use the locked pose -- the prefab's displayed transform was computed
         // against this pose, not necessarily the current live one, so the
@@ -695,6 +822,7 @@ public class WireframeAlignment : MonoBehaviour
         Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
         mapping.rotationOffset = newLocalRot.eulerAngles;
 
+        _userEditedRotation.Add(lastSeenArucoID);
         UpdateAlignmentInfoText();
     }
 
@@ -704,8 +832,7 @@ public class WireframeAlignment : MonoBehaviour
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
-        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-        if (mapping == null) return;
+        if (!_mappingLookup.TryGetValue(lastSeenArucoID, out var mapping)) return;
 
         GameObject grabbedObject = null;
 
@@ -744,6 +871,7 @@ public class WireframeAlignment : MonoBehaviour
                     {
                         float zDelta = axis.x * rotationSpeed * Time.deltaTime;
                         grabbedObject.transform.Rotate(0, 0, zDelta, Space.Self);
+                        _userEditedRotation.Add(lastSeenArucoID);
                     }
 
                     // Vertical = Scale

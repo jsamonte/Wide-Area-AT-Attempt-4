@@ -391,40 +391,10 @@ MonoBehaviour:
       guid: a30ce789c34242aeaf80b30116a22534
     - object: {fileID: 432813693}
       guid: abbfaef1d79f44ce9de69bd675c796b8
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706974}
-      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
-    - object: {fileID: 233706975}
-      guid: 752a8fe3fe434c25847862446d15c833
-    - object: {fileID: 233706977}
-      guid: 43098aca48ac4d088d86166d344a674c
-    - object: {fileID: 233706976}
-      guid: 7f2ec95574ac4af388465dbc7b51888c
-    - object: {fileID: 7771136013120700886}
-      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
-    - object: {fileID: 234454531}
-      guid: a1c3b2075ddd4b91bee3ee47a1c27091
-    - object: {fileID: 234454530}
-      guid: 61e81f66ae764fcc96974ab71f801dc6
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
-    - object: {fileID: 3677652187220507855}
-      guid: e9b2a047ae664f9e9ab4e66d5d0766be
-    - object: {fileID: 98925741128575319}
-      guid: 787691e33d9b4069ae79bdf92f85976d
-    - object: {fileID: 2542355695934717842}
-      guid: e0113a0369eb4ef18280c25dc6f77eed
-    - object: {fileID: 7213025209831549742}
-      guid: 23960c84bcf64684b942fa24e9882c23
-    - object: {fileID: 4691297905574368517}
-      guid: 257a4bb8138b478ab09cbbd5d83bee40
     - object: {fileID: 9147546957427497838}
       guid: 6c3c972f0d174e70ada34304e08533dd
+    - object: {fileID: 5419110887182260982}
+      guid: 9d3c46b4df224b7ba2328af789d47990
     - object: {fileID: 9163126459636160147}
       guid: 119502095dc24a6aa0c03293a4d6cfc6
     - object: {fileID: 3655016792138941558}
@@ -443,8 +413,6 @@ MonoBehaviour:
       guid: 9bcd26a7f8284a189a064b55875f5307
     - object: {fileID: 6204943857515421028}
       guid: d42f63e03fc24b538e0a0cee8758c662
-    - object: {fileID: 1412550252841395028}
-      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
     - object: {fileID: 6641076858881817613}
       guid: 69790857a1bb4fd69edd9dea971aaaba
     - object: {fileID: 749111786168796108}
@@ -453,8 +421,6 @@ MonoBehaviour:
       guid: 61c0b1c8f0d84674bbff722b81bfd265
     - object: {fileID: 4314807960827539279}
       guid: 23a0cb2a5d314ae885fb57d4b77238c3
-    - object: {fileID: 5419110887182260982}
-      guid: 9d3c46b4df224b7ba2328af789d47990
     - object: {fileID: 4922129846428534704}
       guid: 3622ededac5f4935be706e4c67f15b25
     - object: {fileID: 8807986985598368103}
@@ -497,6 +463,50 @@ MonoBehaviour:
       guid: b5df906050d44328a68c80d1c560fb95
     - object: {fileID: 5132204527975509147}
       guid: 3efe04a7e4314bc4ae2f8938082a206e
+    - object: {fileID: 3677652187220507855}
+      guid: e9b2a047ae664f9e9ab4e66d5d0766be
+    - object: {fileID: 98925741128575319}
+      guid: 787691e33d9b4069ae79bdf92f85976d
+    - object: {fileID: 2542355695934717842}
+      guid: e0113a0369eb4ef18280c25dc6f77eed
+    - object: {fileID: 8803291871222847466}
+      guid: 70f990bd08d548a8b0bac48e1967c534
+    - object: {fileID: 2321995414394146427}
+      guid: f8d02dc6d2734e85b80f65e5925a6204
+    - object: {fileID: 7181947681691641185}
+      guid: 01ff180034ec4f0eba3e9b3afba7dcfc
+    - object: {fileID: 917972398}
+      guid: a6c5ef32117c45b8a7109f7dbfaab119
+    - object: {fileID: 2864160864080873390}
+      guid: edd90b4d67dd4433be42ed9d53538626
+    - object: {fileID: 2750997138525929893}
+      guid: 99b1a30bd2794d9cb685624104dbadaa
+    - object: {fileID: 5002558771151071914}
+      guid: d819850aee60475cbc76052f830bbce2
+    - object: {fileID: 3034020133545539920}
+      guid: 7151769311594ac0857e11489ac18916
+    - object: {fileID: 2009548863961867682}
+      guid: 23c85d556c9b42aab2674aebb96aedfa
+    - object: {fileID: 4213558022443236702}
+      guid: 1a7c82e57bce4a07a64d8d448377be8f
+    - object: {fileID: 2140524055936550800}
+      guid: 270d110259394c39bbbcd9a54f632a1d
+    - object: {fileID: 2110443971999143060}
+      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
+    - object: {fileID: 432813695}
+      guid: 516a1de24b7242e195d07142b8dbf02d
+    - object: {fileID: 432813694}
+      guid: a94779b52ff24975bc4b2a4d9f8628ff
+    - object: {fileID: 7276002552315758418}
+      guid: 9f334eb8eec14e8f952e0b657ed01d15
+    - object: {fileID: 657523950095717521}
+      guid: 389aa0936b1641c89b7a14872ba326ab
+    - object: {fileID: 7103474464455243548}
+      guid: 796678974f52454cb6275c9ef96900fd
+    - object: {fileID: 4799372140055341532}
+      guid: 021abebdd0894830ad4402a2845a7387
+    - object: {fileID: 3612351616411823645}
+      guid: 13d3b23926904c75becd81ac5e0c3aea
     - object: {fileID: 7745393053854052261}
       guid: 66200e2907bd470f960cbc6c8e86726f
     - object: {fileID: 6696661606328830061}
@@ -551,14 +561,14 @@ MonoBehaviour:
       guid: 4ddf8fabcbb74c54932f927dbb06ec8b
     - object: {fileID: 265444391070243883}
       guid: de9bd6858de044e48de15b95e0da9e9d
+    - object: {fileID: 7960873787619314386}
+      guid: ce3823a4181c499cb3263c47383e08d9
     - object: {fileID: 4191065234106297535}
       guid: ca7c50ebbde34416bbce49f5c6ad942b
     - object: {fileID: 4634783322908924986}
       guid: 91b5d0a01c2b4bcaa07127d3df973f36
     - object: {fileID: 126223533124531890}
       guid: 32f6ed92341b480fa3d741dcf589c5ba
-    - object: {fileID: 7960873787619314386}
-      guid: ce3823a4181c499cb3263c47383e08d9
     - object: {fileID: 351271233630084417}
       guid: dd96c4e4a6fd463cb50138d531823efe
     - object: {fileID: 9025074884364572658}
@@ -581,46 +591,36 @@ MonoBehaviour:
       guid: 25111c8efff94b84971e4ab0e9dd2cc7
     - object: {fileID: 9145083558172047667}
       guid: a9ceb5e1cc7c49739233ada2c6b7bbd9
-    - object: {fileID: 8803291871222847466}
-      guid: 70f990bd08d548a8b0bac48e1967c534
-    - object: {fileID: 2321995414394146427}
-      guid: f8d02dc6d2734e85b80f65e5925a6204
-    - object: {fileID: 7181947681691641185}
-      guid: 01ff180034ec4f0eba3e9b3afba7dcfc
     - object: {fileID: 4807735244075568166}
       guid: c4837cd2cba74e228b7d2e1b07502412
-    - object: {fileID: 917972398}
-      guid: a6c5ef32117c45b8a7109f7dbfaab119
-    - object: {fileID: 2864160864080873390}
-      guid: edd90b4d67dd4433be42ed9d53538626
-    - object: {fileID: 2750997138525929893}
-      guid: 99b1a30bd2794d9cb685624104dbadaa
-    - object: {fileID: 5002558771151071914}
-      guid: d819850aee60475cbc76052f830bbce2
-    - object: {fileID: 3034020133545539920}
-      guid: 7151769311594ac0857e11489ac18916
-    - object: {fileID: 2009548863961867682}
-      guid: 23c85d556c9b42aab2674aebb96aedfa
-    - object: {fileID: 4213558022443236702}
-      guid: 1a7c82e57bce4a07a64d8d448377be8f
-    - object: {fileID: 2140524055936550800}
-      guid: 270d110259394c39bbbcd9a54f632a1d
-    - object: {fileID: 2110443971999143060}
-      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
-    - object: {fileID: 432813695}
-      guid: 516a1de24b7242e195d07142b8dbf02d
-    - object: {fileID: 432813694}
-      guid: a94779b52ff24975bc4b2a4d9f8628ff
-    - object: {fileID: 7276002552315758418}
-      guid: 9f334eb8eec14e8f952e0b657ed01d15
-    - object: {fileID: 657523950095717521}
-      guid: 389aa0936b1641c89b7a14872ba326ab
-    - object: {fileID: 7103474464455243548}
-      guid: 796678974f52454cb6275c9ef96900fd
-    - object: {fileID: 4799372140055341532}
-      guid: 021abebdd0894830ad4402a2845a7387
-    - object: {fileID: 3612351616411823645}
-      guid: 13d3b23926904c75becd81ac5e0c3aea
+    - object: {fileID: 1412550252841395028}
+      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
+    - object: {fileID: 233706974}
+      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
+    - object: {fileID: 233706975}
+      guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 233706977}
+      guid: 43098aca48ac4d088d86166d344a674c
+    - object: {fileID: 233706976}
+      guid: 7f2ec95574ac4af388465dbc7b51888c
+    - object: {fileID: 7771136013120700886}
+      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
+    - object: {fileID: 234454531}
+      guid: a1c3b2075ddd4b91bee3ee47a1c27091
+    - object: {fileID: 234454530}
+      guid: 61e81f66ae764fcc96974ab71f801dc6
+    - object: {fileID: 7213025209831549742}
+      guid: 23960c84bcf64684b942fa24e9882c23
+    - object: {fileID: 4691297905574368517}
+      guid: 257a4bb8138b478ab09cbbd5d83bee40
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -818,7 +818,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 330971500e46b104c9c637be7e1bad06, type: 3}
   m_Name: 
@@ -830,120 +830,120 @@ MonoBehaviour:
     offsetX: -5.283
     offsetY: -59.723
     offsetZ: -4.383
-    scaleMultiplier: 653
-    rotationOffset: {x: 180, y: 0, z: 16.4}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 16.4}
   - arucoID: 4
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -55.963
     offsetY: -4.407
     offsetZ: -1.88
-    scaleMultiplier: 653
-    rotationOffset: {x: 180, y: 0, z: 108.8}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 108.8}
   - arucoID: 8
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -57.355
     offsetY: -4.51
     offsetZ: -3.194
-    scaleMultiplier: 653
-    rotationOffset: {x: 180, y: 0, z: 108.3}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
   - arucoID: 80
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: 10.228
     offsetY: -5.92
     offsetZ: -3.434
-    scaleMultiplier: 649
-    rotationOffset: {x: 180, y: 0, z: 12.6}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 12.6}
   - arucoID: 82
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -1.992
     offsetY: -33.574
     offsetZ: -3.092
-    scaleMultiplier: 649
-    rotationOffset: {x: 180, y: 0, z: 103.8}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.8}
   - arucoID: 84
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -5.016
     offsetY: -69.485
     offsetZ: -2.163
-    scaleMultiplier: 649
-    rotationOffset: {x: 180, y: 0, z: 105.2}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
   - arucoID: 33
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -5.016
     offsetY: -69.485
     offsetZ: -2.163
-    scaleMultiplier: 650
-    rotationOffset: {x: 180, y: 0, z: 105.2}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
   - arucoID: 222
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: 17.76
     offsetY: -109.431
     offsetZ: -4.027
-    scaleMultiplier: 650
-    rotationOffset: {x: 180, y: 0, z: 105.2}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
   - arucoID: 44
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -0.963
     offsetY: -102.785
     offsetZ: -3.608
-    scaleMultiplier: 650
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 3
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -0.963
     offsetY: -102.785
     offsetZ: -0.963
-    scaleMultiplier: 653
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 200
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -0.963
     offsetY: -102.785
     offsetZ: -3.608
-    scaleMultiplier: 651
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 202
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -0.963
     offsetY: -102.785
     offsetZ: -3.608
-    scaleMultiplier: 651
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 20
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -71.025
     offsetY: -46.255
     offsetZ: 2.222
-    scaleMultiplier: 655
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 22
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -75.191
     offsetY: -62.477
     offsetZ: -2.383
-    scaleMultiplier: 655
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 88
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
     offsetX: -83.811
     offsetY: -98.514
     offsetZ: -1.021
-    scaleMultiplier: 655
-    rotationOffset: {x: 180, y: 0, z: 103.5}
+    scaleMultiplier: 658
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
   - arucoID: 30
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
@@ -951,7 +951,7 @@ MonoBehaviour:
     offsetY: -30.538
     offsetZ: -3.46
     scaleMultiplier: 658
-    rotationOffset: {x: 180, y: 0, z: 13.9}
+    rotationOffset: {x: 176.7, y: 0, z: 13.9}
   - arucoID: 48
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
@@ -959,7 +959,7 @@ MonoBehaviour:
     offsetY: -51.109
     offsetZ: -4.039
     scaleMultiplier: 658
-    rotationOffset: {x: 180, y: 0, z: 107.3}
+    rotationOffset: {x: 176.7, y: 0, z: 107.3}
   - arucoID: 40
     prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
       type: 3}
@@ -967,7 +967,7 @@ MonoBehaviour:
     offsetY: -24.879
     offsetZ: -4.227
     scaleMultiplier: 658
-    rotationOffset: {x: 180, y: 0, z: 17.4}
+    rotationOffset: {x: 176.7, y: 0, z: 17.4}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.15
   estimateArucoLength: 0
@@ -975,7 +975,7 @@ MonoBehaviour:
   visibleHoldSeconds: 0.75
   poseAverageSeconds: 0.25
   minSamplesForAnchorCreate: 2
-  showAlignmentInfoText: 0
+  showAlignmentInfoText: 1
   textHeightAboveMarker: 0.12
   textColor: {r: 0.41711676, g: 0, b: 0.70440245, a: 1}
   textWorldScale: 0.022
@@ -993,7 +993,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3790780a1eca02545bbfcb0af10a69b7, type: 3}
   m_Name: 
