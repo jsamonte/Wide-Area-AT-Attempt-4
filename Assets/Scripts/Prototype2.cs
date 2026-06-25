@@ -75,8 +75,6 @@ public class Prototype2 : MonoBehaviour
     [Tooltip("Multiplier per second the scale changes when tilting the thumbstick vertically.")]
     [SerializeField] private float scaleAdjustSpeed = 0.6f;
     [SerializeField] private float inputDeadzone = 0.12f;
-    [Tooltip("Enable or disable Z-axis rotation via thumbstick while grabbed.")]
-    [SerializeField] private bool enableZRotation = true;
 
     [Header("=== Debug Alignment Info Text ===")]
     [SerializeField] private bool showAlignmentInfoText = true;
@@ -101,9 +99,6 @@ public class Prototype2 : MonoBehaviour
 
     // The one shared prefab instance in the scene.
     private GameObject _sharedInstance;
-    // The prefab's native root scale, captured at Instantiate time.
-    // All scale math multiplies this by scaleMultiplier so that 1.0 = designed size.
-    private Vector3 _prefabBaseScale = Vector3.one;
 
     // Whether the user has manually edited the rotation (thumbstick or grab-release).
     // When true, re-localization from any marker updates position but NOT rotation,
@@ -248,10 +243,8 @@ public class Prototype2 : MonoBehaviour
             {
                 _sharedInstance = Instantiate(sharedPrefab);
                 _sharedInstance.SetActive(true);
-                _prefabBaseScale = _sharedInstance.transform.localScale;
-                _sharedInstance.transform.localScale = _prefabBaseScale * scaleMultiplier;
                 SetupGrabInteraction(_sharedInstance);
-                Debug.Log($"[Prototype2] Shared prefab spawned on ArUco {id}. BaseScale={_prefabBaseScale}, scaleMultiplier={scaleMultiplier}, final={_sharedInstance.transform.localScale}");
+                Debug.Log($"[XYaxisalignment] Shared prefab instance spawned on ArUco {id}.");
             }
 
             if (_sharedInstance == null) continue;
@@ -273,8 +266,16 @@ public class Prototype2 : MonoBehaviour
 
         UpdateAlignmentInfoText();
 
-        if (enableControllerAdjustment && !IsSharedInstanceGrabbed())
-            HandleControllerOffsetAdjustment();
+        if (!IsSharedInstanceGrabbed())
+        {
+            if (enableControllerAdjustment)
+                HandleControllerOffsetAdjustment();
+
+            if (_sharedInstance != null)
+            {
+                _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -309,8 +310,7 @@ public class Prototype2 : MonoBehaviour
             _sharedInstance.transform.SetPositionAndRotation(finalPos, finalRot);
         }
 
-        _sharedInstance.transform.localScale = _prefabBaseScale * scaleMultiplier;
-        Debug.Log($"[Prototype2] ApplySharedTransform: scaleMultiplier={scaleMultiplier}, localScale={_sharedInstance.transform.localScale}");
+        _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
     }
 
     // ------------------------------------------------------------------
@@ -402,7 +402,7 @@ public class Prototype2 : MonoBehaviour
         bool changed = false;
 
         // Horizontal thumbstick -> Z rotation (roll) around the pivot
-        if (enableZRotation && Mathf.Abs(axis.x) > inputDeadzone)
+        if (Mathf.Abs(axis.x) > inputDeadzone)
         {
             float zDelta = axis.x * rotSpeed;
             // Rotate around the controller pivot using the prefab's local Z axis
@@ -410,13 +410,12 @@ public class Prototype2 : MonoBehaviour
             changed = true;
         }
 
-        // Vertical thumbstick -> Scale around the pivot (proportional)
+        // Vertical thumbstick -> Scale around the pivot
         if (Mathf.Abs(axis.y) > inputDeadzone)
         {
             float oldScaleMultiplier = scaleMultiplier;
-            // Proportional: multiply by (1 + delta) so the change is a percentage of current size
-            scaleMultiplier *= (1f + axis.y * sclSpeed);
-            scaleMultiplier = Mathf.Max(0.01f, scaleMultiplier);
+            scaleMultiplier += axis.y * sclSpeed;
+            scaleMultiplier = Mathf.Max(0.1f, scaleMultiplier);
 
             float scaleRatio = scaleMultiplier / oldScaleMultiplier;
 
@@ -425,8 +424,7 @@ public class Prototype2 : MonoBehaviour
             _sharedInstance.transform.position = pivot + (offsetFromPivot * scaleRatio);
 
             // Apply the actual scale
-            _sharedInstance.transform.localScale = _prefabBaseScale * scaleMultiplier;
-            Debug.Log($"[Prototype2] Thumbstick scale: scaleMultiplier={scaleMultiplier}, localScale={_sharedInstance.transform.localScale}");
+            _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
 
             changed = true;
         }
