@@ -789,6 +789,8 @@ GameObject:
   - component: {fileID: 969004514}
   - component: {fileID: 969004515}
   - component: {fileID: 969004516}
+  - component: {fileID: 969004518}
+  - component: {fileID: 969004517}
   m_Layer: 0
   m_Name: ArUco
   m_TagString: Untagged
@@ -818,7 +820,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 330971500e46b104c9c637be7e1bad06, type: 3}
   m_Name: 
@@ -829,7 +831,7 @@ MonoBehaviour:
       type: 3}
     offsetX: -5.283
     offsetY: -59.723
-    offsetZ: -4.383
+    offsetZ: -4.407
     scaleMultiplier: 680
     rotationOffset: {x: 176.7, y: 0, z: 16.4}
   - arucoID: 4
@@ -1064,6 +1066,276 @@ MonoBehaviour:
   rotationAdjustSpeed: 90
   inputDeadzone: 0.12
   freshLockSeconds: 0.2
+--- !u!114 &969004517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a104bf8cc79a8e4eaae6496b32a56fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  arucoMappings:
+  - arucoID: 2
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -5.283
+    offsetY: -59.723
+    offsetZ: -4.383
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 16.4}
+  - arucoID: 4
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -55.963
+    offsetY: -4.407
+    offsetZ: -1.88
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 108.8}
+  - arucoID: 8
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -57.355
+    offsetY: -4.51
+    offsetZ: -3.194
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
+  - arucoID: 80
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: 10.228
+    offsetY: -5.92
+    offsetZ: -3.434
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 12.6}
+  - arucoID: 82
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -1.992
+    offsetY: -33.574
+    offsetZ: -3.092
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.8}
+  - arucoID: 84
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 33
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 222
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: 17.76
+    offsetY: -109.431
+    offsetZ: -4.027
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 44
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 3
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -0.963
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 200
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 202
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 20
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -71.025
+    offsetY: -46.255
+    offsetZ: 2.222
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 22
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -75.191
+    offsetY: -62.477
+    offsetZ: -2.383
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 88
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -83.811
+    offsetY: -98.514
+    offsetZ: -1.021
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 30
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -11.884
+    offsetY: -30.538
+    offsetZ: -3.46
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 13.9}
+  - arucoID: 48
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: -26.53
+    offsetY: -51.109
+    offsetZ: -4.039
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 107.3}
+  - arucoID: 40
+    prefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+      type: 3}
+    offsetX: 3.635
+    offsetY: -24.879
+    offsetZ: -4.227
+    scaleMultiplier: 680
+    rotationOffset: {x: 176.7, y: 0, z: 17.4}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.15
+  estimateArucoLength: 0
+  xrOrigin: {fileID: 265444391070243883}
+--- !u!114 &969004518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fa0ec03ae419d047aacfc7be0f51eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+    type: 3}
+  scaleMultiplier: 658
+  arucoMappings:
+  - arucoID: 2
+    offsetX: -5.283
+    offsetY: -59.723
+    offsetZ: -4.383
+    rotationOffset: {x: 176.7, y: 0, z: 16.4}
+  - arucoID: 4
+    offsetX: -55.963
+    offsetY: -4.407
+    offsetZ: -1.88
+    rotationOffset: {x: 176.7, y: 0, z: 108.8}
+  - arucoID: 8
+    offsetX: -57.355
+    offsetY: -4.51
+    offsetZ: -3.194
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
+  - arucoID: 8
+    offsetX: -57.355
+    offsetY: -4.51
+    offsetZ: -3.194
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
+  - arucoID: 20
+    offsetX: -71.025
+    offsetY: -46.255
+    offsetZ: 2.222
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 22
+    offsetX: -75.191
+    offsetY: -62.477
+    offsetZ: -2.383
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 88
+    offsetX: -83.811
+    offsetY: -98.514
+    offsetZ: -1.021
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 200
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 3
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -0.963
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 44
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 33
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 84
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 82
+    offsetX: -1.992
+    offsetY: -33.574
+    offsetZ: -3.092
+    rotationOffset: {x: 176.7, y: 0, z: 103.8}
+  - arucoID: 80
+    offsetX: 10.228
+    offsetY: -5.92
+    offsetZ: -3.434
+    rotationOffset: {x: 176.7, y: 0, z: 12.6}
+  - arucoID: 40
+    offsetX: 3.635
+    offsetY: -24.879
+    offsetZ: -4.227
+    rotationOffset: {x: 176.7, y: 0, z: 17.4}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.1016
+  estimateArucoLength: 0
+  xrOrigin: {fileID: 265444391070243883}
+  visibleHoldSeconds: 0.75
+  poseAverageSeconds: 0.25
+  minSamplesForRelocalize: 2
+  freshLockSeconds: 0.2
+  enableControllerAdjustment: 1
+  offsetAdjustSpeed: 0.8
+  rotationAdjustSpeed: 90
+  scaleAdjustSpeed: 0.6
+  inputDeadzone: 0.12
+  showAlignmentInfoText: 1
+  textHeightAboveMarker: 0.12
+  textColor: {r: 0.4339623, g: 0, b: 0.4339623, a: 1}
+  textWorldScale: 0.022
+  textFontSize: 72
 --- !u!1 &1654396639
 GameObject:
   m_ObjectHideFlags: 0

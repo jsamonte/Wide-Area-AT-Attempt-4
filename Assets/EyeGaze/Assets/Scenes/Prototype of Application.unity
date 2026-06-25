@@ -387,10 +387,12 @@ MonoBehaviour:
       guid: 6e5660e7e5c242379d29d472295a2cbe
     - object: {fileID: 6061204285223387423}
       guid: 9b03bd68239841bfb249b505deabf034
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
     - object: {fileID: 203844588}
       guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
     - object: {fileID: 203844590}
       guid: 600ea8de9fa8427d8bacb88a93a418b4
     - object: {fileID: 233706974}
@@ -407,6 +409,14 @@ MonoBehaviour:
       guid: a1c3b2075ddd4b91bee3ee47a1c27091
     - object: {fileID: 234454530}
       guid: 61e81f66ae764fcc96974ab71f801dc6
+    - object: {fileID: 2321995414394146427}
+      guid: f8d02dc6d2734e85b80f65e5925a6204
+    - object: {fileID: 543796860525412841}
+      guid: 30a213e53cb444d89e802c720b53d05b
+    - object: {fileID: 7659755457791520106}
+      guid: d91a2dbd817045f9bd82e54673159595
+    - object: {fileID: 3804320964631850661}
+      guid: d9a1c9e6c3c544f88331a786da1d6b39
     - object: {fileID: 6696661606328830061}
       guid: 9596e9dc100c4851a91c3d3c9f919d9d
     - object: {fileID: 4217444481547732205}
@@ -421,6 +431,8 @@ MonoBehaviour:
       guid: 389aa0936b1641c89b7a14872ba326ab
     - object: {fileID: 4128720706845527847}
       guid: 5be4a471d6d14159926ff36da0a7a461
+    - object: {fileID: 2110443971999143060}
+      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
     - object: {fileID: 7276002552315758418}
       guid: 9f334eb8eec14e8f952e0b657ed01d15
     - object: {fileID: 4691297905574368517}
@@ -435,8 +447,6 @@ MonoBehaviour:
       guid: 021abebdd0894830ad4402a2845a7387
     - object: {fileID: 969004515}
       guid: 2e31a60a77f74045b09847333ba2747c
-    - object: {fileID: 2110443971999143060}
-      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
     - object: {fileID: 9025074884364572658}
       guid: bef6b54d029c47739b865f11d3d12291
     - object: {fileID: 351271233630084417}
@@ -451,40 +461,18 @@ MonoBehaviour:
       guid: af1729c356b8425aaeabf0dfc001ddc1
     - object: {fileID: 6339736026837182270}
       guid: 7a12223351c04c08901c20bdc4cbbe99
-    - object: {fileID: 6098766776673263121}
-      guid: 9bcd26a7f8284a189a064b55875f5307
-    - object: {fileID: 6396945759921276806}
-      guid: 107b6a1bf3084d919f3bd4c115e0a977
-    - object: {fileID: 7173582880057644697}
-      guid: a578a8bd73244904a6289979d987ec0f
-    - object: {fileID: 3677652187220507855}
-      guid: e9b2a047ae664f9e9ab4e66d5d0766be
-    - object: {fileID: 917972398}
-      guid: a6c5ef32117c45b8a7109f7dbfaab119
     - object: {fileID: 3612351616411823645}
       guid: 13d3b23926904c75becd81ac5e0c3aea
-    - object: {fileID: 1412550252841395028}
-      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
-    - object: {fileID: 7960873787619314386}
-      guid: ce3823a4181c499cb3263c47383e08d9
-    - object: {fileID: 2118736395736986822}
-      guid: 9dac02c69ddb439b8bfe3e6063a92590
-    - object: {fileID: 98925741128575319}
-      guid: 787691e33d9b4069ae79bdf92f85976d
-    - object: {fileID: 7671073992587660348}
-      guid: 6117e3f8090946e3be3ac1bfe8a78144
-    - object: {fileID: 4314807960827539279}
-      guid: 23a0cb2a5d314ae885fb57d4b77238c3
-    - object: {fileID: 5107281276437298667}
-      guid: 61c0b1c8f0d84674bbff722b81bfd265
-    - object: {fileID: 9163126459636160147}
-      guid: 119502095dc24a6aa0c03293a4d6cfc6
-    - object: {fileID: 2140524055936550800}
-      guid: 270d110259394c39bbbcd9a54f632a1d
-    - object: {fileID: 7659755457791520106}
-      guid: d91a2dbd817045f9bd82e54673159595
-    - object: {fileID: 3804320964631850661}
-      guid: d9a1c9e6c3c544f88331a786da1d6b39
+    - object: {fileID: 3924781572422009385}
+      guid: 1d555296dec84da289068afcdc277aed
+    - object: {fileID: 3059006080803518683}
+      guid: 26255cc77be24bacb051a21489682830
+    - object: {fileID: 6898923192549159858}
+      guid: ad22ea7b47d9402e970204b40f09da2d
+    - object: {fileID: 904619053218751523}
+      guid: 9ee3527207d5434aa31e435101a923a0
+    - object: {fileID: 969004516}
+      guid: 3dcb47149fd8427798427d8a19155946
     - object: {fileID: 7690104376671732796}
       guid: 1002ace3b09b4fa9839446974caf8929
     - object: {fileID: 1650853057355725536}
@@ -501,8 +489,6 @@ MonoBehaviour:
       guid: 7151769311594ac0857e11489ac18916
     - object: {fileID: 2009548863961867682}
       guid: 23c85d556c9b42aab2674aebb96aedfa
-    - object: {fileID: 4412627515669571857}
-      guid: 4ddf8fabcbb74c54932f927dbb06ec8b
     - object: {fileID: 4213558022443236702}
       guid: 1a7c82e57bce4a07a64d8d448377be8f
     - object: {fileID: 2803463668776114996}
@@ -513,20 +499,24 @@ MonoBehaviour:
       guid: 90eb5e8121f542548bfa2b3e587791c8
     - object: {fileID: 6314658951210672368}
       guid: 9b0a459081b64d6d8776cc8b7cc125be
-    - object: {fileID: 2321995414394146427}
-      guid: f8d02dc6d2734e85b80f65e5925a6204
     - object: {fileID: 7376430746591717575}
       guid: 23ffe3d0d20345b384c03797733e137b
-    - object: {fileID: 543796860525412841}
-      guid: 30a213e53cb444d89e802c720b53d05b
-    - object: {fileID: 8486911387919942612}
-      guid: fdbf7ae9d47241d197f1131d08d5617b
-    - object: {fileID: 6929811256520348528}
-      guid: 5dc6178ea585427daa63cb84a1d25500
-    - object: {fileID: 6056548551015543604}
-      guid: fee93362933f491aa37669cdec8439a8
     - object: {fileID: 8379326799239481164}
       guid: fb714629087145ebaa700ee19a556476
+    - object: {fileID: 6098766776673263121}
+      guid: 9bcd26a7f8284a189a064b55875f5307
+    - object: {fileID: 6396945759921276806}
+      guid: 107b6a1bf3084d919f3bd4c115e0a977
+    - object: {fileID: 7173582880057644697}
+      guid: a578a8bd73244904a6289979d987ec0f
+    - object: {fileID: 1412550252841395028}
+      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
+    - object: {fileID: 8486911387919942612}
+      guid: fdbf7ae9d47241d197f1131d08d5617b
+    - object: {fileID: 6056548551015543604}
+      guid: fee93362933f491aa37669cdec8439a8
+    - object: {fileID: 6929811256520348528}
+      guid: 5dc6178ea585427daa63cb84a1d25500
     - object: {fileID: 2750997138525929893}
       guid: 99b1a30bd2794d9cb685624104dbadaa
     - object: {fileID: 5419110887182260982}
@@ -573,18 +563,30 @@ MonoBehaviour:
       guid: 796678974f52454cb6275c9ef96900fd
     - object: {fileID: 4029449956354484595}
       guid: f412b4e2213a4991a157554a60519be3
-    - object: {fileID: 3924781572422009385}
-      guid: 1d555296dec84da289068afcdc277aed
     - object: {fileID: 1176231336484459911}
       guid: 937e835a9f63417c942a382c434c68bf
-    - object: {fileID: 3059006080803518683}
-      guid: 26255cc77be24bacb051a21489682830
-    - object: {fileID: 6898923192549159858}
-      guid: ad22ea7b47d9402e970204b40f09da2d
-    - object: {fileID: 904619053218751523}
-      guid: 9ee3527207d5434aa31e435101a923a0
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 3677652187220507855}
+      guid: e9b2a047ae664f9e9ab4e66d5d0766be
+    - object: {fileID: 917972398}
+      guid: a6c5ef32117c45b8a7109f7dbfaab119
+    - object: {fileID: 7960873787619314386}
+      guid: ce3823a4181c499cb3263c47383e08d9
+    - object: {fileID: 2118736395736986822}
+      guid: 9dac02c69ddb439b8bfe3e6063a92590
+    - object: {fileID: 98925741128575319}
+      guid: 787691e33d9b4069ae79bdf92f85976d
+    - object: {fileID: 7671073992587660348}
+      guid: 6117e3f8090946e3be3ac1bfe8a78144
+    - object: {fileID: 4314807960827539279}
+      guid: 23a0cb2a5d314ae885fb57d4b77238c3
+    - object: {fileID: 5107281276437298667}
+      guid: 61c0b1c8f0d84674bbff722b81bfd265
+    - object: {fileID: 9163126459636160147}
+      guid: 119502095dc24a6aa0c03293a4d6cfc6
+    - object: {fileID: 2140524055936550800}
+      guid: 270d110259394c39bbbcd9a54f632a1d
+    - object: {fileID: 4412627515669571857}
+      guid: 4ddf8fabcbb74c54932f927dbb06ec8b
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -654,6 +656,7 @@ GameObject:
   m_Component:
   - component: {fileID: 969004514}
   - component: {fileID: 969004515}
+  - component: {fileID: 969004516}
   m_Layer: 0
   m_Name: ArUco
   m_TagString: Untagged
@@ -683,7 +686,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a104bf8cc79a8e4eaae6496b32a56fa, type: 3}
   m_Name: 
@@ -701,6 +704,115 @@ MonoBehaviour:
   arucoPhysicalLengthMeters: 0.15
   estimateArucoLength: 0
   xrOrigin: {fileID: 265444391070243883}
+--- !u!114 &969004516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fa0ec03ae419d047aacfc7be0f51eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+    type: 3}
+  scaleMultiplier: 658
+  arucoMappings:
+  - arucoID: 2
+    offsetX: -5.283
+    offsetY: -59.723
+    offsetZ: -4.383
+    rotationOffset: {x: 176.7, y: 0, z: 16.4}
+  - arucoID: 4
+    offsetX: -55.963
+    offsetY: -4.407
+    offsetZ: -1.88
+    rotationOffset: {x: 176.7, y: 0, z: 108.8}
+  - arucoID: 8
+    offsetX: -57.355
+    offsetY: -4.51
+    offsetZ: -3.194
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
+  - arucoID: 8
+    offsetX: -57.355
+    offsetY: -4.51
+    offsetZ: -3.194
+    rotationOffset: {x: 176.7, y: 0, z: 108.3}
+  - arucoID: 20
+    offsetX: -71.025
+    offsetY: -46.255
+    offsetZ: 2.222
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 22
+    offsetX: -75.191
+    offsetY: -62.477
+    offsetZ: -2.383
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 88
+    offsetX: -83.811
+    offsetY: -98.514
+    offsetZ: -1.021
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 200
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 3
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -0.963
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 44
+    offsetX: -0.963
+    offsetY: -102.785
+    offsetZ: -3.608
+    rotationOffset: {x: 176.7, y: 0, z: 103.5}
+  - arucoID: 33
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 84
+    offsetX: -5.016
+    offsetY: -69.485
+    offsetZ: -2.163
+    rotationOffset: {x: 176.7, y: 0, z: 105.2}
+  - arucoID: 82
+    offsetX: -1.992
+    offsetY: -33.574
+    offsetZ: -3.092
+    rotationOffset: {x: 176.7, y: 0, z: 103.8}
+  - arucoID: 80
+    offsetX: 10.228
+    offsetY: -5.92
+    offsetZ: -3.434
+    rotationOffset: {x: 180, y: 3.3, z: 12.6}
+  - arucoID: 40
+    offsetX: 3.635
+    offsetY: -24.879
+    offsetZ: -4.227
+    rotationOffset: {x: 176.7, y: 0, z: 17.4}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.1016
+  estimateArucoLength: 0
+  xrOrigin: {fileID: 265444391070243883}
+  visibleHoldSeconds: 0.75
+  poseAverageSeconds: 0.25
+  minSamplesForRelocalize: 2
+  freshLockSeconds: 0.2
+  enableControllerAdjustment: 1
+  offsetAdjustSpeed: 0.8
+  rotationAdjustSpeed: 90
+  scaleAdjustSpeed: 1
+  inputDeadzone: 0.12
+  showAlignmentInfoText: 1
+  textHeightAboveMarker: 0.12
+  textColor: {r: 0.43529412, g: 0, b: 0.43529412, a: 1}
+  textWorldScale: 0.022
+  textFontSize: 72
 --- !u!1 &37583549030032045
 GameObject:
   m_ObjectHideFlags: 0
@@ -1674,7 +1786,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!1 &2864160864080873390
 GameObject:
   m_ObjectHideFlags: 0
@@ -3235,7 +3347,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &5002558771151071914
 MonoBehaviour:
   m_ObjectHideFlags: 0

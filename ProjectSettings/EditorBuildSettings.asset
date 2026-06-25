@@ -59,7 +59,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/Permanence Demo.unity
     guid: 936edb011dc934543be59d9919316ffe
-  - enabled: 0
+  - enabled: 1
     path: Assets/EyeGaze/Assets/Scenes/Prototype of Application.unity
     guid: 27dd611e99ba72640a1890e608b2cd9d
   - enabled: 0
@@ -68,7 +68,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/Map Demo.unity
     guid: f2edda62a63784f49a2b54d9891b4f0d
-  - enabled: 1
+  - enabled: 0
     path: Assets/EyeGaze/Assets/Scenes/XY Axis Alignment 1.unity
     guid: f7620df2b5741ac4d8c7ad20d238f1ae
   m_configObjects:

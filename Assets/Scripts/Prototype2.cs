@@ -28,23 +28,24 @@ public class Prototype2 : MonoBehaviour
     // Shared prefab + per-marker ID list
     // All ArUco IDs in arucoIDs drive the same sharedPrefab instance.
     // ------------------------------------------------------------------
-    [Header("=== Shared Prefab & ArUco IDs ===")]
+    [Header("=== Shared Prefab & Scale ===")]
     [Tooltip("The single prefab instance that all ArUco markers will relocalize.")]
     [SerializeField] private GameObject sharedPrefab;
-
-    [Tooltip("All ArUco IDs that should relocalize the shared prefab.")]
-    [SerializeField] private List<ulong> arucoIDs = new List<ulong>();
-
-    // ------------------------------------------------------------------
-    // Shared alignment offsets (one set for the single instance)
-    // ------------------------------------------------------------------
-    [Header("=== Shared Alignment Offsets ===")]
-    [Tooltip("Positional offset applied in marker-local space (meters).")]
-    [SerializeField] private Vector3 positionOffset = Vector3.zero;
-    [Tooltip("Rotation offset applied on top of the marker's orientation (degrees).")]
-    [SerializeField] private Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
     [Tooltip("Uniform scale multiplier for the shared prefab.")]
     [SerializeField] private float scaleMultiplier = 1.0f;
+
+    [Header("=== ARUCO -> PREFAB MAPPINGS ===")]
+    [SerializeField] private List<ArucoMapping> arucoMappings = new List<ArucoMapping>();
+
+    [Serializable]
+    public class ArucoMapping
+    {
+        public ulong arucoID;
+        public float offsetX = 0f;
+        public float offsetY = 0f;
+        public float offsetZ = 0f;
+        public Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
+    }
 
     [Header("Global ArUco Detector Settings")]
     [SerializeField] private ArucoType arucoDictionary = ArucoType.Dictionary_5x5_250;
@@ -71,6 +72,8 @@ public class Prototype2 : MonoBehaviour
     [SerializeField] private float offsetAdjustSpeed = 0.8f;
     [Tooltip("Degrees per second the rotation offset changes when tilting the thumbstick while grabbed.")]
     [SerializeField] private float rotationAdjustSpeed = 45f;
+    [Tooltip("Multiplier per second the scale changes when tilting the thumbstick vertically.")]
+    [SerializeField] private float scaleAdjustSpeed = 0.6f;
     [SerializeField] private float inputDeadzone = 0.12f;
 
     [Header("=== Debug Alignment Info Text ===")]
@@ -210,7 +213,7 @@ public class Prototype2 : MonoBehaviour
                 if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
 
                 ulong id = data.MarkerNumber.Value;
-                if (!arucoIDs.Contains(id)) continue;
+                if (!arucoMappings.Any(m => m.arucoID == id)) continue;
 
                 Pose trackingPose = data.MarkerPose.Value;
                 if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
@@ -263,8 +266,16 @@ public class Prototype2 : MonoBehaviour
 
         UpdateAlignmentInfoText();
 
-        if (enableControllerAdjustment && !IsSharedInstanceGrabbed())
-            HandleControllerOffsetAdjustment();
+        if (!IsSharedInstanceGrabbed())
+        {
+            if (enableControllerAdjustment)
+                HandleControllerOffsetAdjustment();
+
+            if (_sharedInstance != null)
+            {
+                _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -280,10 +291,14 @@ public class Prototype2 : MonoBehaviour
     {
         if (_sharedInstance == null) return;
 
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
         if (grab != null && grab.isSelected) return;
 
-        Vector3 finalPos = markerWorldPose.position + (markerWorldPose.rotation * positionOffset);
+        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
+        Vector3 finalPos = markerWorldPose.position + (markerWorldPose.rotation * localOffset);
 
         if (preserveRotation)
         {
@@ -291,7 +306,7 @@ public class Prototype2 : MonoBehaviour
         }
         else
         {
-            Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(rotationOffset);
+            Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(mapping.rotationOffset);
             _sharedInstance.transform.SetPositionAndRotation(finalPos, finalRot);
         }
 
@@ -341,13 +356,18 @@ public class Prototype2 : MonoBehaviour
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
 
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
         // Bake the new position offset in marker-local space
         Vector3 newLocalOffset = Quaternion.Inverse(markerWorldPose.rotation) * (releasedObject.position - markerWorldPose.position);
-        positionOffset = newLocalOffset;
+        mapping.offsetX = newLocalOffset.x;
+        mapping.offsetY = newLocalOffset.y;
+        mapping.offsetZ = newLocalOffset.z;
 
         // Bake the new rotation offset
         Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
-        rotationOffset = newLocalRot.eulerAngles;
+        mapping.rotationOffset = newLocalRot.eulerAngles;
 
         _userEditedRotation = true;
         UpdateAlignmentInfoText();
@@ -357,14 +377,14 @@ public class Prototype2 : MonoBehaviour
     // Thumbstick grab-time rotation adjustment
     // ------------------------------------------------------------------
 
-    // ==================== Manual X/Y Rotation Adjustment while grabbed ====================
+    // ==================== Manual Rotation/Scale Adjustment while grabbed ====================
 
     void LateUpdate()
     {
         if (_sharedInstance == null) return;
 
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
-        if (grab == null || !grab.isSelected) return;
+        if (grab == null || !grab.isSelected || grab.interactorsSelecting.Count == 0) return;
 
         InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
         if (rightHandDevices.Count == 0) return;
@@ -372,33 +392,66 @@ public class Prototype2 : MonoBehaviour
         var dev = rightHandDevices[0];
         if (!dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis)) return;
 
-        float speed = rotationAdjustSpeed * Time.deltaTime;
+        if (Mathf.Abs(axis.x) <= inputDeadzone && Mathf.Abs(axis.y) <= inputDeadzone) return;
+
+        // Get the pivot point (the controller grab attach point)
+        Vector3 pivot = grab.interactorsSelecting[0].transform.position;
+
+        float rotSpeed = rotationAdjustSpeed * Time.deltaTime;
+        float sclSpeed = scaleAdjustSpeed * Time.deltaTime;
         bool changed = false;
 
-        // Horizontal thumbstick → Y rotation (yaw)
+        // Horizontal thumbstick -> Z rotation (roll) around the pivot
         if (Mathf.Abs(axis.x) > inputDeadzone)
         {
-            rotationOffset.y += axis.x * speed;
+            float zDelta = axis.x * rotSpeed;
+            // Rotate around the controller pivot using the prefab's local Z axis
+            _sharedInstance.transform.RotateAround(pivot, _sharedInstance.transform.forward, zDelta);
             changed = true;
         }
 
-        // Vertical thumbstick → X rotation (pitch)
+        // Vertical thumbstick -> Scale around the pivot
         if (Mathf.Abs(axis.y) > inputDeadzone)
         {
-            rotationOffset.x += axis.y * speed;
+            float oldScaleMultiplier = scaleMultiplier;
+            scaleMultiplier += axis.y * sclSpeed;
+            scaleMultiplier = Mathf.Max(0.1f, scaleMultiplier);
+
+            float scaleRatio = scaleMultiplier / oldScaleMultiplier;
+
+            // Scale around pivot: move the position so the pivot stays stationary relative to the mesh
+            Vector3 offsetFromPivot = _sharedInstance.transform.position - pivot;
+            _sharedInstance.transform.position = pivot + (offsetFromPivot * scaleRatio);
+
+            // Apply the actual scale
+            _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
+
             changed = true;
         }
 
         if (changed)
         {
             _userEditedRotation = true;
-            // Reapply immediately so the user sees the rotation change while holding
+
+            // Bake the new world transform back into positionOffset and rotationOffset
+            // so the change persists when we release grab.
             if (lastSeenArucoID != INVALID_ARUCO_ID
                 && (_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose p)
                     || lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out p)))
             {
-                Quaternion finalRot = p.rotation * Quaternion.Euler(rotationOffset);
-                _sharedInstance.transform.rotation = finalRot;
+                var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+                if (mapping != null)
+                {
+                    // Bake position offset (marker local space)
+                    Vector3 newLocalOffset = Quaternion.Inverse(p.rotation) * (_sharedInstance.transform.position - p.position);
+                    mapping.offsetX = newLocalOffset.x;
+                    mapping.offsetY = newLocalOffset.y;
+                    mapping.offsetZ = newLocalOffset.z;
+
+                    // Bake rotation offset
+                    Quaternion newLocalRot = Quaternion.Inverse(p.rotation) * _sharedInstance.transform.rotation;
+                    mapping.rotationOffset = newLocalRot.eulerAngles;
+                }
             }
         }
     }
@@ -418,6 +471,9 @@ public class Prototype2 : MonoBehaviour
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null) return;
+
         InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
         InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, leftHandDevices);
 
@@ -429,8 +485,8 @@ public class Prototype2 : MonoBehaviour
             var dev = rightHandDevices[0];
             if (dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis))
             {
-                if (Mathf.Abs(axis.x) > inputDeadzone) { positionOffset.x += axis.x * speed; changed = true; }
-                if (Mathf.Abs(axis.y) > inputDeadzone) { positionOffset.z += axis.y * speed; changed = true; }
+                if (Mathf.Abs(axis.x) > inputDeadzone) { mapping.offsetX += axis.x * speed; changed = true; }
+                if (Mathf.Abs(axis.y) > inputDeadzone) { mapping.offsetZ += axis.y * speed; changed = true; }
             }
         }
 
@@ -439,7 +495,7 @@ public class Prototype2 : MonoBehaviour
             var dev = leftHandDevices[0];
             if (dev.TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis))
             {
-                if (Mathf.Abs(axis.y) > inputDeadzone) { positionOffset.y += axis.y * speed; changed = true; }
+                if (Mathf.Abs(axis.y) > inputDeadzone) { mapping.offsetY += axis.y * speed; changed = true; }
             }
         }
 
@@ -503,10 +559,17 @@ public class Prototype2 : MonoBehaviour
 
         alignmentInfoTextObj.transform.localScale = Vector3.one * textWorldScale;
 
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (mapping == null)
+        {
+            if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
+            return;
+        }
+
         alignmentInfoTextMesh.text =
             $"ArUco {lastSeenArucoID} (relocalize)\n" +
-            $"Offset   X: {positionOffset.x:F3}   Y: {positionOffset.y:F3}   Z: {positionOffset.z:F3}\n" +
-            $"Rotation X: {rotationOffset.x:F1}°  Y: {rotationOffset.y:F1}°  Z: {rotationOffset.z:F1}°\n" +
+            $"Offset   X: {mapping.offsetX:F3}   Y: {mapping.offsetY:F3}   Z: {mapping.offsetZ:F3}\n" +
+            $"Rotation X: {mapping.rotationOffset.x:F1}°  Y: {mapping.rotationOffset.y:F1}°  Z: {mapping.rotationOffset.z:F1}°\n" +
             $"Scale: {scaleMultiplier:F2}x";
 
         alignmentInfoTextObj.SetActive(true);
