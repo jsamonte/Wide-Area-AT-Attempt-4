@@ -76,6 +76,10 @@ public class Prototype2 : MonoBehaviour
     [SerializeField] private float scaleAdjustSpeed = 0.6f;
     [SerializeField] private float inputDeadzone = 0.12f;
 
+    [Header("=== Axis Constraints ===")]
+    [Tooltip("When disabled, the Z component of rotationOffset is forced to 0, preventing roll.")]
+    [SerializeField] private bool enableZAxisRotation = true;
+
     [Header("=== Debug Alignment Info Text ===")]
     [SerializeField] private bool showAlignmentInfoText = true;
     [SerializeField] private float textHeightAboveMarker = 0.12f;
@@ -306,7 +310,9 @@ public class Prototype2 : MonoBehaviour
         }
         else
         {
-            Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(mapping.rotationOffset);
+            Vector3 appliedRotation = mapping.rotationOffset;
+            if (!enableZAxisRotation) appliedRotation.z = 0f;
+            Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(appliedRotation);
             _sharedInstance.transform.SetPositionAndRotation(finalPos, finalRot);
         }
 
@@ -368,6 +374,7 @@ public class Prototype2 : MonoBehaviour
         // Bake the new rotation offset
         Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
         mapping.rotationOffset = newLocalRot.eulerAngles;
+        if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
 
         _userEditedRotation = true;
         UpdateAlignmentInfoText();
@@ -402,7 +409,7 @@ public class Prototype2 : MonoBehaviour
         bool changed = false;
 
         // Horizontal thumbstick -> Z rotation (roll) around the pivot
-        if (Mathf.Abs(axis.x) > inputDeadzone)
+        if (Mathf.Abs(axis.x) > inputDeadzone && enableZAxisRotation)
         {
             float zDelta = axis.x * rotSpeed;
             // Rotate around the controller pivot using the prefab's local Z axis
@@ -451,6 +458,7 @@ public class Prototype2 : MonoBehaviour
                     // Bake rotation offset
                     Quaternion newLocalRot = Quaternion.Inverse(p.rotation) * _sharedInstance.transform.rotation;
                     mapping.rotationOffset = newLocalRot.eulerAngles;
+                    if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
                 }
             }
         }
