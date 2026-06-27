@@ -387,26 +387,14 @@ MonoBehaviour:
       guid: 6e5660e7e5c242379d29d472295a2cbe
     - object: {fileID: 6061204285223387423}
       guid: 9b03bd68239841bfb249b505deabf034
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
-    - object: {fileID: 233706977}
-      guid: 43098aca48ac4d088d86166d344a674c
-    - object: {fileID: 233706976}
-      guid: 7f2ec95574ac4af388465dbc7b51888c
-    - object: {fileID: 7771136013120700886}
-      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
+    - object: {fileID: 969004518}
+      guid: 245fbf4707e342d08f46065ae6d5a1d4
     - object: {fileID: 234454531}
       guid: a1c3b2075ddd4b91bee3ee47a1c27091
     - object: {fileID: 234454530}
       guid: 61e81f66ae764fcc96974ab71f801dc6
     - object: {fileID: 6396945759921276806}
       guid: 107b6a1bf3084d919f3bd4c115e0a977
-    - object: {fileID: 6404228495164073622}
-      guid: b5df906050d44328a68c80d1c560fb95
-    - object: {fileID: 2110443971999143060}
-      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
     - object: {fileID: 6929811256520348528}
       guid: 5dc6178ea585427daa63cb84a1d25500
     - object: {fileID: 2750997138525929893}
@@ -423,10 +411,10 @@ MonoBehaviour:
       guid: 6117e3f8090946e3be3ac1bfe8a78144
     - object: {fileID: 4314807960827539279}
       guid: 23a0cb2a5d314ae885fb57d4b77238c3
-    - object: {fileID: 4412627515669571857}
-      guid: 4ddf8fabcbb74c54932f927dbb06ec8b
     - object: {fileID: 6696661606328830061}
       guid: 9596e9dc100c4851a91c3d3c9f919d9d
+    - object: {fileID: 4412627515669571857}
+      guid: 4ddf8fabcbb74c54932f927dbb06ec8b
     - object: {fileID: 969004515}
       guid: 2e31a60a77f74045b09847333ba2747c
     - object: {fileID: 9025074884364572658}
@@ -463,6 +451,26 @@ MonoBehaviour:
       guid: 3e69a1b72a6f4fbdb746fff222ac1968
     - object: {fileID: 657523950095717521}
       guid: 389aa0936b1641c89b7a14872ba326ab
+    - object: {fileID: 749111786168796108}
+      guid: b965bd5372744a8d80342ccd6487e438
+    - object: {fileID: 2803463668776114996}
+      guid: a7a64d9f27c845158ecace55710055ee
+    - object: {fileID: 265444391070243883}
+      guid: de9bd6858de044e48de15b95e0da9e9d
+    - object: {fileID: 2321995414394146427}
+      guid: f8d02dc6d2734e85b80f65e5925a6204
+    - object: {fileID: 3804320964631850661}
+      guid: d9a1c9e6c3c544f88331a786da1d6b39
+    - object: {fileID: 8801765609497516510}
+      guid: 968b885a15ca4b07a1c3618049c0e8bc
+    - object: {fileID: 7276002552315758418}
+      guid: 9f334eb8eec14e8f952e0b657ed01d15
+    - object: {fileID: 4691297905574368517}
+      guid: 257a4bb8138b478ab09cbbd5d83bee40
+    - object: {fileID: 3137140674111421266}
+      guid: 9c56101bfacb4a818cf11da47442b66c
+    - object: {fileID: 2110443971999143060}
+      guid: 64cc09df57314e2bbcecfcdb50f5c9fe
     - object: {fileID: 4128720706845527847}
       guid: 5be4a471d6d14159926ff36da0a7a461
     - object: {fileID: 1964629315458758919}
@@ -481,6 +489,24 @@ MonoBehaviour:
       guid: edd90b4d67dd4433be42ed9d53538626
     - object: {fileID: 4634783322908924986}
       guid: 91b5d0a01c2b4bcaa07127d3df973f36
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
+    - object: {fileID: 233706974}
+      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
+    - object: {fileID: 233706975}
+      guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706977}
+      guid: 43098aca48ac4d088d86166d344a674c
+    - object: {fileID: 233706976}
+      guid: 7f2ec95574ac4af388465dbc7b51888c
+    - object: {fileID: 7771136013120700886}
+      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
+    - object: {fileID: 6404228495164073622}
+      guid: b5df906050d44328a68c80d1c560fb95
     - object: {fileID: 6314658951210672368}
       guid: 9b0a459081b64d6d8776cc8b7cc125be
     - object: {fileID: 5002558771151071914}
@@ -557,36 +583,14 @@ MonoBehaviour:
       guid: 13d3b23926904c75becd81ac5e0c3aea
     - object: {fileID: 2542355695934717842}
       guid: e0113a0369eb4ef18280c25dc6f77eed
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
     - object: {fileID: 7659755457791520106}
       guid: d91a2dbd817045f9bd82e54673159595
     - object: {fileID: 543796860525412841}
       guid: 30a213e53cb444d89e802c720b53d05b
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706974}
-      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
-    - object: {fileID: 233706975}
-      guid: 752a8fe3fe434c25847862446d15c833
-    - object: {fileID: 749111786168796108}
-      guid: b965bd5372744a8d80342ccd6487e438
-    - object: {fileID: 2803463668776114996}
-      guid: a7a64d9f27c845158ecace55710055ee
-    - object: {fileID: 265444391070243883}
-      guid: de9bd6858de044e48de15b95e0da9e9d
-    - object: {fileID: 2321995414394146427}
-      guid: f8d02dc6d2734e85b80f65e5925a6204
-    - object: {fileID: 3804320964631850661}
-      guid: d9a1c9e6c3c544f88331a786da1d6b39
-    - object: {fileID: 8801765609497516510}
-      guid: 968b885a15ca4b07a1c3618049c0e8bc
-    - object: {fileID: 7276002552315758418}
-      guid: 9f334eb8eec14e8f952e0b657ed01d15
-    - object: {fileID: 4691297905574368517}
-      guid: 257a4bb8138b478ab09cbbd5d83bee40
-    - object: {fileID: 3137140674111421266}
-      guid: 9c56101bfacb4a818cf11da47442b66c
+    - object: {fileID: 969004517}
+      guid: 7c2ab0fd2d91458bb59199d02dd6c74b
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -657,6 +661,8 @@ GameObject:
   - component: {fileID: 969004514}
   - component: {fileID: 969004515}
   - component: {fileID: 969004516}
+  - component: {fileID: 969004517}
+  - component: {fileID: 969004518}
   m_Layer: 0
   m_Name: ArUco
   m_TagString: Untagged
@@ -711,14 +717,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2fa0ec03ae419d047aacfc7be0f51eaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
     type: 3}
-  scaleMultiplier: 1005.74
+  scaleMultiplier: 1025.91
   arucoMappings:
   - arucoID: 2
     offsetX: -6.832
@@ -809,6 +815,218 @@ MonoBehaviour:
   textColor: {r: 0.43529412, g: 0, b: 0.43529412, a: 1}
   textWorldScale: 0.022
   textFontSize: 72
+--- !u!114 &969004517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b067748d53b05d48a8e880547f6e6f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+    type: 3}
+  scaleMultiplier: 1025.91
+  arucoMappings:
+  - arucoID: 2
+    offsetX: -6.832
+    offsetY: -68.927
+    offsetZ: -3.758
+    rotationOffset: {x: 180, y: 0, z: 16.5}
+  - arucoID: 4
+    offsetX: -61.566
+    offsetY: -4.363
+    offsetZ: -3.61
+    rotationOffset: {x: 180, y: 0, z: 108.2}
+  - arucoID: 8
+    offsetX: -67.631
+    offsetY: -33.686
+    offsetZ: -0.832
+    rotationOffset: {x: 180, y: 0, z: 105.1}
+  - arucoID: 20
+    offsetX: -75.241
+    offsetY: -48.772
+    offsetZ: 1.539
+    rotationOffset: {x: 180, y: 0, z: 103.54}
+  - arucoID: 22
+    offsetX: -90.919
+    offsetY: -61.916
+    offsetZ: -1.167
+    rotationOffset: {x: 178, y: 2.9, z: 108.6}
+  - arucoID: 88
+    offsetX: -94.306
+    offsetY: -93.452
+    offsetZ: 0.938
+    rotationOffset: {x: 179.7, y: 0, z: 105.3}
+  - arucoID: 200
+    offsetX: 126.069
+    offsetY: -24.224
+    offsetZ: -0.353
+    rotationOffset: {x: 179.4, y: 358.4, z: 103.5}
+  - arucoID: 3
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 44
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 33
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 84
+    offsetX: 4.236
+    offsetY: -76.913
+    offsetZ: -2.345
+    rotationOffset: {x: 180.2, y: 359.4, z: 103.5}
+  - arucoID: 82
+    offsetX: 0.794
+    offsetY: -35.175
+    offsetZ: -1.826
+    rotationOffset: {x: 182, y: 1.1, z: 105}
+  - arucoID: 80
+    offsetX: 10.786
+    offsetY: -6.316
+    offsetZ: -2.62
+    rotationOffset: {x: 179.1, y: 358.8, z: 11.9}
+  - arucoID: 40
+    offsetX: 6.236
+    offsetY: -26.36
+    offsetZ: -3.003
+    rotationOffset: {x: 177.3, y: 0, z: 14}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.1016
+  estimateArucoLength: 0
+  xrOrigin: {fileID: 265444391070243883}
+  visibleHoldSeconds: 0.75
+  poseAverageSeconds: 0.25
+  minSamplesForRelocalize: 2
+  freshLockSeconds: 0.2
+  enableControllerAdjustment: 1
+  offsetAdjustSpeed: 0.8
+  rotationAdjustSpeed: 44
+  scaleAdjustSpeed: 88
+  inputDeadzone: 0.12
+  enableZAxisRotation: 1
+  showAlignmentInfoText: 1
+  textHeightAboveMarker: 0.12
+  textColor: {r: 0.43529412, g: 0, b: 0.43529412, a: 1}
+  textWorldScale: 0.022
+  textFontSize: 72
+  applyGravityAlignment: 1
+--- !u!114 &969004518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dac6acfb7527e84281d08967bd9a132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
+    type: 3}
+  scaleMultiplier: 1025.91
+  arucoMappings:
+  - arucoID: 2
+    offsetX: -6.832
+    offsetY: -68.927
+    offsetZ: -3.758
+    rotationOffset: {x: 180, y: 0, z: 16.5}
+  - arucoID: 4
+    offsetX: -61.566
+    offsetY: -4.363
+    offsetZ: -3.61
+    rotationOffset: {x: 180, y: 0, z: 108.2}
+  - arucoID: 8
+    offsetX: -67.631
+    offsetY: -33.686
+    offsetZ: -0.832
+    rotationOffset: {x: 180, y: 0, z: 105.1}
+  - arucoID: 20
+    offsetX: -75.241
+    offsetY: -48.772
+    offsetZ: 1.539
+    rotationOffset: {x: 180, y: 0, z: 103.54}
+  - arucoID: 22
+    offsetX: -90.919
+    offsetY: -61.916
+    offsetZ: -1.167
+    rotationOffset: {x: 178, y: 2.9, z: 108.6}
+  - arucoID: 88
+    offsetX: -94.306
+    offsetY: -93.452
+    offsetZ: 0.938
+    rotationOffset: {x: 179.7, y: 0, z: 105.3}
+  - arucoID: 200
+    offsetX: 126.069
+    offsetY: -24.224
+    offsetZ: -0.353
+    rotationOffset: {x: 179.4, y: 358.4, z: 103.5}
+  - arucoID: 3
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 44
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 33
+    offsetX: 104.117
+    offsetY: -28.803
+    offsetZ: 2.329
+    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+  - arucoID: 84
+    offsetX: 4.236
+    offsetY: -76.913
+    offsetZ: -2.345
+    rotationOffset: {x: 180.2, y: 359.4, z: 103.5}
+  - arucoID: 82
+    offsetX: 0.794
+    offsetY: -35.175
+    offsetZ: -1.826
+    rotationOffset: {x: 182, y: 1.1, z: 105}
+  - arucoID: 80
+    offsetX: 10.786
+    offsetY: -6.316
+    offsetZ: -2.62
+    rotationOffset: {x: 179.1, y: 358.8, z: 11.9}
+  - arucoID: 40
+    offsetX: 6.236
+    offsetY: -26.36
+    offsetZ: -3.003
+    rotationOffset: {x: 177.3, y: 0, z: 14}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.1016
+  estimateArucoLength: 0
+  xrOrigin: {fileID: 265444391070243883}
+  visibleHoldSeconds: 0.75
+  poseAverageSeconds: 0.25
+  minSamplesForRelocalize: 2
+  freshLockSeconds: 0.2
+  enableControllerAdjustment: 1
+  offsetAdjustSpeed: 0.8
+  rotationAdjustSpeed: 44
+  scaleAdjustSpeed: 99
+  inputDeadzone: 0.12
+  enableZAxisRotation: 0
+  showAlignmentInfoText: 1
+  textHeightAboveMarker: 0.12
+  textColor: {r: 0.43529412, g: 0, b: 0.43529412, a: 1}
+  textWorldScale: 0.022
+  textFontSize: 72
+  useSpatialAnchors: 1
 --- !u!1 &37583549030032045
 GameObject:
   m_ObjectHideFlags: 0
