@@ -30,25 +30,16 @@ MonoBehaviour:
       guid: 18dc0cd2c080841dea60987a38ce93fa
       assetBundlePath: Custom:UnityEngine.Rendering.Universal.UniversalRenderPipelineGlobalSettings,
         Unity.RenderPipelines.Universal.Runtime:Assets/UniversalRenderPipelineGlobalSettings.asset:UniversalRenderPipelineGlobalSettings
-    - object: {fileID: 2800000, guid: b7e7faca7fd58d147ad4889d2c521c2c, type: 3}
-      guid: b7e7faca7fd58d147ad4889d2c521c2c
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
-        Grid Prototype Materials/Textures/prototype_normal.png:prototype_normal
+    - object: {fileID: 2100000, guid: b49987f28d68948acb0d617df4824786, type: 2}
+      guid: b49987f28d68948acb0d617df4824786
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/Fill.mat:Fill
     - object: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
       guid: 4df40d6667ee4ed5b0a91140d59a8715
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites/Default
-    - object: {fileID: -6465566751694194690, guid: c6d8159087e557b44a7d450e3d87ee4c,
-        type: 3}
-      guid: c6d8159087e557b44a7d450e3d87ee4c
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Shader/Grid
-        Shader.shadergraph:Shader Graphs/Grid Shader
     - object: {fileID: 207, guid: 0000000000000000f000000000000000, type: 0}
       guid: 3440251350f542718f3656d4cfff132a
       assetBundlePath: Builtin:UnityEngine.Shader, UnityEngine.CoreModule:Resources/unity_builtin_extra:Legacy
         Shaders/Particles/Alpha Blended Premultiply
-    - object: {fileID: 2100000, guid: 09ccc61a37100ac42afeed970f605c2f, type: 2}
-      guid: 09ccc61a37100ac42afeed970f605c2f
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Materials/MeshMaterial.mat:MeshMaterial
     - object: {fileID: 4800000, guid: 36e335017ad71d54fbb10842863188ae, type: 3}
       guid: 36e335017ad71d54fbb10842863188ae
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.core/Runtime/RenderPipelineResources/FallbackShader.shader:Hidden/Core/FallbackError
@@ -56,94 +47,103 @@ MonoBehaviour:
       guid: 4f06d875f82c40d3a0945c3ff8db0311
       assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
         default resources:Cube
-    - object: {fileID: -1987549183160369658, guid: 37ce70e88f94aba4c9af3af288e65e6f,
+    - object: {fileID: 6952759835653006415, guid: 31643c102f5591c4e939951faa773685,
         type: 3}
-      guid: 37ce70e88f94aba4c9af3af288e65e6f
-      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray3.fbx:Baseline
-    - object: {fileID: 2100000, guid: b49987f28d68948acb0d617df4824786, type: 2}
-      guid: b49987f28d68948acb0d617df4824786
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/Fill.mat:Fill
+      guid: 31643c102f5591c4e939951faa773685
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
+    - object: {fileID: 2800000, guid: f3fda86b5946f734a9a3ff491f163a96, type: 3}
+      guid: f3fda86b5946f734a9a3ff491f163a96
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
+        Grid Prototype Materials/Textures/1x1_grid_quarter_lines_numbered.png:1x1_grid_quarter_lines_numbered
+    - object: {fileID: -1987549183160369658, guid: 89d28d493797f004a8244c4f6ac0ebf8,
+        type: 3}
+      guid: 89d28d493797f004a8244c4f6ac0ebf8
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray2.fbx:Baseline
+    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
+      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
     - object: {fileID: 4800000, guid: da07703fcc09f8d4799221050659bd55, type: 3}
       guid: da07703fcc09f8d4799221050659bd55
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.shadergraph/Editor/Resources/Shaders/FallbackError.shader:Hidden/Shader
         Graph/FallbackError
-    - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
-      guid: e6e9a19c3678ded42a3bc431ebef7dbd
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
-        Render Pipeline/FallbackError
+    - object: {fileID: 5986000036790143144, guid: 31643c102f5591c4e939951faa773685,
+        type: 3}
+      guid: 31643c102f5591c4e939951faa773685
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
     - object: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
       guid: b7457432f68a4465abe7445a6dbf0669
       assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
         default resources:Sphere
-    - object: {fileID: 2800000, guid: 7b8bfaee8f8631c4789ac62373cbc2d4, type: 3}
-      guid: 7b8bfaee8f8631c4789ac62373cbc2d4
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png:TrackedPoseDriver@4x
-    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
-      guid: 8236c695e72414e7889fb3f4d8226fde
-      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
-    - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-      guid: 933532a4fcc9baf4fa0491de14d08ed7
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
-        Render Pipeline/Lit
-    - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
-      guid: 4478eaa5582e4a1693fa763e65c939ad
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
-    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
-      guid: a31509a9b7064f13a04ccee9ab35d4c2
-      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
-    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
-      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
-    - object: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
-      guid: d8616e53e045463888ac539ff2aad815
-      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
-        default resources:Capsule
+    - object: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
+      guid: e6e9a19c3678ded42a3bc431ebef7dbd
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Utils/FallbackError.shader:Hidden/Universal
+        Render Pipeline/FallbackError
     - object: {fileID: 2100000, guid: 88b3961b9a9bd064ebcc2f4cbf42faf0, type: 2}
       guid: 88b3961b9a9bd064ebcc2f4cbf42faf0
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
         Grid Prototype Materials/Materials/Dark_Blue_Prototype.mat:Dark_Blue_Prototype
-    - object: {fileID: 8358638211530050054, guid: 31643c102f5591c4e939951faa773685,
-        type: 3}
-      guid: 31643c102f5591c4e939951faa773685
-      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
-    - object: {fileID: -6465566751694194690, guid: 5802ac1538fd94cc58b4d5202ed2abe6,
-        type: 3}
-      guid: 5802ac1538fd94cc58b4d5202ed2abe6
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Shaders/FillMaterial.shadergraph:Shader
-        Graphs/FillMaterial
+    - object: {fileID: 2100000, guid: 81fd8823aa1e26c44b5c45a4141ffbb3, type: 2}
+      guid: 81fd8823aa1e26c44b5c45a4141ffbb3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Shader/M_Grid.mat:M_Grid
     - object: {fileID: -6465566751694194690, guid: 74686ab863fe0dc4598560e65eb847eb,
         type: 3}
       guid: 74686ab863fe0dc4598560e65eb847eb
       assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
         Grid Prototype Materials/ShaderGraphs/ScaleTilingShader.shadergraph:Shader
         Graphs/ScaleTilingShader
-    - object: {fileID: 2100000, guid: 81fd8823aa1e26c44b5c45a4141ffbb3, type: 2}
-      guid: 81fd8823aa1e26c44b5c45a4141ffbb3
-      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Shader/M_Grid.mat:M_Grid
+    - object: {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+      guid: 4478eaa5582e4a1693fa763e65c939ad
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Sprites-Default
+    - object: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+      guid: 933532a4fcc9baf4fa0491de14d08ed7
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader:Universal
+        Render Pipeline/Lit
+    - object: {fileID: -6465566751694194690, guid: 5802ac1538fd94cc58b4d5202ed2abe6,
+        type: 3}
+      guid: 5802ac1538fd94cc58b4d5202ed2abe6
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Shaders/FillMaterial.shadergraph:Shader
+        Graphs/FillMaterial
+    - object: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+      guid: d8616e53e045463888ac539ff2aad815
+      assetBundlePath: Builtin:UnityEngine.Mesh, UnityEngine.CoreModule:Library/unity
+        default resources:Capsule
     - object: {fileID: 4377753692204927789, guid: 31643c102f5591c4e939951faa773685,
         type: 3}
       guid: 31643c102f5591c4e939951faa773685
       assetBundlePath: Custom:UnityEngine.SphereCollider, UnityEngine.PhysicsModule:Assets/Prefab/Sphere.prefab:Sphere
-    - object: {fileID: 2800000, guid: f3fda86b5946f734a9a3ff491f163a96, type: 3}
-      guid: f3fda86b5946f734a9a3ff491f163a96
+    - object: {fileID: 2100000, guid: 09ccc61a37100ac42afeed970f605c2f, type: 2}
+      guid: 09ccc61a37100ac42afeed970f605c2f
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Assets/Materials/MeshMaterial.mat:MeshMaterial
+    - object: {fileID: 8358638211530050054, guid: 31643c102f5591c4e939951faa773685,
+        type: 3}
+      guid: 31643c102f5591c4e939951faa773685
+      assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
+    - object: {fileID: 2800000, guid: b7e7faca7fd58d147ad4889d2c521c2c, type: 3}
+      guid: b7e7faca7fd58d147ad4889d2c521c2c
       assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Assets/EyeGaze/Assets/ThirdParty/Scalable
-        Grid Prototype Materials/Textures/1x1_grid_quarter_lines_numbered.png:1x1_grid_quarter_lines_numbered
-    - object: {fileID: 6952759835653006415, guid: 31643c102f5591c4e939951faa773685,
+        Grid Prototype Materials/Textures/prototype_normal.png:prototype_normal
+    - object: {fileID: -1987549183160369658, guid: 37ce70e88f94aba4c9af3af288e65e6f,
         type: 3}
-      guid: 31643c102f5591c4e939951faa773685
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
-    - object: {fileID: 5986000036790143144, guid: 31643c102f5591c4e939951faa773685,
+      guid: 37ce70e88f94aba4c9af3af288e65e6f
+      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray3.fbx:Baseline
+    - object: {fileID: -6465566751694194690, guid: c6d8159087e557b44a7d450e3d87ee4c,
         type: 3}
-      guid: 31643c102f5591c4e939951faa773685
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
-    - object: {fileID: -1987549183160369658, guid: 89d28d493797f004a8244c4f6ac0ebf8,
-        type: 3}
-      guid: 89d28d493797f004a8244c4f6ac0ebf8
-      assetBundlePath: Custom:UnityEngine.Mesh, UnityEngine.CoreModule:Assets/Prefab/BaselineGray2.fbx:Baseline
+      guid: c6d8159087e557b44a7d450e3d87ee4c
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Shader/Grid
+        Shader.shadergraph:Shader Graphs/Grid Shader
+    - object: {fileID: 2100000, guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3, type: 2}
+      guid: 6fdd74b1f6f4b46529c0a3afd48cd3a3
+      assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/EyeGaze/Assets/Materials/NumberBox.mat:NumberBox
+    - object: {fileID: 2800000, guid: 8236c695e72414e7889fb3f4d8226fde, type: 3}
+      guid: 8236c695e72414e7889fb3f4d8226fde
+      assetBundlePath: Custom:UnityEngine.Texture2D, UnityEngine.CoreModule:Packages/com.unity.xr.arfoundation/Editor/Icons/d_ARVR@4x.png:d_ARVR@4x
     - object: {fileID: 1967539620241170005, guid: 31643c102f5591c4e939951faa773685,
         type: 3}
       guid: 31643c102f5591c4e939951faa773685
       assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/Sphere.prefab:Sphere
+    - object: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+      guid: a31509a9b7064f13a04ccee9ab35d4c2
+      assetBundlePath: Builtin:UnityEngine.Material, UnityEngine.CoreModule:Resources/unity_builtin_extra:Default-Line
     - object: {fileID: 8026257132262412112, guid: acd5b5fa9b7548f4883e853b023e1cb3,
         type: 3}
       guid: acd5b5fa9b7548f4883e853b023e1cb3
@@ -152,6 +152,15 @@ MonoBehaviour:
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d
       assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:6Baseline
+    - object: {fileID: 8863093365639004993, guid: 5eaa724cd75636d4580d6559242a205d,
+        type: 3}
+      guid: 5eaa724cd75636d4580d6559242a205d
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:88
+    - object: {fileID: 4478884111741184363, guid: 5eaa724cd75636d4580d6559242a205d,
+        type: 3}
+      guid: 5eaa724cd75636d4580d6559242a205d
+      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:Target
+        (1)
     - object: {fileID: 3167442780531920243, guid: 5eaa724cd75636d4580d6559242a205d,
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d
@@ -568,18 +577,14 @@ MonoBehaviour:
       guid: 5eaa724cd75636d4580d6559242a205d
       assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:Target
         (10)
-    - object: {fileID: 5215138240352004412, guid: 5eaa724cd75636d4580d6559242a205d,
-        type: 3}
-      guid: 5eaa724cd75636d4580d6559242a205d
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:8
-    - object: {fileID: 2217778351869618451, guid: 5eaa724cd75636d4580d6559242a205d,
-        type: 3}
-      guid: 5eaa724cd75636d4580d6559242a205d
-      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:82
     - object: {fileID: 3736007580099224278, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
       assetBundlePath: Custom:UnityEngine.InputSystem.InputActionReference, Unity.InputSystem:Packages/com.magicleap.unitysdk/Runtime/APIs/MLInput/MLInput.inputactions:Eyes/Data
+    - object: {fileID: 1783984754581212209, guid: acd5b5fa9b7548f4883e853b023e1cb3,
+        type: 3}
+      guid: acd5b5fa9b7548f4883e853b023e1cb3
+      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
     - object: {fileID: 5439870854983775740, guid: acd5b5fa9b7548f4883e853b023e1cb3,
         type: 3}
       guid: acd5b5fa9b7548f4883e853b023e1cb3
@@ -665,15 +670,6 @@ MonoBehaviour:
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d
       assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:22
-    - object: {fileID: 8863093365639004993, guid: 5eaa724cd75636d4580d6559242a205d,
-        type: 3}
-      guid: 5eaa724cd75636d4580d6559242a205d
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:88
-    - object: {fileID: 4478884111741184363, guid: 5eaa724cd75636d4580d6559242a205d,
-        type: 3}
-      guid: 5eaa724cd75636d4580d6559242a205d
-      assetBundlePath: Custom:UnityEngine.Transform, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:Target
-        (1)
     - object: {fileID: -2353999202519565437, guid: a7b3d28b346833f4ea10936be7a9f18c,
         type: 3}
       guid: a7b3d28b346833f4ea10936be7a9f18c
@@ -726,14 +722,18 @@ MonoBehaviour:
         type: 3}
       guid: acd5b5fa9b7548f4883e853b023e1cb3
       assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
-    - object: {fileID: 1783984754581212209, guid: acd5b5fa9b7548f4883e853b023e1cb3,
-        type: 3}
-      guid: acd5b5fa9b7548f4883e853b023e1cb3
-      assetBundlePath: Custom:UnityEngine.MeshRenderer, UnityEngine.CoreModule:Assets/Prefab/4Baseline.prefab:4Baseline
     - object: {fileID: 4061034993390801183, guid: 5eaa724cd75636d4580d6559242a205d,
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d
       assetBundlePath: Custom:UnityEngine.MeshFilter, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:6Baseline
+    - object: {fileID: 5215138240352004412, guid: 5eaa724cd75636d4580d6559242a205d,
+        type: 3}
+      guid: 5eaa724cd75636d4580d6559242a205d
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:8
+    - object: {fileID: 2217778351869618451, guid: 5eaa724cd75636d4580d6559242a205d,
+        type: 3}
+      guid: 5eaa724cd75636d4580d6559242a205d
+      assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/Prefab/6Baseline.prefab:82
     - object: {fileID: 3050893498087081962, guid: 5eaa724cd75636d4580d6559242a205d,
         type: 3}
       guid: 5eaa724cd75636d4580d6559242a205d

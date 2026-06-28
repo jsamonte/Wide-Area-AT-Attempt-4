@@ -84,6 +84,10 @@ public class Prototype3 : MonoBehaviour
     [Tooltip("If true, once anchored to an ArUco ID, it will lock via SLAM and not snap again when looking away/back, eliminating jumps.")]
     [SerializeField] private bool useSpatialAnchors = true;
 
+    [Header("=== Gaze Countdown (Dwell) ===")]
+    [Tooltip("How many seconds the user must continuously look at the marker before it drops the anchor.")]
+    [SerializeField] private float requiredDwellSeconds = 2.0f;
+
     // ------------------------------------------------------------------
     // Runtime state
     // ------------------------------------------------------------------
@@ -109,6 +113,7 @@ public class Prototype3 : MonoBehaviour
     private struct MarkerSample { public Pose pose; public float t; }
     private readonly Dictionary<ulong, Queue<MarkerSample>> _samples = new Dictionary<ulong, Queue<MarkerSample>>();
     private readonly Dictionary<ulong, float> _lastSeen = new Dictionary<ulong, float>();
+    private readonly Dictionary<ulong, float> _firstSeen = new Dictionary<ulong, float>();
     private List<ulong> _evictBuf;
 
     private GameObject alignmentInfoTextObj;
@@ -200,6 +205,7 @@ public class Prototype3 : MonoBehaviour
                 if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
                 PushSample(id, ToWorld(trackingPose), now);
                 _lastSeen[id] = now;
+                if (!_firstSeen.ContainsKey(id)) _firstSeen[id] = now;
             }
         }
 
@@ -214,8 +220,9 @@ public class Prototype3 : MonoBehaviour
 
             bool isFresh = SecondsSinceSeen(id) <= Mathf.Max(0.01f, freshLockSeconds);
             bool isStable = RecentSampleCount(id) >= Mathf.Max(1, minSamplesForRelocalize);
+            bool hasDwelt = _firstSeen.TryGetValue(id, out float firstSeenTime) && (Time.time - firstSeenTime >= requiredDwellSeconds);
 
-            if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable)
+            if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable && hasDwelt)
             {
                 _sharedInstance = Instantiate(sharedPrefab);
                 _sharedInstance.SetActive(true);
@@ -225,7 +232,7 @@ public class Prototype3 : MonoBehaviour
 
             if (_sharedInstance == null) continue;
 
-            if (isFresh && isStable && !_lockedThisAcquisition.Contains(id))
+            if (isFresh && isStable && hasDwelt && !_lockedThisAcquisition.Contains(id))
             {
                 _lockedMarkerPose[id] = markerWorldPose;
                 _lockedThisAcquisition.Add(id);
@@ -499,10 +506,20 @@ public class Prototype3 : MonoBehaviour
             return;
         }
 
-        alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (Option A - Anchored)\n" +
-            $"Offset X:{mapping.offsetX:F3} Y:{mapping.offsetY:F3} Z:{mapping.offsetZ:F3}\n" +
-            $"Rotation X:{mapping.rotationOffset.x:F1}° Y:{mapping.rotationOffset.y:F1}° Z:{mapping.rotationOffset.z:F1}°\n" +
-            $"Scale: {scaleMultiplier:F2}x";
+        if (!_lockedThisAcquisition.Contains(lastSeenArucoID) && _firstSeen.TryGetValue(lastSeenArucoID, out float firstTime))
+        {
+            float remaining = Mathf.Max(0, requiredDwellSeconds - (Time.time - firstTime));
+            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} - HOLD STILL\n" +
+                                         $"Locking in: {remaining:F1}s\n" +
+                                         $"Scale: {scaleMultiplier:F2}x";
+        }
+        else
+        {
+            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (Option A - Anchored)\n" +
+                $"Offset X:{mapping.offsetX:F3} Y:{mapping.offsetY:F3} Z:{mapping.offsetZ:F3}\n" +
+                $"Rotation X:{mapping.rotationOffset.x:F1}° Y:{mapping.rotationOffset.y:F1}° Z:{mapping.rotationOffset.z:F1}°\n" +
+                $"Scale: {scaleMultiplier:F2}x";
+        }
         alignmentInfoTextObj.SetActive(true);
     }
 
@@ -514,6 +531,7 @@ public class Prototype3 : MonoBehaviour
         _lockedThisAcquisition.Clear();
         _samples.Clear();
         _lastSeen.Clear();
+        _firstSeen.Clear();
         _userEditedRotation = false;
         lastSeenArucoID = INVALID_ARUCO_ID;
         anchoredArucoID = INVALID_ARUCO_ID;
@@ -554,6 +572,7 @@ public class Prototype3 : MonoBehaviour
             _samples.Remove(id);
             lastDetectedMarkerPoses.Remove(id);
             _lockedThisAcquisition.Remove(id);
+            _firstSeen.Remove(id);
         }
     }
 
