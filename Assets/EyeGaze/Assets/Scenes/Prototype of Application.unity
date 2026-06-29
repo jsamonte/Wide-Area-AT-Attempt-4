@@ -606,6 +606,80 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &589948279
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6953608962168399934, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7927463330472195468, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+        type: 3}
+      propertyPath: m_Name
+      value: Map
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8f3cc2d1822be1f408ed87ba98f45815, type: 3}
+--- !u!1 &589948280 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7927463330472195468, guid: 8f3cc2d1822be1f408ed87ba98f45815,
+    type: 3}
+  m_PrefabInstance: {fileID: 589948279}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &917972398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -983,30 +1057,30 @@ MonoBehaviour:
     offsetZ: 2.329
     rotationOffset: {x: 177.7, y: 0, z: 17.3}
   - arucoID: 33
-    offsetX: 90.353
-    offsetY: -17.176
-    offsetZ: -0.675
-    rotationOffset: {x: 179.3, y: 0.5, z: 33}
+    offsetX: 91.278
+    offsetY: -15.828
+    offsetZ: -5.3
+    rotationOffset: {x: 182.5, y: 2.4, z: 32}
   - arucoID: 84
-    offsetX: 3.725
-    offsetY: -78.454
-    offsetZ: -1.767
-    rotationOffset: {x: 180.2, y: 359.9, z: 103.3}
+    offsetX: 2.175
+    offsetY: -79.074
+    offsetZ: -2.848
+    rotationOffset: {x: 182.5, y: 2.4, z: 103.3}
   - arucoID: 82
-    offsetX: 0.794
-    offsetY: -35.175
-    offsetZ: -1.826
-    rotationOffset: {x: 182, y: 1.1, z: 105}
+    offsetX: 1.486
+    offsetY: -35.797
+    offsetZ: -3.325
+    rotationOffset: {x: 182.5, y: 2.4, z: 103.4}
   - arucoID: 80
-    offsetX: 11.024
-    offsetY: -6.577
-    offsetZ: -2.352
-    rotationOffset: {x: 178.1, y: 359.8, z: 12.1}
+    offsetX: 10.991
+    offsetY: -6.749
+    offsetZ: -2.423
+    rotationOffset: {x: 182.5, y: 2.4, z: 12.3}
   - arucoID: 40
-    offsetX: 6.236
-    offsetY: -26.36
-    offsetZ: -3.003
-    rotationOffset: {x: 177.3, y: 0, z: 14}
+    offsetX: 6.117
+    offsetY: -26.975
+    offsetZ: -2.075
+    rotationOffset: {x: 182.5, y: 2.4, z: 14}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.1016
   estimateArucoLength: 0
@@ -1017,7 +1091,7 @@ MonoBehaviour:
   freshLockSeconds: 0.2
   enableControllerAdjustment: 1
   offsetAdjustSpeed: 0.8
-  rotationAdjustSpeed: 44
+  rotationAdjustSpeed: 35
   scaleAdjustSpeed: 99
   inputDeadzone: 0.12
   enableZAxisRotation: 1
@@ -3180,6 +3254,10 @@ MonoBehaviour:
   useEfficientRawLogging: 0
   autoSaveWhenAllTargetsDestroyed: 1
   alsoExportCombinedJson: 1
+  arucoGameObject: {fileID: 969004512}
+  mapGameObject: {fileID: 589948280}
+  enableAruco: 1
+  enableMap: 1
 --- !u!4 &4691297905574368517
 Transform:
   m_ObjectHideFlags: 0
@@ -5203,3 +5281,4 @@ SceneRoots:
   - {fileID: 3655016792138941558}
   - {fileID: 969004514}
   - {fileID: 7376430746591717575}
+  - {fileID: 589948279}

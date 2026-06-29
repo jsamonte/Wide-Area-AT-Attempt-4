@@ -26,6 +26,12 @@ public class EyeAndHeadTracker : MonoBehaviour
     [Header("Combined JSON (your requested format)")]
     [SerializeField] private bool alsoExportCombinedJson = false;
 
+    [Header("Optional Objects Tracking")]
+    [SerializeField] private GameObject arucoGameObject;
+    [SerializeField] private GameObject mapGameObject;
+    [SerializeField] private bool enableAruco = true;
+    [SerializeField] private bool enableMap = true;
+
     // ==================== SERIALIZABLE CLASSES ====================
 
     [System.Serializable]
@@ -146,6 +152,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private string persistentDataPath;
     private StreamWriter rawNdjsonWriter;
+    private string startTimeString;
 
     // ==================== LIFECYCLE ====================
 
@@ -156,6 +163,10 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         appStartTime = Time.realtimeSinceStartup;
         lastFrameTimestamp = appStartTime;
+        startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+        if (arucoGameObject != null) arucoGameObject.SetActive(enableAruco);
+        if (mapGameObject != null) mapGameObject.SetActive(enableMap);
 
         sessionMeta = new SessionMeta
         {
@@ -181,7 +192,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (useEfficientRawLogging)
         {
-            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}.ndjson");
+            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
             rawNdjsonWriter = new StreamWriter(rawPath, false);
         }
     }
@@ -330,6 +341,9 @@ public class EyeAndHeadTracker : MonoBehaviour
                     Destroy(renderer.gameObject);
                     gazeOverTargetTracker = 0;
 
+                    // OPTION B: Save immediately on every destruction event
+                    SaveSessionData();
+
                     if (targetRenderers.Length == 0 && autoSaveWhenAllTargetsDestroyed)
                     {
                         performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
@@ -406,10 +420,10 @@ public class EyeAndHeadTracker : MonoBehaviour
                 sessionData = performanceData,
                 destructionEvents = destructionEvents,
                 rawTrackingFileReference = useEfficientRawLogging 
-                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}.ndjson" : null
+                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson" : null
             };
 
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}.json");
+            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
             string json = JsonUtility.ToJson(root, true);
             File.WriteAllText(summaryPath, json);
 
@@ -424,7 +438,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     trackingData = trackingFrames
                 };
 
-                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}.json");
+                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
                 File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
                 Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }
@@ -443,6 +457,14 @@ public class EyeAndHeadTracker : MonoBehaviour
     }
 
     public void ForceSaveNow() => SaveSessionData();
+
+    private void OnApplicationPause(bool isPaused)
+    {
+        if (isPaused)
+        {
+            SaveSessionData();
+        }
+    }
 
     private void OnDestroy()
     {
