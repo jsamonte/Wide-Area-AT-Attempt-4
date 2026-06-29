@@ -14,10 +14,11 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private string environment = "Unity_Wide_Area_AR";
     [SerializeField] private string unityVersion = "2022.3.x";
 
-    [Header("Gaze Dwell Destruction")]
+    [Header("Eye Dwell Destruction")]
+    [SerializeField] private string targetTag = "DwellDestroyTarget";
     [SerializeField] private LayerMask layersToIncludeWithRay;
-    [SerializeField] [Range(1.0f, 10.0f)] private float minGazeTimeOverTarget = 4.0f;
-    [SerializeField] private bool enableGazeDestroyFeature = true;
+    [SerializeField] [Range(1.0f, 10.0f)] private float minDwellTimeOverTarget = 4.0f;
+    [SerializeField] private bool enableDwellDestroyFeature = true;
 
     [Header("Logging")]
     [SerializeField] private bool useEfficientRawLogging = true;
@@ -53,6 +54,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         public float deltaTimeMs;
         public HeadTransformData headTransform;
         public EyeTrackingData eyeTracking;
+        public string eyeRaycastHitObject;
     }
 
     [System.Serializable] public class HeadTransformData { public Vector3Data position; public QuaternionData rotation; }
@@ -138,13 +140,14 @@ public class EyeAndHeadTracker : MonoBehaviour
     private SessionPerformanceData performanceData = new SessionPerformanceData();
 
     private MeshRenderer[] targetRenderers;
-    private float gazeOverTargetTracker;
+    private float dwellOverTargetTracker;
     private int destroyCount = 0;
     private float appStartTime;
     private float previousDestroyTime;
     private int currentFrameId = 0;
     private float lastFrameTimestamp;
-    private List<Vector3> gazeDirectionsDuringCurrentDwell = new List<Vector3>();
+    private List<Vector3> dwellDirectionsDuringCurrentDwell = new List<Vector3>();
+    private string currentHitObjectName = "None";
 
     private readonly int fillProgressProperty = Shader.PropertyToID("_FillProgress");
     private const float MIN_FILL_RANGE = -0.6f;
@@ -176,17 +179,6 @@ public class EyeAndHeadTracker : MonoBehaviour
             environment = environment
         };
 
-        if (enableGazeDestroyFeature)
-        {
-            var allTargets = GameObject.FindGameObjectsWithTag("GazeDestroyTarget");
-            targetRenderers = allTargets
-                .Select(n => n.GetComponent<MeshRenderer>())
-                .Where(r => r != null)
-                .ToArray();
-
-            Debug.Log($"Found {targetRenderers.Length} GazeDestroyTarget objects.");
-        }
-
         if (Application.platform == RuntimePlatform.Android)
             RequestWritePermission();
 
@@ -194,6 +186,31 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
             rawNdjsonWriter = new StreamWriter(rawPath, false);
+        }
+    }
+
+    private void Start()
+    {
+        if (enableDwellDestroyFeature)
+        {
+            var allTargets = GameObject.FindGameObjectsWithTag(targetTag);
+            targetRenderers = allTargets
+                .Select(n => n.GetComponent<MeshRenderer>())
+                .Where(r => r != null)
+                .ToArray();
+
+            Debug.Log($"Found {targetRenderers.Length} objects with tag '{targetTag}'.");
+        }
+
+        // Diagnostic: Verify GazeInputManager is properly set up in the scene
+        if (GazeInputManager.Instance == null)
+        {
+            Debug.LogError("⚠️ GazeInputManager.Instance is NULL! Eye dwell will NOT work. " +
+                "Make sure a GameObject with GazeInputManager is in the scene.");
+        }
+        else
+        {
+            Debug.Log($"✅ GazeInputManager found. Permission granted: {GazeInputManager.Instance.EyeTrackingPermissionGranted}");
         }
     }
 
@@ -205,14 +222,16 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void Update()
     {
-        CaptureTrackingFrame();
+        currentHitObjectName = "None";
 
-        if (enableGazeDestroyFeature &&
+        if (enableDwellDestroyFeature &&
             GazeInputManager.Instance != null &&
             GazeInputManager.Instance.EyeTrackingPermissionGranted)
         {
-            RunGazeDwellDestruction();
+            RunEyeDwellDestruction();
         }
+
+        CaptureTrackingFrame();
     }
 
     // ==================== TRACKING ====================
@@ -235,7 +254,8 @@ public class EyeAndHeadTracker : MonoBehaviour
                 position = new Vector3Data { x = head.position.x, y = head.position.y, z = head.position.z },
                 rotation = new QuaternionData { x = head.rotation.x, y = head.rotation.y, z = head.rotation.z, w = head.rotation.w }
             },
-            eyeTracking = GetEyeTrackingData()
+            eyeTracking = GetEyeTrackingData(),
+            eyeRaycastHitObject = currentHitObjectName
         };
 
         if (useEfficientRawLogging && rawNdjsonWriter != null)
@@ -289,10 +309,16 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     // ==================== GAZE DESTRUCTION ====================
 
-    private void RunGazeDwellDestruction()
+    private void RunEyeDwellDestruction()
     {
         var gazePosition = GazeInputManager.Instance.GazePosition;
         var gazeRotation = GazeInputManager.Instance.GazeRotation;
+
+        // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log
+        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, 10.0f))
+        {
+            currentHitObjectName = debugHit.collider.name + " (Layer: " + LayerMask.LayerToName(debugHit.collider.gameObject.layer) + ")";
+        }
 
         if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit hitInfo, 10.0f, layersToIncludeWithRay))
         {
@@ -300,15 +326,15 @@ public class EyeAndHeadTracker : MonoBehaviour
 
             if (renderer != null && targetRenderers != null && targetRenderers.Contains(renderer))
             {
-                gazeOverTargetTracker += Time.deltaTime;
-                gazeDirectionsDuringCurrentDwell.Add(gazeRotation * Vector3.forward);
+                dwellOverTargetTracker += Time.deltaTime;
+                dwellDirectionsDuringCurrentDwell.Add(gazeRotation * Vector3.forward);
 
-                float progress = gazeOverTargetTracker / minGazeTimeOverTarget;
+                float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
                 float fillAmount = ConvertPercentageToRange(progress);
                 renderer.material.SetFloat(fillProgressProperty, fillAmount);
                 ClearAllFillings(renderer.gameObject);
 
-                if (gazeOverTargetTracker >= minGazeTimeOverTarget)
+                if (dwellOverTargetTracker >= minDwellTimeOverTarget)
                 {
                     float currentTime = Time.realtimeSinceStartup;
                     float timeSinceStart = currentTime - appStartTime;
@@ -320,7 +346,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     var head = Camera.main != null ? Camera.main.transform : transform;
                     Vector3 headPos = head.position;
                     Vector3 headEuler = head.rotation.eulerAngles;
-                    float stability = CalculateGazeStability(gazeDirectionsDuringCurrentDwell);
+                    float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
 
                     destructionEvents.Add(new DestructionEvent
                     {
@@ -335,11 +361,11 @@ public class EyeAndHeadTracker : MonoBehaviour
 
                     destroyCount++;
                     previousDestroyTime = currentTime;
-                    gazeDirectionsDuringCurrentDwell.Clear();
+                    dwellDirectionsDuringCurrentDwell.Clear();
 
                     targetRenderers = targetRenderers.Where(r => r != renderer).ToArray();
                     Destroy(renderer.gameObject);
-                    gazeOverTargetTracker = 0;
+                    dwellOverTargetTracker = 0;
 
                     // OPTION B: Save immediately on every destruction event
                     SaveSessionData();
@@ -357,15 +383,15 @@ public class EyeAndHeadTracker : MonoBehaviour
             }
             else
             {
-                gazeOverTargetTracker = 0;
-                gazeDirectionsDuringCurrentDwell.Clear();
+                dwellOverTargetTracker = 0;
+                dwellDirectionsDuringCurrentDwell.Clear();
                 ClearAllFillings();
             }
         }
         else
         {
-            gazeOverTargetTracker = 0;
-            gazeDirectionsDuringCurrentDwell.Clear();
+            dwellOverTargetTracker = 0;
+            dwellDirectionsDuringCurrentDwell.Clear();
             ClearAllFillings();
         }
     }

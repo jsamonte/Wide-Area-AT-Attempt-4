@@ -20,6 +20,12 @@ public class GazeDestroyFeature : MonoBehaviour
     
     private void Awake()
     {
+        // DISABLED: This script has been replaced by EyeAndHeadTracker.cs
+        // Disabling automatically to prevent competing raycast logic.
+        Debug.LogWarning("GazeDestroyFeature is OBSOLETE and has been auto-disabled. Use EyeAndHeadTracker instead.");
+        this.enabled = false;
+        return;
+
         // We will find all 8 prefabs by using a custom Unity Tag
         var allTargets = GameObject.FindGameObjectsWithTag("GazeDestroyTarget");
         targetRenderers = allTargets
