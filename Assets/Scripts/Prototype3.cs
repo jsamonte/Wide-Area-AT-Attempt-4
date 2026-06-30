@@ -104,6 +104,7 @@ public class Prototype3 : MonoBehaviour
     private ulong anchoredArucoID = INVALID_ARUCO_ID;
 
     private GameObject _sharedInstance;
+    private GameObject _anchorHolder;
     private bool _userEditedRotation = false;
 
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
@@ -224,7 +225,9 @@ public class Prototype3 : MonoBehaviour
 
             if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable && hasDwelt)
             {
+                _anchorHolder = new GameObject("AnchorHolder");
                 _sharedInstance = Instantiate(sharedPrefab);
+                _sharedInstance.transform.SetParent(_anchorHolder.transform);
                 _sharedInstance.SetActive(true);
                 SetupGrabInteraction(_sharedInstance);
                 Debug.Log($"[Option A] Shared prefab instance spawned on ArUco {id}.");
@@ -263,37 +266,34 @@ public class Prototype3 : MonoBehaviour
 
     private void ApplySharedTransform(Pose markerWorldPose, bool preserveRotation = false)
     {
-        if (_sharedInstance == null) return;
+        if (_sharedInstance == null || _anchorHolder == null) return;
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
         if (grab != null && grab.isSelected) return;
 
-        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
-        Vector3 finalPos = markerWorldPose.position + (markerWorldPose.rotation * localOffset);
-
         if (useSpatialAnchors)
         {
-            var oldAnchor = _sharedInstance.GetComponent<ARAnchor>();
+            var oldAnchor = _anchorHolder.GetComponent<ARAnchor>();
             if (oldAnchor != null) DestroyImmediate(oldAnchor);
         }
 
-        if (preserveRotation)
-        {
-            _sharedInstance.transform.position = finalPos;
-        }
-        else
+        _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+
+        if (!preserveRotation)
         {
             Vector3 appliedRotation = mapping.rotationOffset;
             if (!enableZAxisRotation) appliedRotation.z = 0f;
-            Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(appliedRotation);
-            _sharedInstance.transform.SetPositionAndRotation(finalPos, finalRot);
+            _sharedInstance.transform.localRotation = Quaternion.Euler(appliedRotation);
         }
+
+        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
+        _sharedInstance.transform.localPosition = localOffset;
         _sharedInstance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * scaleMultiplier;
 
         if (useSpatialAnchors)
         {
-            _sharedInstance.AddComponent<ARAnchor>();
+            _anchorHolder.AddComponent<ARAnchor>();
         }
     }
 
@@ -326,9 +326,9 @@ public class Prototype3 : MonoBehaviour
 
     private void OnGrabEntered(SelectEnterEventArgs args)
     {
-        if (useSpatialAnchors && _sharedInstance != null)
+        if (useSpatialAnchors && _anchorHolder != null)
         {
-            var oldAnchor = _sharedInstance.GetComponent<ARAnchor>();
+            var oldAnchor = _anchorHolder.GetComponent<ARAnchor>();
             if (oldAnchor != null) Destroy(oldAnchor);
         }
     }
@@ -337,29 +337,29 @@ public class Prototype3 : MonoBehaviour
     {
         if (lastSeenArucoID == INVALID_ARUCO_ID) return;
 
-        if (!_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)
-            && !lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out markerWorldPose))
-            return;
-
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
 
-        Vector3 newLocalOffset = Quaternion.Inverse(markerWorldPose.rotation) * (releasedObject.position - markerWorldPose.position);
-        mapping.offsetX = newLocalOffset.x;
-        mapping.offsetY = newLocalOffset.y;
-        mapping.offsetZ = newLocalOffset.z;
+        if (_anchorHolder != null)
+        {
+            _sharedInstance.transform.SetParent(_anchorHolder.transform, true);
+            Vector3 localPos = _anchorHolder.transform.InverseTransformPoint(_sharedInstance.transform.position);
+            mapping.offsetX = localPos.x;
+            mapping.offsetY = localPos.y;
+            mapping.offsetZ = localPos.z;
 
-        Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
-        mapping.rotationOffset = newLocalRot.eulerAngles;
-        if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
+            Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
+            mapping.rotationOffset = localRot.eulerAngles;
+            if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
+        }
 
         _userEditedRotation = true;
 
-        if (useSpatialAnchors && _sharedInstance != null)
+        if (useSpatialAnchors && _anchorHolder != null)
         {
-            _sharedInstance.AddComponent<ARAnchor>();
+            _anchorHolder.AddComponent<ARAnchor>();
         }
 
         UpdateAlignmentInfoText();
@@ -404,17 +404,18 @@ public class Prototype3 : MonoBehaviour
         if (changed)
         {
             _userEditedRotation = true;
-            if (lastSeenArucoID != INVALID_ARUCO_ID && (_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose p) || lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out p)))
+            if (lastSeenArucoID != INVALID_ARUCO_ID)
             {
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-                if (mapping != null)
+                if (mapping != null && _anchorHolder != null)
                 {
-                    Vector3 newLocalOffset = Quaternion.Inverse(p.rotation) * (_sharedInstance.transform.position - p.position);
-                    mapping.offsetX = newLocalOffset.x;
-                    mapping.offsetY = newLocalOffset.y;
-                    mapping.offsetZ = newLocalOffset.z;
-                    Quaternion newLocalRot = Quaternion.Inverse(p.rotation) * _sharedInstance.transform.rotation;
-                    mapping.rotationOffset = newLocalRot.eulerAngles;
+                    Vector3 localPos = _anchorHolder.transform.InverseTransformPoint(_sharedInstance.transform.position);
+                    mapping.offsetX = localPos.x;
+                    mapping.offsetY = localPos.y;
+                    mapping.offsetZ = localPos.z;
+                    
+                    Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
+                    mapping.rotationOffset = localRot.eulerAngles;
                     if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
                 }
             }
@@ -453,8 +454,7 @@ public class Prototype3 : MonoBehaviour
 
         if (changed)
         {
-            if (_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose p) || lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out p))
-                ApplySharedTransform(p, preserveRotation: _userEditedRotation);
+            _sharedInstance.transform.localPosition = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
         }
     }
 
@@ -526,6 +526,7 @@ public class Prototype3 : MonoBehaviour
     public void DestroyAll()
     {
         if (_sharedInstance != null) { Destroy(_sharedInstance); _sharedInstance = null; }
+        if (_anchorHolder != null) { Destroy(_anchorHolder); _anchorHolder = null; }
         lastDetectedMarkerPoses.Clear();
         _lockedMarkerPose.Clear();
         _lockedThisAcquisition.Clear();

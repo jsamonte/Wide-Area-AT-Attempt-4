@@ -431,8 +431,11 @@ public class WireframeAlignment : MonoBehaviour
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null)
         {
-            var grab = created.GetComponent<XRGrabInteractable>();
-            return grab != null && grab.isSelected;
+            if (created.transform.childCount > 0)
+            {
+                var grab = created.transform.GetChild(0).GetComponent<XRGrabInteractable>();
+                return grab != null && grab.isSelected;
+            }
         }
 
         foreach (var anchor in storedAnchors)
@@ -496,7 +499,10 @@ public class WireframeAlignment : MonoBehaviour
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null && created.gameObject != null)
         {
-            UpdateInstanceTransform(created.gameObject, mapping, markerWorldPose);
+            if (created.transform.childCount > 0)
+            {
+                UpdateInstanceTransformRelativeToAnchor(created.transform.GetChild(0).gameObject, mapping, created);
+            }
             return;
         }
 
@@ -575,35 +581,37 @@ public class WireframeAlignment : MonoBehaviour
 
     private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerWorldPose)
     {
+        GameObject anchorObj = new GameObject($"Anchor_{arucoID}");
+        anchorObj.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+        ARAnchor arAnchor = anchorObj.AddComponent<ARAnchor>();
+
         GameObject instance = Instantiate(mapping.prefab, markerWorldPose.position, markerWorldPose.rotation);
+        instance.transform.SetParent(anchorObj.transform);
         instance.SetActive(true);
 
         SetupGrabInteraction(instance);
 
-        ARAnchor arAnchor = instance.AddComponent<ARAnchor>();
         var rend = instance.GetComponent<MeshRenderer>();
         if (rend != null) rend.material.color = Color.grey;
 
         createdAnchorsByArucoID[arucoID] = arAnchor;
         localAnchors.Add(arAnchor);
 
-        UpdateInstanceTransform(instance, mapping, markerWorldPose);
+        UpdateInstanceTransformRelativeToAnchor(instance, mapping, arAnchor);
         PublishSingleAnchor(arAnchor);
     }
 
-    private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerWorldPose)
+    private void UpdateInstanceTransform(GameObject anchorObj, ArucoPrefabMapping mapping, Pose markerWorldPose)
     {
-        if (instance == null) return;
-
-        var grab = instance.GetComponent<XRGrabInteractable>();
-        if (grab != null && grab.isSelected) return;
-
-        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
-        Vector3 finalPos = markerWorldPose.position + (markerWorldPose.rotation * localOffset);
-        Quaternion finalRot = markerWorldPose.rotation * Quaternion.Euler(mapping.rotationOffset);
-
-        instance.transform.SetPositionAndRotation(finalPos, finalRot);
-        instance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
+        if (anchorObj == null) return;
+        anchorObj.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+        if (anchorObj.transform.childCount > 0)
+        {
+            var child = anchorObj.transform.GetChild(0).gameObject;
+            ARAnchor arAnchor = anchorObj.GetComponent<ARAnchor>();
+            if (arAnchor != null)
+                UpdateInstanceTransformRelativeToAnchor(child, mapping, arAnchor);
+        }
     }
 
     private void PublishSingleAnchor(ARAnchor anchor)
@@ -802,25 +810,20 @@ public class WireframeAlignment : MonoBehaviour
 
         if (!_mappingLookup.TryGetValue(lastSeenArucoID, out var mapping)) return;
 
-        // Use the locked pose -- the prefab's displayed transform was computed
-        // against this pose, not necessarily the current live one, so the
-        // recorded offset must be measured against the same reference.
-        if (!_lockedMarkerPose.TryGetValue(lastSeenArucoID, out Pose markerWorldPose)
-            && !lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out markerWorldPose))
-            return;
-
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
 
-        // Position
-        Vector3 newLocalOffset = Quaternion.Inverse(markerWorldPose.rotation) * (releasedObject.position - markerWorldPose.position);
-        mapping.offsetX = newLocalOffset.x;
-        mapping.offsetY = newLocalOffset.y;
-        mapping.offsetZ = newLocalOffset.z;
+        ARAnchor parentAnchor = releasedObject.GetComponentInParent<ARAnchor>();
+        if (parentAnchor != null)
+        {
+            Vector3 newLocalOffset = parentAnchor.transform.InverseTransformPoint(releasedObject.position);
+            mapping.offsetX = newLocalOffset.x;
+            mapping.offsetY = newLocalOffset.y;
+            mapping.offsetZ = newLocalOffset.z;
 
-        // Rotation
-        Quaternion newLocalRot = Quaternion.Inverse(markerWorldPose.rotation) * releasedObject.rotation;
-        mapping.rotationOffset = newLocalRot.eulerAngles;
+            Quaternion newLocalRot = Quaternion.Inverse(parentAnchor.transform.rotation) * releasedObject.rotation;
+            mapping.rotationOffset = newLocalRot.eulerAngles;
+        }
 
         _userEditedRotation.Add(lastSeenArucoID);
         UpdateAlignmentInfoText();
@@ -838,8 +841,12 @@ public class WireframeAlignment : MonoBehaviour
 
         if (createdAnchorsByArucoID.TryGetValue(lastSeenArucoID, out ARAnchor created) && created != null)
         {
-            var grab = created.GetComponent<XRGrabInteractable>();
-            if (grab != null && grab.isSelected) grabbedObject = created.gameObject;
+            if (created.transform.childCount > 0)
+            {
+                var child = created.transform.GetChild(0).gameObject;
+                var grab = child.GetComponent<XRGrabInteractable>();
+                if (grab != null && grab.isSelected) grabbedObject = child;
+            }
         }
         else
         {
