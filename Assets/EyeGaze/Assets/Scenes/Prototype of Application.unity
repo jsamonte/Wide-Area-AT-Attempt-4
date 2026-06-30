@@ -387,10 +387,18 @@ MonoBehaviour:
       guid: 6e5660e7e5c242379d29d472295a2cbe
     - object: {fileID: 6061204285223387423}
       guid: 9b03bd68239841bfb249b505deabf034
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
     - object: {fileID: 233706974}
       guid: 6946b1eaaf8c409db24bc0a8aeffd72b
     - object: {fileID: 233706975}
       guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
     - object: {fileID: 233706977}
       guid: 43098aca48ac4d088d86166d344a674c
     - object: {fileID: 233706976}
@@ -471,10 +479,6 @@ MonoBehaviour:
       guid: aefd0e406f8941a7b6bedf76fa215d12
     - object: {fileID: 3137140674111421266}
       guid: 9c56101bfacb4a818cf11da47442b66c
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
     - object: {fileID: 1284379514255703201}
       guid: 154a0d92436d40e0acf34ead8141a23c
     - object: {fileID: 7745393053854052261}
@@ -585,10 +589,6 @@ MonoBehaviour:
       guid: a9ceb5e1cc7c49739233ada2c6b7bbd9
     - object: {fileID: 7276002552315758418}
       guid: 9f334eb8eec14e8f952e0b657ed01d15
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -933,78 +933,78 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sharedPrefab: {fileID: 2084287374956626184, guid: 5eaa724cd75636d4580d6559242a205d,
     type: 3}
-  scaleMultiplier: 1025.91
+  scaleMultiplier: 1001.95
   arucoMappings:
   - arucoID: 2
-    offsetX: -6.603
-    offsetY: -64.025
-    offsetZ: -3.232
+    offsetX: 2.445
+    offsetY: -55.601
+    offsetZ: -24.026
     rotationOffset: {x: 180, y: 0, z: 16.5}
   - arucoID: 4
-    offsetX: -61.138
-    offsetY: -4.06
-    offsetZ: -3.194
-    rotationOffset: {x: 180, y: 0, z: 108.2}
+    offsetX: -60.981
+    offsetY: -3.368
+    offsetZ: -2.473
+    rotationOffset: {x: 180, y: 0, z: 109.2}
   - arucoID: 8
-    offsetX: -67.468
-    offsetY: -33.762
-    offsetZ: 0.546
-    rotationOffset: {x: 180, y: 0, z: 105.1}
+    offsetX: -67.991
+    offsetY: -30.422
+    offsetZ: 0.079
+    rotationOffset: {x: 180, y: 0, z: 107.4}
   - arucoID: 20
-    offsetX: -73.435
-    offsetY: -48.452
-    offsetZ: 1.701
-    rotationOffset: {x: 180, y: 0, z: 103.54}
+    offsetX: -74.085
+    offsetY: -46.888
+    offsetZ: 1.5
+    rotationOffset: {x: 180, y: 0, z: 104.2}
   - arucoID: 22
-    offsetX: -89.064
-    offsetY: -60.556
-    offsetZ: -0.086
-    rotationOffset: {x: 178, y: 2.9, z: 108.6}
+    offsetX: -89.492
+    offsetY: -59.282
+    offsetZ: -1.46
+    rotationOffset: {x: 179, y: 0.6, z: 107.5}
   - arucoID: 88
-    offsetX: -93.259
-    offsetY: -90.8
-    offsetZ: -0.086
-    rotationOffset: {x: 177.7, y: 0, z: 105.3}
+    offsetX: -92.235
+    offsetY: -91.514
+    offsetZ: -1.35
+    rotationOffset: {x: 181.6, y: 358, z: 106.7}
   - arucoID: 200
-    offsetX: 123.563
-    offsetY: -23.916
-    offsetZ: 0.432
-    rotationOffset: {x: 179.4, y: 358.4, z: 103.5}
+    offsetX: 122.624
+    offsetY: -26.063
+    offsetZ: -3.354
+    rotationOffset: {x: 181.6, y: 358, z: 106.7}
   - arucoID: 3
-    offsetX: 102.406
-    offsetY: -27.382
-    offsetZ: 1.519
-    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+    offsetX: 100.899
+    offsetY: -31.23
+    offsetZ: 1.7
+    rotationOffset: {x: 181.6, y: 358, z: 106.7}
   - arucoID: 44
-    offsetX: 104.117
-    offsetY: -28.803
-    offsetZ: 2.329
-    rotationOffset: {x: 177.7, y: 0, z: 17.3}
+    offsetX: -105.762
+    offsetY: 9.741
+    offsetZ: -2.541
+    rotationOffset: {x: 179.4, y: 358.5, z: 17.7}
   - arucoID: 33
     offsetX: 91.278
     offsetY: -15.828
     offsetZ: -5.3
-    rotationOffset: {x: 182.5, y: 2.4, z: 32}
+    rotationOffset: {x: 182.5, y: 2.4, z: 31.2}
   - arucoID: 84
-    offsetX: 2.175
-    offsetY: -79.074
-    offsetZ: -2.848
-    rotationOffset: {x: 182.5, y: 2.4, z: 103.3}
+    offsetX: 3.886
+    offsetY: -76.059
+    offsetZ: -3.433
+    rotationOffset: {x: 182.1, y: 358.5, z: 101.7}
   - arucoID: 82
-    offsetX: 1.486
-    offsetY: -35.797
-    offsetZ: -3.325
-    rotationOffset: {x: 182.5, y: 2.4, z: 103.4}
+    offsetX: 1.71
+    offsetY: -35.421
+    offsetZ: -3.969
+    rotationOffset: {x: 182.4, y: 357.5, z: 103.4}
   - arucoID: 80
-    offsetX: 10.991
-    offsetY: -6.749
-    offsetZ: -2.423
-    rotationOffset: {x: 180, y: 0, z: 12.3}
+    offsetX: 10.375
+    offsetY: -6.446
+    offsetZ: -3.062
+    rotationOffset: {x: 180, y: 0, z: 12.4}
   - arucoID: 40
     offsetX: 6.117
     offsetY: -26.975
     offsetZ: -2.075
-    rotationOffset: {x: 182.5, y: 2.4, z: 14}
+    rotationOffset: {x: 180, y: 0, z: 19.9}
   arucoDictionary: 6
   arucoPhysicalLengthMeters: 0.1016
   estimateArucoLength: 0

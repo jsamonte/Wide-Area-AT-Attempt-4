@@ -3045,7 +3045,7 @@ MonoBehaviour:
   minDwellTimeOverTarget: 4
   enableDwellDestroyFeature: 1
   useEfficientRawLogging: 1
-  autoSaveWhenAllTargetsDestroyed: 0
+  autoSaveWhenAllTargetsDestroyed: 1
   alsoExportCombinedJson: 0
   arucoGameObject: {fileID: 2084287374956626184}
   mapGameObject: {fileID: 7927463330472195468, guid: 8f3cc2d1822be1f408ed87ba98f45815,

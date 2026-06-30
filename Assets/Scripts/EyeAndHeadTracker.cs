@@ -21,11 +21,13 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool enableDwellDestroyFeature = true;
 
     [Header("Logging")]
-    [SerializeField] private bool useEfficientRawLogging = true;
+    [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
+    [SerializeField] [Tooltip("How often to silently save the JSON to disk to prevent data loss on crash (in seconds).")]
+    private float autoSaveIntervalSeconds = 15f;
 
     [Header("Combined JSON (your requested format)")]
-    [SerializeField] private bool alsoExportCombinedJson = false;
+    [SerializeField] private bool alsoExportCombinedJson = true;
 
     [Header("Optional Objects Tracking")]
     [SerializeField] private GameObject arucoGameObject;
@@ -95,6 +97,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         public float timeSincePreviousDestroy;
         public Vector3Data headPositionAtDestroy;
         public Vector3Data headRotationEulerAtDestroy;
+        public Vector3Data targetPositionAtDestroy;
         public float gazeStabilityDuringDwell_deg;
         public string notes;
     }
@@ -130,6 +133,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         public SessionMeta sessionMeta;
         public List<TrackingFrame> trackingData = new List<TrackingFrame>();
+        public List<DestructionEvent> destructionEvents = new List<DestructionEvent>();
     }
 
     // ==================== PRIVATE STATE ====================
@@ -148,6 +152,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     private float lastFrameTimestamp;
     private List<Vector3> dwellDirectionsDuringCurrentDwell = new List<Vector3>();
     private string currentHitObjectName = "None";
+    private float autoSaveTimer = 0f;
 
     private readonly int fillProgressProperty = Shader.PropertyToID("_FillProgress");
     private const float MIN_FILL_RANGE = -0.6f;
@@ -232,6 +237,14 @@ public class EyeAndHeadTracker : MonoBehaviour
         }
 
         CaptureTrackingFrame();
+
+        // Periodic auto-save to prevent data loss on crash
+        autoSaveTimer += Time.deltaTime;
+        if (autoSaveTimer >= autoSaveIntervalSeconds)
+        {
+            SaveSessionData();
+            autoSaveTimer = 0f;
+        }
     }
 
     // ==================== TRACKING ====================
@@ -260,7 +273,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (useEfficientRawLogging && rawNdjsonWriter != null)
             rawNdjsonWriter.WriteLine(JsonUtility.ToJson(frame));
-        else
+        
+        if (alsoExportCombinedJson || !useEfficientRawLogging)
             trackingFrames.Add(frame);
     }
 
@@ -346,6 +360,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     var head = Camera.main != null ? Camera.main.transform : transform;
                     Vector3 headPos = head.position;
                     Vector3 headEuler = head.rotation.eulerAngles;
+                    Vector3 targetPos = renderer.transform.position;
                     float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
 
                     destructionEvents.Add(new DestructionEvent
@@ -356,6 +371,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                         timeSincePreviousDestroy = timeSincePrev,
                         headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
                         headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
+                        targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
                         gazeStabilityDuringDwell_deg = stability
                     });
 
@@ -456,12 +472,13 @@ public class EyeAndHeadTracker : MonoBehaviour
             Debug.Log($"✅ Summary saved: {summaryPath}");
 
             // Optional combined JSON with trackingData array (your requested format)
-            if (alsoExportCombinedJson && !useEfficientRawLogging && trackingFrames.Count > 0)
+            if (alsoExportCombinedJson && trackingFrames.Count > 0)
             {
                 var combined = new CombinedExportRoot
                 {
                     sessionMeta = sessionMeta,
-                    trackingData = trackingFrames
+                    trackingData = trackingFrames,
+                    destructionEvents = destructionEvents
                 };
 
                 string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
@@ -492,8 +509,15 @@ public class EyeAndHeadTracker : MonoBehaviour
         }
     }
 
+    private void OnApplicationQuit()
+    {
+        SaveSessionData();
+    }
+
     private void OnDestroy()
     {
+        SaveSessionData();
+        
         if (rawNdjsonWriter != null)
         {
             rawNdjsonWriter.Flush();
