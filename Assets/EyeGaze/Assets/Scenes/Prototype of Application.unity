@@ -938,9 +938,9 @@ MonoBehaviour:
   scaleMultiplier: 1001.95
   arucoMappings:
   - arucoID: 2
-    offsetX: -5.328
-    offsetY: -63.956
-    offsetZ: -2.72
+    offsetX: -6.746
+    offsetY: -63.64
+    offsetZ: -3.657
     rotationOffset: {x: 180, y: 0, z: 16.5}
   - arucoID: 48
     offsetX: -5.676
@@ -948,34 +948,34 @@ MonoBehaviour:
     offsetZ: -4.568
     rotationOffset: {x: 180, y: 0, z: 16.5}
   - arucoID: 4
-    offsetX: -60.759
-    offsetY: -5.905
-    offsetZ: -3.132
+    offsetX: -60.996
+    offsetY: -3.209
+    offsetZ: -2.324
     rotationOffset: {x: 180, y: 0, z: 109.2}
   - arucoID: 8
-    offsetX: -66.718
-    offsetY: -32.944
-    offsetZ: 1.885
+    offsetX: -67.992
+    offsetY: -30.447
+    offsetZ: -0.168
     rotationOffset: {x: 180, y: 0, z: 105.2}
   - arucoID: 20
-    offsetX: -72.462
-    offsetY: -48.986
-    offsetZ: 3.741
+    offsetX: -74.221
+    offsetY: -46.681
+    offsetZ: 1.647
     rotationOffset: {x: 180, y: 0, z: 102.4}
   - arucoID: 22
-    offsetX: -86.928
-    offsetY: -63.15
-    offsetZ: 1.385
+    offsetX: -89.88
+    offsetY: -58.759
+    offsetZ: -1.431
     rotationOffset: {x: 180, y: 0, z: 109.9}
   - arucoID: 88
-    offsetX: -88.473
-    offsetY: -94.958
-    offsetZ: 3.249
-    rotationOffset: {x: 181.6, y: 0, z: 109.9}
+    offsetX: -86.571
+    offsetY: -96.668
+    offsetZ: -3.23
+    rotationOffset: {x: 181.6, y: 0, z: 103.4}
   - arucoID: 222
-    offsetX: 123.749
-    offsetY: -20.034
-    offsetZ: 2.83
+    offsetX: 102.577
+    offsetY: -67.876
+    offsetZ: -2.739
     rotationOffset: {x: 181.6, y: 358, z: -4.3}
   - arucoID: 200
     offsetX: 123.749
@@ -986,22 +986,22 @@ MonoBehaviour:
     offsetX: 123.749
     offsetY: -20.034
     offsetZ: 2.83
-    rotationOffset: {x: 181.6, y: 358, z: 107.4}
+    rotationOffset: {x: 181.6, y: 358, z: -4.3}
   - arucoID: 44
-    offsetX: 1.326
-    offsetY: -76.736
-    offsetZ: 0.13
-    rotationOffset: {x: 182.1, y: 358.5, z: 101.7}
+    offsetX: -105.936
+    offsetY: 6.623
+    offsetZ: -4.095
+    rotationOffset: {x: 182.1, y: 358.5, z: -163.9}
   - arucoID: 33
     offsetX: 88.744
     offsetY: -13.906
     offsetZ: -0.121
     rotationOffset: {x: 182.1, y: 358.5, z: 31.2}
   - arucoID: 84
-    offsetX: 1.326
-    offsetY: -76.736
-    offsetZ: 0.13
-    rotationOffset: {x: 182.1, y: 358.5, z: 101.7}
+    offsetX: 1.723
+    offsetY: -76.509
+    offsetZ: -4.178
+    rotationOffset: {x: 182.1, y: 358.5, z: 103.8}
   - arucoID: 202
     offsetX: -3.201
     offsetY: -54.299
