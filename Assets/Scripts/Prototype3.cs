@@ -219,6 +219,35 @@ public class Prototype3 : MonoBehaviour
         {
             ulong id = kvp.Key;
             Pose markerWorldPose = kvp.Value;
+            
+            // --- Gravity Alignment Fix (Floor Markers) ---
+            // Automatically detect whether the marker's Z or Y axis is vertical, 
+            // and lock it perfectly to gravity without flipping it.
+            Vector3 rawUp = markerWorldPose.rotation * Vector3.up;
+            Vector3 rawForward = markerWorldPose.rotation * Vector3.forward;
+            
+            Vector3 flatForward = rawForward;
+            flatForward.y = 0;
+            
+            if (flatForward.sqrMagnitude < 0.1f)
+            {
+                // The marker's Z-axis is vertical (pointing up or down). Y-axis is horizontal.
+                Vector3 flatUp = rawUp;
+                flatUp.y = 0;
+                Vector3 perfectZ = (rawForward.y > 0) ? Vector3.up : Vector3.down;
+                if (flatUp.sqrMagnitude > 0.001f)
+                {
+                    markerWorldPose.rotation = Quaternion.LookRotation(perfectZ, flatUp.normalized);
+                }
+            }
+            else
+            {
+                // The marker's Z-axis is horizontal. Y-axis is vertical.
+                Vector3 perfectY = (rawUp.y > 0) ? Vector3.up : Vector3.down;
+                markerWorldPose.rotation = Quaternion.LookRotation(flatForward.normalized, perfectY);
+            }
+            // ---------------------------------------------
+            
             lastSeenArucoID = id;
 
             bool isFresh = SecondsSinceSeen(id) <= Mathf.Max(0.01f, freshLockSeconds);
