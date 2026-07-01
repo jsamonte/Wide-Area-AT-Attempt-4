@@ -72,6 +72,8 @@ public class Prototype3 : MonoBehaviour
     [Header("=== Axis Constraints ===")]
     [Tooltip("When disabled, the Z component of rotationOffset is forced to 0, preventing roll.")]
     [SerializeField] private bool enableZAxisRotation = true;
+    [Tooltip("When disabled, thumbstick vertical movement will not scale the digital twin.")]
+    [SerializeField] private bool enableScaling = true;
 
     [Header("=== Debug Alignment Info Text ===")]
     [SerializeField] private bool showAlignmentInfoText = true;
@@ -274,11 +276,18 @@ public class Prototype3 : MonoBehaviour
 
         if (useSpatialAnchors)
         {
-            var oldAnchor = _anchorHolder.GetComponent<ARAnchor>();
-            if (oldAnchor != null) DestroyImmediate(oldAnchor);
+            // Most reliable approach: recreate the anchor holder completely to give ARFoundation a clean slate.
+            _sharedInstance.transform.SetParent(null);
+            Destroy(_anchorHolder);
+            
+            _anchorHolder = new GameObject("AnchorHolder");
+            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+            _sharedInstance.transform.SetParent(_anchorHolder.transform);
         }
-
-        _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+        else
+        {
+            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+        }
 
         if (!preserveRotation)
         {
@@ -359,6 +368,15 @@ public class Prototype3 : MonoBehaviour
 
         if (useSpatialAnchors && _anchorHolder != null)
         {
+            // Recreate anchor holder to avoid the same ARFoundation bug when re-enabling the anchor
+            Pose currentPose = new Pose(_anchorHolder.transform.position, _anchorHolder.transform.rotation);
+            _sharedInstance.transform.SetParent(null);
+            Destroy(_anchorHolder);
+            
+            _anchorHolder = new GameObject("AnchorHolder");
+            _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
+            _sharedInstance.transform.SetParent(_anchorHolder.transform, true);
+            
             _anchorHolder.AddComponent<ARAnchor>();
         }
 
@@ -389,7 +407,7 @@ public class Prototype3 : MonoBehaviour
             changed = true;
         }
 
-        if (Mathf.Abs(axis.y) > inputDeadzone)
+        if (Mathf.Abs(axis.y) > inputDeadzone && enableScaling)
         {
             float oldScaleMultiplier = scaleMultiplier;
             scaleMultiplier += axis.y * sclSpeed;

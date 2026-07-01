@@ -31,10 +31,18 @@ namespace MagicLeap.Examples
         [SerializeField, Tooltip("Rotation offset applied to the prefab so it sits correctly on the marker")]
         private Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
 
+        [Header("Smoothing (Option 2)")]
+        [SerializeField, Tooltip("How smoothly the map follows the marker. Lower = smoother/delayed, Higher = faster/jittery.")]
+        private float followSpeed = 12f;
+
         private MagicLeapMarkerUnderstandingFeature markerFeature;
         private GameObject currentCustomInstance;
         private bool markerVisible = false;
         private WaitForEndOfFrame _waitForEndOfFrame;
+        
+        private Vector3 targetPosition;
+        private Quaternion targetRotation;
+        private bool hasInitialPose = false;
 
         void Start()
         {
@@ -88,6 +96,19 @@ namespace MagicLeap.Examples
             if (currentCustomInstance != null)
             {
                 currentCustomInstance.SetActive(markerVisible);
+
+                if (markerVisible && hasInitialPose)
+                {
+                    currentCustomInstance.transform.position = Vector3.Lerp(
+                        currentCustomInstance.transform.position, 
+                        targetPosition, 
+                        Time.deltaTime * followSpeed);
+                        
+                    currentCustomInstance.transform.rotation = Quaternion.Slerp(
+                        currentCustomInstance.transform.rotation, 
+                        targetRotation, 
+                        Time.deltaTime * followSpeed);
+                }
             }
         }
 
@@ -128,9 +149,14 @@ namespace MagicLeap.Examples
                         if (currentCustomInstance != null)
                         {
                             Quaternion offsetRot = Quaternion.Euler(rotationOffset);
-                            currentCustomInstance.transform.SetPositionAndRotation(
-                                data.MarkerPose.Value.position,
-                                data.MarkerPose.Value.rotation * offsetRot);
+                            targetPosition = data.MarkerPose.Value.position;
+                            targetRotation = data.MarkerPose.Value.rotation * offsetRot;
+
+                            if (!hasInitialPose)
+                            {
+                                currentCustomInstance.transform.SetPositionAndRotation(targetPosition, targetRotation);
+                                hasInitialPose = true;
+                            }
                         }
                     }
                 }
