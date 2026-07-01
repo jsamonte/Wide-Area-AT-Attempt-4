@@ -292,7 +292,6 @@ public class Prototype3 : MonoBehaviour
         if (!preserveRotation)
         {
             Vector3 appliedRotation = mapping.rotationOffset;
-            if (!enableZAxisRotation) appliedRotation.z = 0f;
             _sharedInstance.transform.localRotation = Quaternion.Euler(appliedRotation);
         }
 
@@ -361,7 +360,6 @@ public class Prototype3 : MonoBehaviour
 
             Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
             mapping.rotationOffset = localRot.eulerAngles;
-            if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
         }
 
         _userEditedRotation = true;
@@ -434,7 +432,6 @@ public class Prototype3 : MonoBehaviour
                     
                     Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
                     mapping.rotationOffset = localRot.eulerAngles;
-                    if (!enableZAxisRotation) mapping.rotationOffset.z = 0f;
                 }
             }
         }
