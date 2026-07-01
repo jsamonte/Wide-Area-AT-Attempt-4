@@ -387,6 +387,8 @@ MonoBehaviour:
       guid: 6e5660e7e5c242379d29d472295a2cbe
     - object: {fileID: 6061204285223387423}
       guid: 9b03bd68239841bfb249b505deabf034
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
     - object: {fileID: 7659755457791520106}
       guid: d91a2dbd817045f9bd82e54673159595
     - object: {fileID: 7181947681691641185}
@@ -437,6 +439,8 @@ MonoBehaviour:
       guid: d2bd9277433e40d5a0ec036e56e10aea
     - object: {fileID: 2140524055936550800}
       guid: 270d110259394c39bbbcd9a54f632a1d
+    - object: {fileID: 3612351616411823645}
+      guid: 13d3b23926904c75becd81ac5e0c3aea
     - object: {fileID: 969004514}
       guid: eb170cc507b749bdb21a20145778b3e4
     - object: {fileID: 4872903615547581543}
@@ -493,8 +497,6 @@ MonoBehaviour:
       guid: 0cfd3b2fffcd482d86101ecf8bd69ac6
     - object: {fileID: 543796860525412841}
       guid: 30a213e53cb444d89e802c720b53d05b
-    - object: {fileID: 3612351616411823645}
-      guid: 13d3b23926904c75becd81ac5e0c3aea
     - object: {fileID: 9025074884364572658}
       guid: bef6b54d029c47739b865f11d3d12291
     - object: {fileID: 351271233630084417}
@@ -567,10 +569,10 @@ MonoBehaviour:
       guid: de9bd6858de044e48de15b95e0da9e9d
     - object: {fileID: 969004518}
       guid: 245fbf4707e342d08f46065ae6d5a1d4
+    - object: {fileID: 1412550252841395028}
+      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
     - object: {fileID: 203844589}
       guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
     - object: {fileID: 203844590}
       guid: 600ea8de9fa8427d8bacb88a93a418b4
     - object: {fileID: 233706974}
@@ -589,8 +591,6 @@ MonoBehaviour:
       guid: a1c3b2075ddd4b91bee3ee47a1c27091
     - object: {fileID: 234454530}
       guid: 61e81f66ae764fcc96974ab71f801dc6
-    - object: {fileID: 1412550252841395028}
-      guid: 30fd49ebe81f4adaaea4475a9fa2ea83
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -953,20 +953,20 @@ MonoBehaviour:
     offsetZ: -2.324
     rotationOffset: {x: 180, y: 0, z: 109.2}
   - arucoID: 8
-    offsetX: -67.992
-    offsetY: -30.447
-    offsetZ: -0.168
-    rotationOffset: {x: 180, y: 0, z: 105.2}
+    offsetX: -68.421
+    offsetY: -29.54
+    offsetZ: -0.264
+    rotationOffset: {x: 180, y: 0, z: 108.2}
   - arucoID: 20
-    offsetX: -74.221
-    offsetY: -46.681
-    offsetZ: 1.647
+    offsetX: -72.411
+    offsetY: -49.147
+    offsetZ: 0.594
     rotationOffset: {x: 180, y: 0, z: 102.4}
   - arucoID: 22
-    offsetX: -89.88
-    offsetY: -58.759
-    offsetZ: -1.431
-    rotationOffset: {x: 180, y: 0, z: 109.9}
+    offsetX: -89.346
+    offsetY: -59.288
+    offsetZ: -0.627
+    rotationOffset: {x: 180, y: 0, z: 107.5}
   - arucoID: 88
     offsetX: -86.571
     offsetY: -96.668
