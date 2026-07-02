@@ -389,24 +389,48 @@ MonoBehaviour:
       guid: 9b03bd68239841bfb249b505deabf034
     - object: {fileID: 203844589}
       guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844588}
-      guid: 5acde119b28a4d878b6335054d2a329b
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706974}
-      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
-    - object: {fileID: 233706975}
-      guid: 752a8fe3fe434c25847862446d15c833
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
-    - object: {fileID: 233706977}
-      guid: 43098aca48ac4d088d86166d344a674c
-    - object: {fileID: 233706976}
-      guid: 7f2ec95574ac4af388465dbc7b51888c
-    - object: {fileID: 7771136013120700886}
-      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
-    - object: {fileID: 234454531}
-      guid: a1c3b2075ddd4b91bee3ee47a1c27091
+    - object: {fileID: 7181947681691641185}
+      guid: 01ff180034ec4f0eba3e9b3afba7dcfc
+    - object: {fileID: 8486911387919942612}
+      guid: fdbf7ae9d47241d197f1131d08d5617b
+    - object: {fileID: 7103474464455243548}
+      guid: 796678974f52454cb6275c9ef96900fd
+    - object: {fileID: 2542355695934717842}
+      guid: e0113a0369eb4ef18280c25dc6f77eed
+    - object: {fileID: 969004515}
+      guid: 2e31a60a77f74045b09847333ba2747c
+    - object: {fileID: 8801765609497516510}
+      guid: 968b885a15ca4b07a1c3618049c0e8bc
+    - object: {fileID: 2803463668776114996}
+      guid: a7a64d9f27c845158ecace55710055ee
+    - object: {fileID: 2118736395736986822}
+      guid: 9dac02c69ddb439b8bfe3e6063a92590
+    - object: {fileID: 2740608586382173268}
+      guid: a0f05ae2d49c4db9a9d33bd6f846acfd
+    - object: {fileID: 9145083558172047667}
+      guid: a9ceb5e1cc7c49739233ada2c6b7bbd9
+    - object: {fileID: 7690104376671732796}
+      guid: 1002ace3b09b4fa9839446974caf8929
+    - object: {fileID: 7213025209831549742}
+      guid: 23960c84bcf64684b942fa24e9882c23
+    - object: {fileID: 3804320964631850661}
+      guid: d9a1c9e6c3c544f88331a786da1d6b39
+    - object: {fileID: 2750997138525929893}
+      guid: 99b1a30bd2794d9cb685624104dbadaa
+    - object: {fileID: 9147546957427497838}
+      guid: 16accc1b24ec4fa39175a9c89da6dcdf
+    - object: {fileID: 3677652187220507855}
+      guid: e9b2a047ae664f9e9ab4e66d5d0766be
+    - object: {fileID: 917972398}
+      guid: a6c5ef32117c45b8a7109f7dbfaab119
+    - object: {fileID: 6404228495164073622}
+      guid: b5df906050d44328a68c80d1c560fb95
+    - object: {fileID: 126223533124531890}
+      guid: 32f6ed92341b480fa3d741dcf589c5ba
+    - object: {fileID: 4691297905574368517}
+      guid: 257a4bb8138b478ab09cbbd5d83bee40
+    - object: {fileID: 7745393053854052261}
+      guid: 66200e2907bd470f960cbc6c8e86726f
     - object: {fileID: 4217444481547732205}
       guid: d2bd9277433e40d5a0ec036e56e10aea
     - object: {fileID: 2140524055936550800}
@@ -423,6 +447,10 @@ MonoBehaviour:
       guid: 90eb5e8121f542548bfa2b3e587791c8
     - object: {fileID: 6641076858881817613}
       guid: 69790857a1bb4fd69edd9dea971aaaba
+    - object: {fileID: 203844588}
+      guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 233706974}
+      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
     - object: {fileID: 7376430746591717575}
       guid: 23ffe3d0d20345b384c03797733e137b
     - object: {fileID: 6056548551015543604}
@@ -525,12 +553,6 @@ MonoBehaviour:
       guid: 3622ededac5f4935be706e4c67f15b25
     - object: {fileID: 6396945759921276806}
       guid: 107b6a1bf3084d919f3bd4c115e0a977
-    - object: {fileID: 6098766776673263121}
-      guid: 9bcd26a7f8284a189a064b55875f5307
-    - object: {fileID: 2564104750502546539}
-      guid: cdbaf8e623cf477386dc4b3f3a0f2e24
-    - object: {fileID: 5002558771151071914}
-      guid: d819850aee60475cbc76052f830bbce2
     - object: {fileID: 5419110887182260982}
       guid: 9d3c46b4df224b7ba2328af789d47990
     - object: {fileID: 7960873787619314386}
@@ -547,50 +569,28 @@ MonoBehaviour:
       guid: 30fd49ebe81f4adaaea4475a9fa2ea83
     - object: {fileID: 7659755457791520106}
       guid: d91a2dbd817045f9bd82e54673159595
-    - object: {fileID: 7181947681691641185}
-      guid: 01ff180034ec4f0eba3e9b3afba7dcfc
-    - object: {fileID: 8486911387919942612}
-      guid: fdbf7ae9d47241d197f1131d08d5617b
-    - object: {fileID: 7103474464455243548}
-      guid: 796678974f52454cb6275c9ef96900fd
-    - object: {fileID: 2542355695934717842}
-      guid: e0113a0369eb4ef18280c25dc6f77eed
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
+    - object: {fileID: 233706975}
+      guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 233706977}
+      guid: 43098aca48ac4d088d86166d344a674c
+    - object: {fileID: 233706976}
+      guid: 7f2ec95574ac4af388465dbc7b51888c
+    - object: {fileID: 7771136013120700886}
+      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
+    - object: {fileID: 234454531}
+      guid: a1c3b2075ddd4b91bee3ee47a1c27091
     - object: {fileID: 234454530}
       guid: 61e81f66ae764fcc96974ab71f801dc6
-    - object: {fileID: 969004515}
-      guid: 2e31a60a77f74045b09847333ba2747c
-    - object: {fileID: 8801765609497516510}
-      guid: 968b885a15ca4b07a1c3618049c0e8bc
-    - object: {fileID: 2803463668776114996}
-      guid: a7a64d9f27c845158ecace55710055ee
-    - object: {fileID: 2118736395736986822}
-      guid: 9dac02c69ddb439b8bfe3e6063a92590
-    - object: {fileID: 2740608586382173268}
-      guid: a0f05ae2d49c4db9a9d33bd6f846acfd
-    - object: {fileID: 9145083558172047667}
-      guid: a9ceb5e1cc7c49739233ada2c6b7bbd9
-    - object: {fileID: 7690104376671732796}
-      guid: 1002ace3b09b4fa9839446974caf8929
-    - object: {fileID: 7213025209831549742}
-      guid: 23960c84bcf64684b942fa24e9882c23
-    - object: {fileID: 3804320964631850661}
-      guid: d9a1c9e6c3c544f88331a786da1d6b39
-    - object: {fileID: 2750997138525929893}
-      guid: 99b1a30bd2794d9cb685624104dbadaa
-    - object: {fileID: 9147546957427497838}
-      guid: 16accc1b24ec4fa39175a9c89da6dcdf
-    - object: {fileID: 3677652187220507855}
-      guid: e9b2a047ae664f9e9ab4e66d5d0766be
-    - object: {fileID: 917972398}
-      guid: a6c5ef32117c45b8a7109f7dbfaab119
-    - object: {fileID: 6404228495164073622}
-      guid: b5df906050d44328a68c80d1c560fb95
-    - object: {fileID: 126223533124531890}
-      guid: 32f6ed92341b480fa3d741dcf589c5ba
-    - object: {fileID: 4691297905574368517}
-      guid: 257a4bb8138b478ab09cbbd5d83bee40
-    - object: {fileID: 7745393053854052261}
-      guid: 66200e2907bd470f960cbc6c8e86726f
+    - object: {fileID: 6098766776673263121}
+      guid: 9bcd26a7f8284a189a064b55875f5307
+    - object: {fileID: 2564104750502546539}
+      guid: cdbaf8e623cf477386dc4b3f3a0f2e24
+    - object: {fileID: 5002558771151071914}
+      guid: d819850aee60475cbc76052f830bbce2
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -983,10 +983,10 @@ MonoBehaviour:
     offsetZ: 2.83
     rotationOffset: {x: 181.6, y: 358, z: -4.3}
   - arucoID: 3
-    offsetX: 123.749
-    offsetY: -20.034
-    offsetZ: 2.83
-    rotationOffset: {x: 181.6, y: 358, z: -4.3}
+    offsetX: 101.298
+    offsetY: -29.809
+    offsetZ: 0.113
+    rotationOffset: {x: 181.2, y: 358.5, z: 18.3}
   - arucoID: 44
     offsetX: -105.936
     offsetY: 6.623
@@ -1013,9 +1013,9 @@ MonoBehaviour:
     offsetZ: -2.551
     rotationOffset: {x: 180, y: 0, z: 104.7}
   - arucoID: 80
-    offsetX: 10.644
-    offsetY: -6.585
-    offsetZ: -2.397
+    offsetX: 10.814
+    offsetY: -6.273
+    offsetZ: -2.71
     rotationOffset: {x: 180, y: 0, z: 11.6}
   - arucoID: 40
     offsetX: 4.682
