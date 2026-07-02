@@ -86,6 +86,10 @@ public class Prototype3 : MonoBehaviour
     [Tooltip("If true, once anchored to an ArUco ID, it will lock via SLAM and not snap again when looking away/back, eliminating jumps.")]
     [SerializeField] private bool useSpatialAnchors = true;
 
+    [Header("=== PLUME Replay Fix ===")]
+    [Tooltip("Empty prefab to act as AnchorHolder. Solves the 0,0,0 coordinate frame bug in PLUME.")]
+    [SerializeField] private GameObject emptyAnchorPrefab;
+
     [Header("=== Gaze Countdown (Dwell) ===")]
     [Tooltip("How many seconds the user must continuously look at the marker before it drops the anchor.")]
     [SerializeField] private float requiredDwellSeconds = 2.0f;
@@ -256,7 +260,17 @@ public class Prototype3 : MonoBehaviour
 
             if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable && hasDwelt)
             {
-                _anchorHolder = new GameObject("AnchorHolder");
+                if (emptyAnchorPrefab != null)
+                {
+                    _anchorHolder = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
+                    _anchorHolder.name = "AnchorHolder";
+                }
+                else
+                {
+                    _anchorHolder = new GameObject("AnchorHolder");
+                    _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+                }
+                
                 _sharedInstance = Instantiate(sharedPrefab);
                 _sharedInstance.transform.SetParent(_anchorHolder.transform);
                 _sharedInstance.SetActive(true);
@@ -309,8 +323,16 @@ public class Prototype3 : MonoBehaviour
             _sharedInstance.transform.SetParent(null);
             Destroy(_anchorHolder);
             
-            _anchorHolder = new GameObject("AnchorHolder");
-            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+            if (emptyAnchorPrefab != null)
+            {
+                _anchorHolder = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
+                _anchorHolder.name = "AnchorHolder";
+            }
+            else
+            {
+                _anchorHolder = new GameObject("AnchorHolder");
+                _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+            }
             _sharedInstance.transform.SetParent(_anchorHolder.transform);
         }
         else
@@ -400,8 +422,16 @@ public class Prototype3 : MonoBehaviour
             _sharedInstance.transform.SetParent(null);
             Destroy(_anchorHolder);
             
-            _anchorHolder = new GameObject("AnchorHolder");
-            _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
+            if (emptyAnchorPrefab != null)
+            {
+                _anchorHolder = Instantiate(emptyAnchorPrefab, currentPose.position, currentPose.rotation);
+                _anchorHolder.name = "AnchorHolder";
+            }
+            else
+            {
+                _anchorHolder = new GameObject("AnchorHolder");
+                _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
+            }
             _sharedInstance.transform.SetParent(_anchorHolder.transform, true);
             
             _anchorHolder.AddComponent<ARAnchor>();
