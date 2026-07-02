@@ -87,7 +87,7 @@ public class Prototype3 : MonoBehaviour
     [SerializeField] private bool useSpatialAnchors = true;
 
     [Header("=== PLUME Replay Fix ===")]
-    [Tooltip("Empty prefab to act as AnchorHolder. Solves the 0,0,0 coordinate frame bug in PLUME.")]
+    [Tooltip("Empty prefab to act as PlumeWrapper. Solves the 0,0,0 coordinate frame bug in PLUME.")]
     [SerializeField] private GameObject emptyAnchorPrefab;
 
     [Header("=== Gaze Countdown (Dwell) ===")]
@@ -111,6 +111,7 @@ public class Prototype3 : MonoBehaviour
 
     private GameObject _sharedInstance;
     private GameObject _anchorHolder;
+    private GameObject _plumeWrapper;
     private bool _userEditedRotation = false;
 
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
@@ -260,19 +261,22 @@ public class Prototype3 : MonoBehaviour
 
             if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable && hasDwelt)
             {
+                _anchorHolder = new GameObject("AnchorHolder");
+                _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+
                 if (emptyAnchorPrefab != null)
                 {
-                    _anchorHolder = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
-                    _anchorHolder.name = "AnchorHolder";
+                    _plumeWrapper = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
+                    _plumeWrapper.name = "PlumeWrapper";
                 }
                 else
                 {
-                    _anchorHolder = new GameObject("AnchorHolder");
-                    _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
+                    _plumeWrapper = new GameObject("PlumeWrapper");
+                    _plumeWrapper.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
                 }
-                
+
                 _sharedInstance = Instantiate(sharedPrefab);
-                _sharedInstance.transform.SetParent(_anchorHolder.transform);
+                _sharedInstance.transform.SetParent(_plumeWrapper.transform);
                 _sharedInstance.SetActive(true);
                 SetupGrabInteraction(_sharedInstance);
                 Debug.Log($"[Option A] Shared prefab instance spawned on ArUco {id}.");
@@ -320,20 +324,10 @@ public class Prototype3 : MonoBehaviour
         if (useSpatialAnchors)
         {
             // Most reliable approach: recreate the anchor holder completely to give ARFoundation a clean slate.
-            _sharedInstance.transform.SetParent(null);
             Destroy(_anchorHolder);
             
-            if (emptyAnchorPrefab != null)
-            {
-                _anchorHolder = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
-                _anchorHolder.name = "AnchorHolder";
-            }
-            else
-            {
-                _anchorHolder = new GameObject("AnchorHolder");
-                _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
-            }
-            _sharedInstance.transform.SetParent(_anchorHolder.transform);
+            _anchorHolder = new GameObject("AnchorHolder");
+            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
         }
         else
         {
@@ -401,15 +395,15 @@ public class Prototype3 : MonoBehaviour
         var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
         if (mapping == null) return;
 
-        if (_anchorHolder != null)
+        if (_plumeWrapper != null)
         {
-            _sharedInstance.transform.SetParent(_anchorHolder.transform, true);
-            Vector3 localPos = _anchorHolder.transform.InverseTransformPoint(_sharedInstance.transform.position);
+            _sharedInstance.transform.SetParent(_plumeWrapper.transform, true);
+            Vector3 localPos = _plumeWrapper.transform.InverseTransformPoint(_sharedInstance.transform.position);
             mapping.offsetX = localPos.x;
             mapping.offsetY = localPos.y;
             mapping.offsetZ = localPos.z;
 
-            Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
+            Quaternion localRot = Quaternion.Inverse(_plumeWrapper.transform.rotation) * _sharedInstance.transform.rotation;
             mapping.rotationOffset = localRot.eulerAngles;
         }
 
@@ -419,20 +413,10 @@ public class Prototype3 : MonoBehaviour
         {
             // Recreate anchor holder to avoid the same ARFoundation bug when re-enabling the anchor
             Pose currentPose = new Pose(_anchorHolder.transform.position, _anchorHolder.transform.rotation);
-            _sharedInstance.transform.SetParent(null);
             Destroy(_anchorHolder);
             
-            if (emptyAnchorPrefab != null)
-            {
-                _anchorHolder = Instantiate(emptyAnchorPrefab, currentPose.position, currentPose.rotation);
-                _anchorHolder.name = "AnchorHolder";
-            }
-            else
-            {
-                _anchorHolder = new GameObject("AnchorHolder");
-                _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
-            }
-            _sharedInstance.transform.SetParent(_anchorHolder.transform, true);
+            _anchorHolder = new GameObject("AnchorHolder");
+            _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
             
             _anchorHolder.AddComponent<ARAnchor>();
         }
@@ -442,6 +426,11 @@ public class Prototype3 : MonoBehaviour
 
     void LateUpdate()
     {
+        if (_plumeWrapper != null && _anchorHolder != null)
+        {
+            _plumeWrapper.transform.SetPositionAndRotation(_anchorHolder.transform.position, _anchorHolder.transform.rotation);
+        }
+
         if (_sharedInstance == null) return;
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
         if (grab == null || !grab.isSelected || grab.interactorsSelecting.Count == 0) return;
@@ -482,14 +471,14 @@ public class Prototype3 : MonoBehaviour
             if (lastSeenArucoID != INVALID_ARUCO_ID)
             {
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-                if (mapping != null && _anchorHolder != null)
+                if (mapping != null && _plumeWrapper != null)
                 {
-                    Vector3 localPos = _anchorHolder.transform.InverseTransformPoint(_sharedInstance.transform.position);
+                    Vector3 localPos = _plumeWrapper.transform.InverseTransformPoint(_sharedInstance.transform.position);
                     mapping.offsetX = localPos.x;
                     mapping.offsetY = localPos.y;
                     mapping.offsetZ = localPos.z;
                     
-                    Quaternion localRot = Quaternion.Inverse(_anchorHolder.transform.rotation) * _sharedInstance.transform.rotation;
+                    Quaternion localRot = Quaternion.Inverse(_plumeWrapper.transform.rotation) * _sharedInstance.transform.rotation;
                     mapping.rotationOffset = localRot.eulerAngles;
                 }
             }
@@ -601,6 +590,7 @@ public class Prototype3 : MonoBehaviour
     {
         if (_sharedInstance != null) { Destroy(_sharedInstance); _sharedInstance = null; }
         if (_anchorHolder != null) { Destroy(_anchorHolder); _anchorHolder = null; }
+        if (_plumeWrapper != null) { Destroy(_plumeWrapper); _plumeWrapper = null; }
         lastDetectedMarkerPoses.Clear();
         _lockedMarkerPose.Clear();
         _lockedThisAcquisition.Clear();
