@@ -1,5 +1,5 @@
 // Prototype5.cs
-// Option A: Spatial Anchor implementation.
+// WLT SpacePin implementation.
 
 using System;
 using System.Collections;
@@ -14,10 +14,9 @@ using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.Android;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
-using MagicLeap.OpenXR.Features.SpatialAnchors;
-using MagicLeap.OpenXR.Features.LocalizationMaps;
-using MagicLeap.OpenXR.Subsystems;
 using Unity.XR.CoreUtils;
+using Microsoft.MixedReality.WorldLocking.Core;
+using Microsoft.MixedReality.WorldLocking.Tools;
 
 public class Prototype5 : MonoBehaviour
 {
@@ -42,9 +41,6 @@ public class Prototype5 : MonoBehaviour
     [SerializeField] private ArucoType arucoDictionary = ArucoType.Dictionary_5x5_250;
     [SerializeField] private float arucoPhysicalLengthMeters = 0.15f;
     [SerializeField] private bool estimateArucoLength = false;
-
-    [Header("XR Origin")]
-    [SerializeField] private XROrigin xrOrigin;
 
     [Header("=== Detection Smoothing ===")]
     [Tooltip("Seconds to keep treating a marker as visible after the last detector hit.")]
@@ -76,25 +72,26 @@ public class Prototype5 : MonoBehaviour
     [SerializeField] private float textWorldScale = 0.022f;
     [SerializeField] private int textFontSize = 72;
 
-    [Header("=== Option A: Spatial Anchors ===")]
-    [Tooltip("If true, once anchored to an ArUco ID, it will lock via SLAM and not snap again when looking away/back, eliminating jumps.")]
-    [SerializeField] private bool useSpatialAnchors = true;
+    [Header("=== WLT SpacePin ===")]
+    [Tooltip("If true, WLT SpacePins will be used to lock the coordinate system to the ArUco marker.")]
+    // This statement is describing a hybrid of the two systems you are looking at!
+    // Pin 1: Translates the entire virtual world to match the physical origin.
+    // Pin 2: Rotates the entire virtual world around Pin 1 to fix the orientation.
+    // Pin 3+: Adjusts scale and corrects localized drift.
+    [SerializeField] private bool useSpacePins = true;
 
     [Header("=== PLUME Replay Fix ===")]
     [Tooltip("Empty prefab to act as PlumeWrapper. Solves the 0,0,0 coordinate frame bug in PLUME.")]
     [SerializeField] private GameObject emptyAnchorPrefab;
 
     [Header("=== Gaze Countdown (Dwell) ===")]
-    [Tooltip("How many seconds the user must continuously look at the marker before it drops the anchor.")]
+    [Tooltip("How many seconds the user must continuously look at the marker before it drops the pin.")]
     [SerializeField] private float requiredDwellSeconds = 2.0f;
 
     // ------------------------------------------------------------------
     // Runtime state
     // ------------------------------------------------------------------
     private MagicLeapMarkerUnderstandingFeature markerFeature;
-    private MagicLeapSpatialAnchorsFeature spatialAnchorsFeature;
-    private MagicLeapSpatialAnchorsStorageFeature storageFeature;
-    private MLXrAnchorSubsystem activeSubsystem;
 
     private bool permissionGranted = false;
     private bool hasInitializedDetector = false;
@@ -104,10 +101,11 @@ public class Prototype5 : MonoBehaviour
     private ulong anchoredArucoID = INVALID_ARUCO_ID;
 
     private GameObject _sharedInstance;
-    private GameObject _anchorHolder;
-    private GameObject _plumeWrapper;
+    private Dictionary<ulong, GameObject> _pinObjects = new Dictionary<ulong, GameObject>();
+    private Dictionary<ulong, SpacePinOrientable> _spacePins = new Dictionary<ulong, SpacePinOrientable>();
     private bool _userEditedRotation = false;
 
+    // Now storing Spongy Pose (raw physical tracking pose)
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
     private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
     private readonly HashSet<ulong> _lockedThisAcquisition = new HashSet<ulong>();
@@ -120,7 +118,6 @@ public class Prototype5 : MonoBehaviour
 
     private GameObject alignmentInfoTextObj;
     private TextMesh alignmentInfoTextMesh;
-    private Camera mainCamera;
 
     private List<InputDevice> rightHandDevices = new List<InputDevice>();
     private List<InputDevice> leftHandDevices = new List<InputDevice>();
@@ -129,32 +126,18 @@ public class Prototype5 : MonoBehaviour
     // Init
     // ------------------------------------------------------------------
 
-    private void OnValidate()
-    {
-        if (xrOrigin == null)
-            xrOrigin = FindAnyObjectByType<XROrigin>();
-    }
-
     private IEnumerator Start()
     {
         yield return new WaitUntil(AreSubsystemsLoaded);
 
         markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
-        spatialAnchorsFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsFeature>();
-        storageFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsStorageFeature>();
 
-        if (markerFeature == null || spatialAnchorsFeature == null || storageFeature == null)
+        if (markerFeature == null)
         {
-            Debug.LogError("❌ Required Magic Leap features missing.");
+            Debug.LogError("❌ Required Magic Leap Marker feature missing.");
             enabled = false;
             yield break;
         }
-
-        if (xrOrigin == null)
-            xrOrigin = FindAnyObjectByType<XROrigin>();
-
-        if (mainCamera == null)
-            mainCamera = (xrOrigin != null && xrOrigin.Camera != null) ? xrOrigin.Camera : Camera.main;
 
         Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
 
@@ -165,8 +148,7 @@ public class Prototype5 : MonoBehaviour
     private bool AreSubsystemsLoaded()
     {
         if (XRGeneralSettings.Instance?.Manager?.activeLoader == null) return false;
-        activeSubsystem = XRGeneralSettings.Instance.Manager.activeLoader.GetLoadedSubsystem<XRAnchorSubsystem>() as MLXrAnchorSubsystem;
-        return activeSubsystem != null;
+        return true;
     }
 
     private void CreateMarkerDetector()
@@ -203,9 +185,10 @@ public class Prototype5 : MonoBehaviour
                 ulong id = data.MarkerNumber.Value;
                 if (!arucoMappings.Any(m => m.arucoID == id)) continue;
 
+                // Spongy pose from the sensor
                 Pose trackingPose = data.MarkerPose.Value;
                 if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
-                PushSample(id, ToWorld(trackingPose), now);
+                PushSample(id, trackingPose, now);
                 _lastSeen[id] = now;
                 if (!_firstSeen.ContainsKey(id)) _firstSeen[id] = now;
             }
@@ -217,33 +200,29 @@ public class Prototype5 : MonoBehaviour
         foreach (var kvp in lastDetectedMarkerPoses)
         {
             ulong id = kvp.Key;
-            Pose markerWorldPose = kvp.Value;
+            Pose markerSpongyPose = kvp.Value;
             
             // --- Gravity Alignment Fix (Floor Markers) ---
-            // Automatically detect whether the marker's Z or Y axis is vertical, 
-            // and lock it perfectly to gravity without flipping it.
-            Vector3 rawUp = markerWorldPose.rotation * Vector3.up;
-            Vector3 rawForward = markerWorldPose.rotation * Vector3.forward;
+            Vector3 rawUp = markerSpongyPose.rotation * Vector3.up;
+            Vector3 rawForward = markerSpongyPose.rotation * Vector3.forward;
             
             Vector3 flatForward = rawForward;
             flatForward.y = 0;
             
             if (flatForward.sqrMagnitude < 0.1f)
             {
-                // The marker's Z-axis is vertical (pointing up or down). Y-axis is horizontal.
                 Vector3 flatUp = rawUp;
                 flatUp.y = 0;
                 Vector3 perfectZ = (rawForward.y > 0) ? Vector3.up : Vector3.down;
                 if (flatUp.sqrMagnitude > 0.001f)
                 {
-                    markerWorldPose.rotation = Quaternion.LookRotation(perfectZ, flatUp.normalized);
+                    markerSpongyPose.rotation = Quaternion.LookRotation(perfectZ, flatUp.normalized);
                 }
             }
             else
             {
-                // The marker's Z-axis is horizontal. Y-axis is vertical.
                 Vector3 perfectY = (rawUp.y > 0) ? Vector3.up : Vector3.down;
-                markerWorldPose.rotation = Quaternion.LookRotation(flatForward.normalized, perfectY);
+                markerSpongyPose.rotation = Quaternion.LookRotation(flatForward.normalized, perfectY);
             }
             // ---------------------------------------------
             
@@ -255,43 +234,44 @@ public class Prototype5 : MonoBehaviour
 
             if (_sharedInstance == null && sharedPrefab != null && isFresh && isStable && hasDwelt)
             {
-                _anchorHolder = new GameObject("AnchorHolder");
-                _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
-
-                if (emptyAnchorPrefab != null)
-                {
-                    _plumeWrapper = Instantiate(emptyAnchorPrefab, markerWorldPose.position, markerWorldPose.rotation);
-                    _plumeWrapper.name = "PlumeWrapper";
-                }
-                else
-                {
-                    _plumeWrapper = new GameObject("PlumeWrapper");
-                    _plumeWrapper.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
-                }
-
-                _sharedInstance = Instantiate(sharedPrefab);
-                _sharedInstance.transform.SetParent(_plumeWrapper.transform);
+                _sharedInstance = Instantiate(sharedPrefab, Vector3.zero, Quaternion.identity);
                 _sharedInstance.SetActive(true);
                 SetupGrabInteraction(_sharedInstance);
-                Debug.Log($"[Option A] Shared prefab instance spawned on ArUco {id}.");
+                Debug.Log($"[WLT] Shared prefab instance spawned. Preparing to lock to ArUco {id}.");
             }
 
             if (_sharedInstance == null) continue;
 
             if (isFresh && isStable && hasDwelt && !_lockedThisAcquisition.Contains(id))
             {
-                _lockedMarkerPose[id] = markerWorldPose;
+                _lockedMarkerPose[id] = markerSpongyPose;
                 _lockedThisAcquisition.Add(id);
 
-                if (useSpatialAnchors && anchoredArucoID == id)
+                if (useSpacePins && !_spacePins.ContainsKey(id))
                 {
-                    Debug.Log($"[Option A] Ignored ArUco {id} jitter update because Spatial Anchor is already tracking.");
-                    continue; // Skip jumping
+                    GameObject pinObj;
+                    if (emptyAnchorPrefab != null)
+                    {
+                        pinObj = Instantiate(emptyAnchorPrefab, Vector3.zero, Quaternion.identity);
+                    }
+                    else
+                    {
+                        pinObj = new GameObject($"SpacePin_{id}");
+                        pinObj.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    }
+                    pinObj.name = $"SpacePin_{id}";
+                    _pinObjects[id] = pinObj;
+                    _spacePins[id] = pinObj.AddComponent<SpacePinOrientable>();
+                }
+
+                if (useSpacePins && anchoredArucoID == id && _spacePins.ContainsKey(id))
+                {
+                    // WLT handles continuous spongy pose updates smoothly
                 }
 
                 anchoredArucoID = id;
-                ApplySharedTransform(markerWorldPose, preserveRotation: _userEditedRotation);
-                Debug.Log($"[Option A] Relocalized and set Spatial Anchor on ArUco {id}.");
+                ApplySharedTransform(id, markerSpongyPose, preserveRotation: _userEditedRotation);
+                Debug.Log($"[WLT] Relocalized and set SpacePin on ArUco {id}.");
             }
         }
 
@@ -304,39 +284,31 @@ public class Prototype5 : MonoBehaviour
         }
     }
 
-    private void ApplySharedTransform(Pose markerWorldPose, bool preserveRotation = false)
+    private void ApplySharedTransform(ulong id, Pose markerSpongyPose, bool preserveRotation = false)
     {
-        if (_sharedInstance == null || _anchorHolder == null) return;
-        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
+        if (_sharedInstance == null) return;
+        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
         if (mapping == null) return;
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
         if (grab != null && grab.isSelected) return;
 
-        if (useSpatialAnchors)
-        {
-            // Most reliable approach: recreate the anchor holder completely to give ARFoundation a clean slate.
-            Destroy(_anchorHolder);
-            
-            _anchorHolder = new GameObject("AnchorHolder");
-            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
-        }
-        else
-        {
-            _anchorHolder.transform.SetPositionAndRotation(markerWorldPose.position, markerWorldPose.rotation);
-        }
+        Matrix4x4 prefabLocal = Matrix4x4.TRS(
+            new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ),
+            Quaternion.Euler(mapping.rotationOffset),
+            Vector3.one
+        );
 
-        if (!preserveRotation)
+        if (useSpacePins && _spacePins.TryGetValue(id, out var pin))
         {
-            Vector3 appliedRotation = mapping.rotationOffset;
-            _sharedInstance.transform.localRotation = Quaternion.Euler(appliedRotation);
+            Matrix4x4 pinVirtual = prefabLocal.inverse;
+            pin.transform.SetPositionAndRotation(pinVirtual.GetColumn(3), pinVirtual.rotation);
+            pin.SetSpongyPose(markerSpongyPose);
         }
-
-        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
-        _sharedInstance.transform.localPosition = localOffset;
-
-        if (useSpatialAnchors)
+        else if (!useSpacePins)
         {
-            _anchorHolder.AddComponent<ARAnchor>();
+            Matrix4x4 spongyMat = Matrix4x4.TRS(markerSpongyPose.position, markerSpongyPose.rotation, Vector3.one);
+            Matrix4x4 instanceMat = spongyMat * prefabLocal;
+            _sharedInstance.transform.SetPositionAndRotation(instanceMat.GetColumn(3), instanceMat.rotation);
         }
     }
 
@@ -369,11 +341,7 @@ public class Prototype5 : MonoBehaviour
 
     private void OnGrabEntered(SelectEnterEventArgs args)
     {
-        if (useSpatialAnchors && _anchorHolder != null)
-        {
-            var oldAnchor = _anchorHolder.GetComponent<ARAnchor>();
-            if (oldAnchor != null) Destroy(oldAnchor);
-        }
+        // No longer need to destroy anchor! WLT keeps the world stable.
     }
 
     private void OnGrabReleased(SelectExitEventArgs args)
@@ -382,45 +350,49 @@ public class Prototype5 : MonoBehaviour
 
         var releasedObject = args.interactableObject?.transform;
         if (releasedObject == null) return;
-        var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-        if (mapping == null) return;
 
-        if (_plumeWrapper != null)
-        {
-            _sharedInstance.transform.SetParent(_plumeWrapper.transform, true);
-            Vector3 localPos = _plumeWrapper.transform.InverseTransformPoint(_sharedInstance.transform.position);
-            mapping.offsetX = localPos.x;
-            mapping.offsetY = localPos.y;
-            mapping.offsetZ = localPos.z;
-
-            Quaternion localRot = Quaternion.Inverse(_plumeWrapper.transform.rotation) * _sharedInstance.transform.rotation;
-            mapping.rotationOffset = localRot.eulerAngles;
-        }
+        UpdateAllMappingsFromCurrentTransforms();
 
         _userEditedRotation = true;
-
-        if (useSpatialAnchors && _anchorHolder != null)
-        {
-            // Recreate anchor holder to avoid the same ARFoundation bug when re-enabling the anchor
-            Pose currentPose = new Pose(_anchorHolder.transform.position, _anchorHolder.transform.rotation);
-            Destroy(_anchorHolder);
-            
-            _anchorHolder = new GameObject("AnchorHolder");
-            _anchorHolder.transform.SetPositionAndRotation(currentPose.position, currentPose.rotation);
-            
-            _anchorHolder.AddComponent<ARAnchor>();
-        }
-
         UpdateAlignmentInfoText();
+    }
+
+    private void UpdateAllMappingsFromCurrentTransforms()
+    {
+        if (_sharedInstance == null) return;
+
+        Matrix4x4 sharedMat = Matrix4x4.TRS(_sharedInstance.transform.position, _sharedInstance.transform.rotation, Vector3.one);
+
+        foreach (var mapping in arucoMappings)
+        {
+            if (useSpacePins && _pinObjects.TryGetValue(mapping.arucoID, out var pinObj))
+            {
+                Matrix4x4 pinMat = Matrix4x4.TRS(pinObj.transform.position, pinObj.transform.rotation, Vector3.one);
+                Matrix4x4 prefabLocal = pinMat.inverse * sharedMat;
+                
+                mapping.offsetX = prefabLocal.GetColumn(3).x;
+                mapping.offsetY = prefabLocal.GetColumn(3).y;
+                mapping.offsetZ = prefabLocal.GetColumn(3).z;
+                mapping.rotationOffset = prefabLocal.rotation.eulerAngles;
+            }
+            else if (!useSpacePins && lastSeenArucoID == mapping.arucoID)
+            {
+                if (lastDetectedMarkerPoses.TryGetValue(mapping.arucoID, out Pose markerSpongyPose))
+                {
+                    Matrix4x4 spongyMat = Matrix4x4.TRS(markerSpongyPose.position, markerSpongyPose.rotation, Vector3.one);
+                    Matrix4x4 prefabLocal = spongyMat.inverse * sharedMat;
+                    
+                    mapping.offsetX = prefabLocal.GetColumn(3).x;
+                    mapping.offsetY = prefabLocal.GetColumn(3).y;
+                    mapping.offsetZ = prefabLocal.GetColumn(3).z;
+                    mapping.rotationOffset = prefabLocal.rotation.eulerAngles;
+                }
+            }
+        }
     }
 
     void LateUpdate()
     {
-        if (_plumeWrapper != null && _anchorHolder != null)
-        {
-            _plumeWrapper.transform.SetPositionAndRotation(_anchorHolder.transform.position, _anchorHolder.transform.rotation);
-        }
-
         if (_sharedInstance == null) return;
         var grab = _sharedInstance.GetComponent<XRGrabInteractable>();
         if (grab == null || !grab.isSelected || grab.interactorsSelecting.Count == 0) return;
@@ -445,20 +417,7 @@ public class Prototype5 : MonoBehaviour
         if (changed)
         {
             _userEditedRotation = true;
-            if (lastSeenArucoID != INVALID_ARUCO_ID)
-            {
-                var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == lastSeenArucoID);
-                if (mapping != null && _plumeWrapper != null)
-                {
-                    Vector3 localPos = _plumeWrapper.transform.InverseTransformPoint(_sharedInstance.transform.position);
-                    mapping.offsetX = localPos.x;
-                    mapping.offsetY = localPos.y;
-                    mapping.offsetZ = localPos.z;
-                    
-                    Quaternion localRot = Quaternion.Inverse(_plumeWrapper.transform.rotation) * _sharedInstance.transform.rotation;
-                    mapping.rotationOffset = localRot.eulerAngles;
-                }
-            }
+            UpdateAllMappingsFromCurrentTransforms();
         }
     }
 
@@ -494,7 +453,33 @@ public class Prototype5 : MonoBehaviour
 
         if (changed)
         {
-            _sharedInstance.transform.localPosition = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
+            if (useSpacePins && _pinObjects.TryGetValue(lastSeenArucoID, out var pinObj))
+            {
+                Matrix4x4 pinMat = Matrix4x4.TRS(pinObj.transform.position, pinObj.transform.rotation, Vector3.one);
+                Matrix4x4 prefabLocal = Matrix4x4.TRS(
+                    new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ),
+                    Quaternion.Euler(mapping.rotationOffset),
+                    Vector3.one
+                );
+                Matrix4x4 newSharedMat = pinMat * prefabLocal;
+                _sharedInstance.transform.SetPositionAndRotation(newSharedMat.GetColumn(3), newSharedMat.rotation);
+                
+                UpdateAllMappingsFromCurrentTransforms();
+            }
+            else if (!useSpacePins)
+            {
+                if (lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerSpongyPose))
+                {
+                    Matrix4x4 spongyMat = Matrix4x4.TRS(markerSpongyPose.position, markerSpongyPose.rotation, Vector3.one);
+                    Matrix4x4 prefabLocal = Matrix4x4.TRS(
+                        new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ),
+                        Quaternion.Euler(mapping.rotationOffset),
+                        Vector3.one
+                    );
+                    Matrix4x4 newSharedMat = spongyMat * prefabLocal;
+                    _sharedInstance.transform.SetPositionAndRotation(newSharedMat.GetColumn(3), newSharedMat.rotation);
+                }
+            }
         }
     }
 
@@ -520,18 +505,25 @@ public class Prototype5 : MonoBehaviour
             if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
             return;
         }
-        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerWorldPose))
+        if (!lastDetectedMarkerPoses.TryGetValue(lastSeenArucoID, out Pose markerSpongyPose))
         {
             if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
             return;
         }
 
+        // We want to show text in world space, so we convert spongy back to locked/world for rendering.
+        Pose markerWorldPose = markerSpongyPose;
+        if (WorldLockingManager.GetInstance() != null)
+        {
+            markerWorldPose = WorldLockingManager.GetInstance().LockedFromSpongy.Multiply(markerSpongyPose);
+        }
+
         Vector3 textPos = markerWorldPose.position + Vector3.up * textHeightAboveMarker;
         alignmentInfoTextObj.transform.position = textPos;
 
-        if (mainCamera != null)
+        if (Camera.main != null)
         {
-            Vector3 toCamera = mainCamera.transform.position - textPos;
+            Vector3 toCamera = Camera.main.transform.position - textPos;
             if (toCamera.sqrMagnitude > 0.0001f)
                 alignmentInfoTextObj.transform.rotation = Quaternion.LookRotation(-toCamera.normalized, Vector3.up);
         }
@@ -554,7 +546,7 @@ public class Prototype5 : MonoBehaviour
         }
         else
         {
-            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (Option A - Anchored)\n" +
+            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (WLT SpacePin)\n" +
                 $"Offset X:{mapping.offsetX:F3} Y:{mapping.offsetY:F3} Z:{mapping.offsetZ:F3}\n" +
                 $"Rotation X:{mapping.rotationOffset.x:F1}° Y:{mapping.rotationOffset.y:F1}° Z:{mapping.rotationOffset.z:F1}°";
         }
@@ -564,8 +556,12 @@ public class Prototype5 : MonoBehaviour
     public void DestroyAll()
     {
         if (_sharedInstance != null) { Destroy(_sharedInstance); _sharedInstance = null; }
-        if (_anchorHolder != null) { Destroy(_anchorHolder); _anchorHolder = null; }
-        if (_plumeWrapper != null) { Destroy(_plumeWrapper); _plumeWrapper = null; }
+        foreach (var pin in _pinObjects.Values)
+        {
+            if (pin != null) Destroy(pin);
+        }
+        _pinObjects.Clear();
+        _spacePins.Clear();
         lastDetectedMarkerPoses.Clear();
         _lockedMarkerPose.Clear();
         _lockedThisAcquisition.Clear();
@@ -582,17 +578,10 @@ public class Prototype5 : MonoBehaviour
 
     private void OnDestroy() => DestroyAll();
 
-    private Pose ToWorld(Pose tracking)
-    {
-        Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null) ? xrOrigin.CameraFloorOffsetObject.transform : null;
-        if (originT == null) return tracking;
-        return new Pose(originT.TransformPoint(tracking.position), originT.rotation * tracking.rotation);
-    }
-
-    private void PushSample(ulong id, Pose worldPose, float t)
+    private void PushSample(ulong id, Pose pose, float t)
     {
         if (!_samples.TryGetValue(id, out var q)) { q = new Queue<MarkerSample>(); _samples[id] = q; }
-        q.Enqueue(new MarkerSample { pose = worldPose, t = t });
+        q.Enqueue(new MarkerSample { pose = pose, t = t });
         while (q.Count > 240) q.Dequeue();
     }
 
