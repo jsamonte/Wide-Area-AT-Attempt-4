@@ -50,6 +50,12 @@
         "com.unity.burst": "1.8.9"
       }
     },
+    "com.microsoft.mixedreality.worldlockingtools": {
+      "version": "file:com.microsoft.mixedreality.worldlockingtools",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.burst": {
       "version": "1.8.21",
       "depth": 1,
