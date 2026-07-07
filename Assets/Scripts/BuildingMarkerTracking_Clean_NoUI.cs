@@ -74,8 +74,6 @@ namespace MagicLeap.Examples
         [SerializeField, Tooltip("XR Origin component (usually auto-found). Required for accurate placement relative to real world. Add an XR Origin to your scene if missing.")]
         private XROrigin xrOrigin;
 
-        [SerializeField, Tooltip("Rotation offset to apply to the prefab")]
-        private float offset = 270f;
 
         private Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
         private MagicLeapMarkerUnderstandingFeature markerFeature;

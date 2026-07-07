@@ -16,7 +16,7 @@ public class GazeInputManager : Singleton<GazeInputManager>
     
     void Start()
     {
-        MagicLeap.Android.Permissions.RequestPermission(MLPermission.EyeTracking, OnPermissionGranted, 
+        MagicLeap.Android.Permissions.RequestPermission(MagicLeap.Android.Permissions.EyeTracking, OnPermissionGranted, 
             OnPermissionDenied, OnPermissionDenied);
     }
 

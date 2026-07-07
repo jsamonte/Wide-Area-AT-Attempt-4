@@ -12,7 +12,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private string sessionId = "S001";
     [SerializeField] private string condition = "wideAreaAR_navigation_v1";
     [SerializeField] private string environment = "Unity_Wide_Area_AR";
-    [SerializeField] private string unityVersion = "2022.3.x";
+
 
     [Header("Eye Dwell Destruction")]
     [SerializeField] private string targetTag = "DwellDestroyTarget";

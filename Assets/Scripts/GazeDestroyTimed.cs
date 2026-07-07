@@ -53,24 +53,6 @@ public class GazeDestroyTimed : MonoBehaviour
         Debug.LogWarning("GazeDestroyTimed is OBSOLETE and has been auto-disabled. Use EyeAndHeadTracker instead.");
         this.enabled = false;
         return;
-
-        // We will find all 8 prefabs by using a custom Unity Tag
-        var allTargets = GameObject.FindGameObjectsWithTag("GazeDestroyTarget");
-        targetRenderers = allTargets
-            .Select(n => n.GetComponent<MeshRenderer>())
-            .ToArray();
-
-        // Record app start time for accurate deltas
-        appStartTime = Time.realtimeSinceStartup;
-        sessionData = new DestructionSession();
-
-        // Request write permission early on Android/ML2 so saving works later
-        if (Application.platform == RuntimePlatform.Android)
-        {
-            RequestWritePermission();
-        }
-
-        Logger.Instance.LogInfo("GazeDestroyFeature initialized. Destruction logging active.");
     }
 
     private void RequestWritePermission()

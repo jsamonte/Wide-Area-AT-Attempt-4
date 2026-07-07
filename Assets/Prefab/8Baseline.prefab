@@ -2920,24 +2920,24 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4178650728859291921}
-  - {fileID: 4808072984620423982}
-  - {fileID: 8499964026053199561}
-  - {fileID: 4504207075848079403}
   - {fileID: 2379283991322698861}
   - {fileID: 2868555505006748350}
-  - {fileID: 3834109444199864893}
-  - {fileID: 2761296728799412167}
-  - {fileID: 5244063733377846213}
-  - {fileID: 4784044851668899773}
-  - {fileID: 1433902374204458458}
-  - {fileID: 9055071839371813020}
-  - {fileID: 4676788659296952906}
   - {fileID: 2094058322213051730}
   - {fileID: 6043135016163818045}
   - {fileID: 4895901002146825533}
   - {fileID: 4455392019176193207}
   - {fileID: 6451555447702542857}
   - {fileID: 8863093365639004993}
+  - {fileID: 8499964026053199561}
+  - {fileID: 4808072984620423982}
+  - {fileID: 4504207075848079403}
+  - {fileID: 3834109444199864893}
+  - {fileID: 4676788659296952906}
+  - {fileID: 2761296728799412167}
+  - {fileID: 4784044851668899773}
+  - {fileID: 5244063733377846213}
+  - {fileID: 1433902374204458458}
+  - {fileID: 9055071839371813020}
   - {fileID: 4478884111741184363}
   - {fileID: 3167442780531920243}
   - {fileID: 4783283996193945118}
@@ -3148,7 +3148,6 @@ MonoBehaviour:
   sessionId: S001
   condition: wideAreaAR_navigation_v1
   environment: Unity_Wide_Area_AR
-  unityVersion: 2022.3.x
   targetTag: DwellDestroyTarget
   layersToIncludeWithRay:
     serializedVersion: 2
@@ -3360,7 +3359,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   point1: {fileID: 2379283991322698861}
   point2: {fileID: 2868555505006748350}
-  targetXZDistanceInMeters: 24.197111
+  targetXZDistanceInMeters: 24.19711
 --- !u!1 &2194986981657235409
 GameObject:
   m_ObjectHideFlags: 0
@@ -6364,7 +6363,7 @@ GameObject:
   - component: {fileID: 55971081847708157}
   - component: {fileID: 3365089112440345878}
   m_Layer: 0
-  m_Name: 82 (1)
+  m_Name: 202
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10733,7 +10732,7 @@ GameObject:
   - component: {fileID: 9062061445860827104}
   - component: {fileID: 4446214717481644833}
   m_Layer: 0
-  m_Name: 200 (1)
+  m_Name: 222
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

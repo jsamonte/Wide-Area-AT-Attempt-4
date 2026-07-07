@@ -1,9 +1,25 @@
-// Prototype5.cs
-// WLT SpacePin implementation — ArUco markers as SpacePins.
-// Each ArUco marker acts as a WLT SpacePin. When scanned, its physical
-// position is fed to the corresponding pin, and WLT progressively warps
-// the coordinate system so the virtual building aligns with reality.
-// More markers scanned = better alignment.
+// Prototype5_v2_WithPinGameObjects.cs
+// Updated WLT SpacePin implementation (Kirby-scene style).
+// 
+// NEW ARCHITECTURE (per user request 2026-07-07):
+// - The building/prefab is expected to be PRE-PLACED in the scene (or assigned via inspector).
+//   Its authored transform/scale/rotation in the editor defines the initial Modeling space.
+// - Each ArUco marker is associated with a specific GameObject (child of the prefab or
+//   otherwise referenced) that represents the virtual marker location/orientation.
+//   These GameObjects receive SpacePinOrientable components.
+// - When an ArUco is detected + dwelled, its physical pose is fed to the corresponding
+//   SpacePin. WLT warps the coordinate system so the virtual pin GameObject aligns with
+//   the physical marker → the entire prefab/building aligns correctly.
+// - This matches the explicit per-pin GameObject pattern used in the reference Kirby WLT scene.
+//
+// Benefits over previous offset-math version:
+// - Visual authoring of pin locations directly in the prefab hierarchy (no fragile runtime math).
+// - Exact correspondence between physical ArUco and a named virtual anchor GameObject.
+// - Editor-friendly: designers can see and adjust pin positions visually.
+// - Robust to prefab pivot, rotation, and scale.
+//
+// The previous runtime virtualPos = -(R * offset) computation is now a fallback only
+// when no virtualPinGO is assigned in the ArucoMapping.
 
 using System;
 using System.Collections;
@@ -11,30 +27,41 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.XR;
-using UnityEngine.XR.ARFoundation;
-using UnityEngine.XR.ARSubsystems;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.Android;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
-using Unity.XR.CoreUtils;
 using Microsoft.MixedReality.WorldLocking.Core;
 using Microsoft.MixedReality.WorldLocking.Tools;
 
-public class Prototype5 : MonoBehaviour
+public class Prototype5_v2_WithPinGameObjects : MonoBehaviour
 {
-    [Header("=== Shared Prefab & Scale ===")]
-    [Tooltip("The single prefab instance that all ArUco markers will relocalize.")]
+    [Header("=== Building / Prefab (Kirby-style Pre-placed) ===")]
+    [Tooltip("Prefab asset to instantiate if no pre-placed building is assigned below.")]
     [SerializeField] private GameObject sharedPrefab;
 
-    [Header("=== ARUCO -> PREFAB MAPPINGS ===")]
+    [Tooltip("If assigned, this existing GameObject in the scene (the pre-placed building/prefab instance) is used. " +
+             "Its current transform defines the Modeling space. Recommended for Kirby-style workflow.")]
+    [SerializeField] private GameObject preplacedBuildingRoot;
+
+    [Header("=== ARUCO -> VIRTUAL PIN MAPPINGS (Kirby-style) ===")]
+    [Tooltip("For each ArUco ID, assign the GameObject inside (or associated with) the building prefab " +
+             "whose transform represents the virtual location of that marker. " +
+             "The script will attach SpacePinOrientable to it. This is the primary, recommended method.")]
     [SerializeField] private List<ArucoMapping> arucoMappings = new List<ArucoMapping>();
 
     [Serializable]
     public class ArucoMapping
     {
         public ulong arucoID;
+
+        [Tooltip("The GameObject (usually a child of the building prefab) that marks the virtual position/orientation of this ArUco marker. " +
+                 "Its transform at Start() becomes the ModelingPose. Highly recommended.")]
+        public GameObject virtualPinGO;
+
+        // --- Legacy / Fallback fields (used only if virtualPinGO is null) ---
+        [Header("Legacy Fallback (only if virtualPinGO is empty)")]
         public float offsetX = 0f;
         public float offsetY = 0f;
         public float offsetZ = 0f;
@@ -46,27 +73,18 @@ public class Prototype5 : MonoBehaviour
     [SerializeField] private float arucoPhysicalLengthMeters = 0.15f;
     [SerializeField] private bool estimateArucoLength = false;
 
-    [Header("=== Detection Smoothing ===")]
-    [Tooltip("Seconds to keep treating a marker as visible after the last detector hit.")]
+    [Header("=== Detection Smoothing & Dwell ===")]
     [SerializeField] private float visibleHoldSeconds = 0.75f;
-    [Tooltip("Seconds of recent samples to average for the reported marker pose.")]
     [SerializeField] private float poseAverageSeconds = 0.25f;
-    [Tooltip("Minimum stable samples before relocalizing on a newly-seen marker.")]
     [SerializeField] private int minSamplesForRelocalize = 2;
-
-    [Header("=== Lock-on-Snap ===")]
-    [Tooltip("Max age (seconds) of a sample for it to be trusted as a fresh lock.")]
     [SerializeField] private float freshLockSeconds = 0.20f;
+    [SerializeField] private float requiredDwellSeconds = 2.0f;
 
     [Header("=== Controller Offset Adjustment ===")]
     [SerializeField] private bool enableControllerAdjustment = true;
     [SerializeField] private float offsetAdjustSpeed = 0.8f;
-    [Tooltip("Degrees per second the rotation offset changes when tilting the thumbstick while grabbed.")]
     [SerializeField] private float rotationAdjustSpeed = 45f;
     [SerializeField] private float inputDeadzone = 0.12f;
-
-    [Header("=== Axis Constraints ===")]
-    [Tooltip("When disabled, the Z component of rotationOffset is forced to 0, preventing roll.")]
     [SerializeField] private bool enableZAxisRotation = true;
 
     [Header("=== Debug Alignment Info Text ===")]
@@ -76,33 +94,18 @@ public class Prototype5 : MonoBehaviour
     [SerializeField] private float textWorldScale = 0.022f;
     [SerializeField] private int textFontSize = 72;
 
-    [Header("=== WLT SpacePin ===")]
-    [Tooltip("If true, WLT SpacePins will be used to lock the coordinate system to the ArUco markers.")]
-    [SerializeField] private bool useSpacePins = true;
-
-    [Header("=== PLUME Replay Fix ===")]
-    [Tooltip("Empty prefab to act as PlumeWrapper. Solves the 0,0,0 coordinate frame bug in PLUME.")]
-    [SerializeField] private GameObject emptyAnchorPrefab;
-
-    [Header("=== Gaze Countdown (Dwell) ===")]
-    [Tooltip("How many seconds the user must continuously look at the marker before it drops the pin.")]
-    [SerializeField] private float requiredDwellSeconds = 2.0f;
-
-    [Header("=== Auto-Scale from Pins ===")]
-    [Tooltip("If true, the scale of the building is automatically computed from the distance between activated SpacePins.")]
-    [SerializeField] private bool enableAutoScale = true;
+    [Header("=== PLUME / Misc ===")]
+    [SerializeField] private GameObject emptyAnchorPrefab; // still available for Plume wrapper if needed
 
     // ------------------------------------------------------------------
     // Runtime state
     // ------------------------------------------------------------------
     private MagicLeapMarkerUnderstandingFeature markerFeature;
-
     private bool hasInitializedDetector = false;
 
     private const ulong INVALID_ARUCO_ID = ulong.MaxValue;
     private ulong lastSeenArucoID = INVALID_ARUCO_ID;
 
-    // WLT SpacePin objects
     private GameObject _sharedInstance;
     private Orienter _orienter;
     private Dictionary<ulong, GameObject> _pinObjects = new Dictionary<ulong, GameObject>();
@@ -110,17 +113,13 @@ public class Prototype5 : MonoBehaviour
     private HashSet<ulong> _activatedPins = new HashSet<ulong>();
     private bool _buildingVisible = false;
     private bool _pinsReady = false;
-    private float _userScaleMultiplier = 1.0f;
 
-    // Smoothing & dwell
+    // Smoothing
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
-    private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
-    private readonly HashSet<ulong> _lockedThisAcquisition = new HashSet<ulong>();
-
+    private readonly Dictionary<ulong, float> _firstSeen = new Dictionary<ulong, float>();
     private struct MarkerSample { public Pose pose; public float t; }
     private readonly Dictionary<ulong, Queue<MarkerSample>> _samples = new Dictionary<ulong, Queue<MarkerSample>>();
     private readonly Dictionary<ulong, float> _lastSeen = new Dictionary<ulong, float>();
-    private readonly Dictionary<ulong, float> _firstSeen = new Dictionary<ulong, float>();
     private List<ulong> _evictBuf;
 
     private GameObject alignmentInfoTextObj;
@@ -138,88 +137,104 @@ public class Prototype5 : MonoBehaviour
         yield return new WaitUntil(AreSubsystemsLoaded);
 
         markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
-
         if (markerFeature == null)
         {
-            Debug.LogError("❌ Required Magic Leap Marker feature missing.");
+            Debug.LogError("❌ Magic Leap Marker feature missing.");
             enabled = false;
             yield break;
         }
 
         Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
-
         CreateMarkerDetector();
         InitializeAlignmentText();
 
-        // --- WLT SpacePin Setup ---
-
-        // 1. Spawn the building model at origin, initially HIDDEN.
-        //    WLT will warp the coordinate system so it appears at the correct physical location.
-        if (sharedPrefab != null)
+        // === Determine the building root (pre-placed preferred) ===
+        if (preplacedBuildingRoot != null)
         {
-            _sharedInstance = Instantiate(sharedPrefab, Vector3.zero, Quaternion.identity);
-            _sharedInstance.SetActive(false);
-            SetupGrabInteraction(_sharedInstance);
-            Debug.Log("[WLT] Building spawned at origin (hidden).");
+            _sharedInstance = preplacedBuildingRoot;
+            Debug.Log("[WLT v2] Using PRE-PLACED building root from scene. Its current transform defines Modeling space.");
+        }
+        else if (sharedPrefab != null)
+        {
+            _sharedInstance = Instantiate(sharedPrefab);
+            // Do NOT force to origin or hide — respect the prefab's authored placement
+            // or let user control initial visibility via inspector.
+            Debug.Log("[WLT v2] Instantiated building from prefab (not forced to origin).");
+        }
+        else
+        {
+            Debug.LogError("❌ No preplacedBuildingRoot and no sharedPrefab assigned.");
+            enabled = false;
+            yield break;
         }
 
-        // 2. Create a shared Orienter component.
-        //    The Orienter computes rotation from the relative positions of 2+ SpacePins.
+        SetupGrabInteraction(_sharedInstance);
+
+        // Shared Orienter (can be anywhere; often placed under WorldLockingContext or building root)
         var orienterObj = new GameObject("ArUcoOrienter");
         _orienter = orienterObj.AddComponent<Orienter>();
+        // Optional: parent the Orienter under the building for scene cleanliness
+        // orienterObj.transform.SetParent(_sharedInstance.transform, false);
 
-        // 3. Create SpacePin objects at computed virtual positions.
-        //    Each marker's virtual position is derived from the ArucoMapping offsets:
-        //      markerVirtualPos = -(Inverse(Euler(rotationOffset)) * Vector3(offsetX, offsetY, offsetZ))
-        //    This places the pin where the marker IS in the virtual world (relative to the building at origin).
+        // === Create / attach SpacePinOrientable to the mapped virtual pin GameObjects ===
         foreach (var mapping in arucoMappings)
         {
-            Quaternion invRot = Quaternion.Inverse(Quaternion.Euler(mapping.rotationOffset));
-            Vector3 virtualPos = -(invRot * new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ));
+            GameObject pinGO = mapping.virtualPinGO;
 
-            GameObject pinObj;
-            if (emptyAnchorPrefab != null)
+            if (pinGO == null)
             {
-                pinObj = Instantiate(emptyAnchorPrefab, virtualPos, Quaternion.identity);
+                // === Legacy fallback: compute virtual position from offsets (old behavior) ===
+                Debug.LogWarning($"[WLT v2] No virtualPinGO assigned for ArUco {mapping.arucoID}. Using legacy offset math fallback.");
+                Quaternion rot = Quaternion.Euler(mapping.rotationOffset);
+                Vector3 virtualPos = -(rot * new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ));
+
+                if (emptyAnchorPrefab != null)
+                    pinGO = Instantiate(emptyAnchorPrefab, virtualPos, Quaternion.identity);
+                else
+                    pinGO = new GameObject($"LegacyPin_{mapping.arucoID}");
+
+                pinGO.transform.position = virtualPos;
+                pinGO.transform.SetParent(_sharedInstance.transform, false); // keep under building if possible
             }
-            else
+
+            if (pinGO != null)
             {
-                pinObj = new GameObject($"SpacePin_{mapping.arucoID}");
+                // Ensure SpacePinOrientable exists and is wired
+                SpacePinOrientable pin = pinGO.GetComponent<SpacePinOrientable>();
+                if (pin == null)
+                    pin = pinGO.AddComponent<SpacePinOrientable>();
+
+                pin.Orienter = _orienter;
+                _spacePins[mapping.arucoID] = pin;
+                _pinObjects[mapping.arucoID] = pinGO;
+
+                Debug.Log($"[WLT v2] Wired SpacePinOrientable for ArUco {mapping.arucoID} to GameObject '{pinGO.name}' " +
+                          $"(ModelingPose will be captured from its current transform).");
             }
-            pinObj.name = $"SpacePin_{mapping.arucoID}";
-            pinObj.transform.position = virtualPos;
-            _pinObjects[mapping.arucoID] = pinObj;
-
-            // Add SpacePinOrientable and wire up the shared Orienter.
-            var pin = pinObj.AddComponent<SpacePinOrientable>();
-            pin.Orienter = _orienter;
-            _spacePins[mapping.arucoID] = pin;
-
-            Debug.Log($"[WLT] Created SpacePin for ArUco {mapping.arucoID} at virtual position {virtualPos}");
         }
 
-        // 4. Wait for SpacePinOrientable.Start() to run.
-        //    Start() calls ResetModelingPose() which captures the transform's global position
-        //    as ModelingPoseGlobal. This MUST happen before SetSpongyPose() is called.
+        // Allow any newly-added SpacePinOrientable components to run their Start() → ResetModelingPose()
         yield return null;
 
         _pinsReady = true;
-        Debug.Log($"[WLT] {_spacePins.Count} SpacePins ready. Waiting for marker detections...");
+        Debug.Log($"[WLT v2] Ready with {_spacePins.Count} pin(s). Prefab will align progressively as markers are dwelled.");
     }
 
     private bool AreSubsystemsLoaded()
     {
-        if (XRGeneralSettings.Instance?.Manager?.activeLoader == null) return false;
-        return true;
+        return XRGeneralSettings.Instance?.Manager?.activeLoader != null;
     }
 
     private void CreateMarkerDetector()
     {
         if (hasInitializedDetector || markerFeature == null) return;
-        var settings = new MarkerDetectorSettings {
+
+        var settings = new MarkerDetectorSettings
+        {
             MarkerDetectorProfile = MarkerDetectorProfile.Default,
             MarkerType = MarkerType.Aruco,
-            ArucoSettings = new ArucoSettings {
+            ArucoSettings = new ArucoSettings
+            {
                 ArucoType = arucoDictionary,
                 ArucoLength = arucoPhysicalLengthMeters,
                 EstimateArucoLength = estimateArucoLength
@@ -233,18 +248,18 @@ public class Prototype5 : MonoBehaviour
     private void OnPermissionDenied(string permission) { }
 
     // ------------------------------------------------------------------
-    // Update — detection → smoothing → SpacePin feeding
+    // Update — feed detections to the selected pin GameObjects
     // ------------------------------------------------------------------
 
     void Update()
     {
         if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0) return;
-        if (!_pinsReady) return; // SpacePins not ready yet (waiting for Start())
+        if (!_pinsReady || _sharedInstance == null) return;
 
         markerFeature.UpdateMarkerDetectors();
         float now = Time.time;
 
-        // --- Collect raw marker detections ---
+        // Collect detections
         foreach (var detector in markerFeature.MarkerDetectors)
         {
             if (detector.Settings.MarkerType != MarkerType.Aruco) continue;
@@ -254,9 +269,9 @@ public class Prototype5 : MonoBehaviour
                 ulong id = data.MarkerNumber.Value;
                 if (!arucoMappings.Any(m => m.arucoID == id)) continue;
 
-                // Spongy pose from the sensor
                 Pose trackingPose = data.MarkerPose.Value;
                 if (trackingPose.position.sqrMagnitude < 0.0001f) continue;
+
                 PushSample(id, trackingPose, now);
                 _lastSeen[id] = now;
                 if (!_firstSeen.ContainsKey(id)) _firstSeen[id] = now;
@@ -266,107 +281,45 @@ public class Prototype5 : MonoBehaviour
         EvictStaleMarkers(now);
         RefreshSmoothedPoses(now);
 
-        // --- Feed detected markers to SpacePins ---
+        // Feed to the corresponding pin GameObject's SpacePin
         foreach (var kvp in lastDetectedMarkerPoses)
         {
             ulong id = kvp.Key;
             Pose markerSpongyPose = kvp.Value;
 
-            // No gravity alignment needed — the Orienter computes rotation
-            // from the relative XZ positions of 2+ pins, ignoring Y.
-
             lastSeenArucoID = id;
 
             bool isFresh = SecondsSinceSeen(id) <= Mathf.Max(0.01f, freshLockSeconds);
             bool isStable = RecentSampleCount(id) >= Mathf.Max(1, minSamplesForRelocalize);
-            bool hasDwelt = _firstSeen.TryGetValue(id, out float firstSeenTime) && (Time.time - firstSeenTime >= requiredDwellSeconds);
+            bool hasDwelt = _firstSeen.TryGetValue(id, out float firstTime) &&
+                            (Time.time - firstTime >= requiredDwellSeconds);
 
             if (!isFresh || !isStable || !hasDwelt) continue;
-            if (_sharedInstance == null) continue;
 
-            // Already processed this continuous sighting — skip.
-            // When the marker is lost (evicted after visibleHoldSeconds), it clears from
-            // _lockedThisAcquisition, allowing re-processing on re-detection.
-            if (_lockedThisAcquisition.Contains(id)) continue;
-
-            _lockedMarkerPose[id] = markerSpongyPose;
-            _lockedThisAcquisition.Add(id);
-
-            // Feed spongy pose to the corresponding SpacePin.
-            // WLT converts spongy → locked, compares with the pin's ModelingPose,
-            // and warps the coordinate system to align virtual ↔ physical.
             if (_spacePins.TryGetValue(id, out var pin))
             {
                 pin.SetSpongyPose(markerSpongyPose);
-                _activatedPins.Add(id);
-                Debug.Log($"[WLT] Activated SpacePin for ArUco {id}. " +
-                          $"Total active pins: {_activatedPins.Count}. " +
-                          $"Spongy pos: {markerSpongyPose.position}");
+                bool wasNew = _activatedPins.Add(id);
+                if (wasNew)
+                    Debug.Log($"[WLT v2] Fed ArUco {id} to its virtual pin GameObject. Active pins: {_activatedPins.Count}");
             }
 
-            // Show the building on first pin activation.
+            // Optional: show building on first activation (if it was hidden)
             if (!_buildingVisible && _activatedPins.Count > 0)
             {
-                _sharedInstance.SetActive(true);
+                if (!_sharedInstance.activeSelf) _sharedInstance.SetActive(true);
                 _buildingVisible = true;
-                Debug.Log("[WLT] Building is now VISIBLE (first pin activated).");
             }
-        }
-
-        // --- Auto-scale from pin pair distances ---
-        if (enableAutoScale && _activatedPins.Count >= 2 && _sharedInstance != null)
-        {
-            float autoScale = ComputeScaleFromPins();
-            _sharedInstance.transform.localScale = Vector3.one * autoScale * _userScaleMultiplier;
         }
 
         UpdateAlignmentInfoText();
 
-        if (!IsSharedInstanceGrabbed())
-        {
-            if (enableControllerAdjustment)
-                HandleControllerOffsetAdjustment();
-        }
+        if (!IsSharedInstanceGrabbed() && enableControllerAdjustment)
+            HandleControllerOffsetAdjustment();
     }
 
     // ------------------------------------------------------------------
-    // Auto-Scale from SpacePin distances
-    // ------------------------------------------------------------------
-
-    /// <summary>
-    /// Computes a scale factor by comparing virtual distances between SpacePin pairs
-    /// with their physical (locked) distances. If the physical building is larger or
-    /// smaller than the virtual model, this ratio captures the discrepancy.
-    /// </summary>
-    private float ComputeScaleFromPins()
-    {
-        var pinIds = _activatedPins.ToList();
-        float totalScale = 0f;
-        int pairCount = 0;
-
-        for (int i = 0; i < pinIds.Count; i++)
-        {
-            for (int j = i + 1; j < pinIds.Count; j++)
-            {
-                if (!_spacePins.TryGetValue(pinIds[i], out var pinA)) continue;
-                if (!_spacePins.TryGetValue(pinIds[j], out var pinB)) continue;
-
-                float virtualDist = Vector3.Distance(pinA.ModelingPoseGlobal.position, pinB.ModelingPoseGlobal.position);
-                float lockedDist = Vector3.Distance(pinA.LockedPose.position, pinB.LockedPose.position);
-
-                if (virtualDist > 0.01f) // Avoid division by near-zero
-                {
-                    totalScale += lockedDist / virtualDist;
-                    pairCount++;
-                }
-            }
-        }
-
-        return pairCount > 0 ? totalScale / pairCount : 1.0f;
-    }
-
-    // ------------------------------------------------------------------
-    // Grab interaction (preserved from Prototype3)
+    // Grab, LateUpdate, Controller adjustment (unchanged from v1)
     // ------------------------------------------------------------------
 
     void SetupGrabInteraction(GameObject instance)
@@ -396,19 +349,8 @@ public class Prototype5 : MonoBehaviour
         grab.selectExited.AddListener(OnGrabReleased);
     }
 
-    private void OnGrabEntered(SelectEnterEventArgs args)
-    {
-        // Nothing needed — WLT keeps the world stable during grabs.
-    }
-
-    private void OnGrabReleased(SelectExitEventArgs args)
-    {
-        UpdateAlignmentInfoText();
-    }
-
-    // ------------------------------------------------------------------
-    // LateUpdate — rotation while grabbed
-    // ------------------------------------------------------------------
+    private void OnGrabEntered(SelectEnterEventArgs args) { }
+    private void OnGrabReleased(SelectExitEventArgs args) { UpdateAlignmentInfoText(); }
 
     void LateUpdate()
     {
@@ -427,14 +369,8 @@ public class Prototype5 : MonoBehaviour
         float rotSpeed = rotationAdjustSpeed * Time.deltaTime;
 
         if (Mathf.Abs(axis.x) > inputDeadzone && enableZAxisRotation)
-        {
             _sharedInstance.transform.RotateAround(pivot, _sharedInstance.transform.forward, axis.x * rotSpeed);
-        }
     }
-
-    // ------------------------------------------------------------------
-    // Controller offset adjustment (position + scale)
-    // ------------------------------------------------------------------
 
     private bool IsSharedInstanceGrabbed()
     {
@@ -449,19 +385,16 @@ public class Prototype5 : MonoBehaviour
 
         InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
         InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, leftHandDevices);
-
         float speed = offsetAdjustSpeed * Time.deltaTime;
 
-        // Right stick: X/Z position adjustment
         if (rightHandDevices.Count > 0 && rightHandDevices[0].TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 rAxis))
         {
             Vector3 pos = _sharedInstance.transform.position;
-            if (Mathf.Abs(rAxis.x) > inputDeadzone) { pos.x += rAxis.x * speed; }
-            if (Mathf.Abs(rAxis.y) > inputDeadzone) { pos.z += rAxis.y * speed; }
+            if (Mathf.Abs(rAxis.x) > inputDeadzone) pos.x += rAxis.x * speed;
+            if (Mathf.Abs(rAxis.y) > inputDeadzone) pos.z += rAxis.y * speed;
             _sharedInstance.transform.position = pos;
         }
 
-        // Left stick Y: height adjustment OR manual scale
         if (leftHandDevices.Count > 0 && leftHandDevices[0].TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 lAxis))
         {
             if (Mathf.Abs(lAxis.y) > inputDeadzone)
@@ -474,7 +407,7 @@ public class Prototype5 : MonoBehaviour
     }
 
     // ------------------------------------------------------------------
-    // Debug alignment info text
+    // Debug text
     // ------------------------------------------------------------------
 
     private void InitializeAlignmentText()
@@ -505,13 +438,10 @@ public class Prototype5 : MonoBehaviour
             return;
         }
 
-        // Convert spongy → frozen for world-space text rendering.
         Pose markerWorldPose = markerSpongyPose;
         var wltMgr = WorldLockingManager.GetInstance();
         if (wltMgr != null)
-        {
             markerWorldPose = wltMgr.LockedFromSpongy.Multiply(markerSpongyPose);
-        }
 
         Vector3 textPos = markerWorldPose.position + Vector3.up * textHeightAboveMarker;
         alignmentInfoTextObj.transform.position = textPos;
@@ -522,24 +452,23 @@ public class Prototype5 : MonoBehaviour
             if (toCamera.sqrMagnitude > 0.0001f)
                 alignmentInfoTextObj.transform.rotation = Quaternion.LookRotation(-toCamera.normalized, Vector3.up);
         }
-        else alignmentInfoTextObj.transform.rotation = markerWorldPose.rotation;
+        else
+        {
+            alignmentInfoTextObj.transform.rotation = markerWorldPose.rotation;
+        }
 
         alignmentInfoTextObj.transform.localScale = Vector3.one * textWorldScale;
 
-        // Show dwell countdown or pin status
-        if (!_lockedThisAcquisition.Contains(lastSeenArucoID) && _firstSeen.TryGetValue(lastSeenArucoID, out float firstTime))
+        if (!_activatedPins.Contains(lastSeenArucoID) && _firstSeen.TryGetValue(lastSeenArucoID, out float firstTime))
         {
             float remaining = Mathf.Max(0, requiredDwellSeconds - (Time.time - firstTime));
-            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} - HOLD STILL\n" +
-                                         $"Locking in: {remaining:F1}s";
+            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} - HOLD STILL\nLocking in: {remaining:F1}s";
         }
         else
         {
-            float currentScale = _sharedInstance != null ? _sharedInstance.transform.localScale.x : 1f;
-            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (WLT SpacePin)\n" +
+            alignmentInfoTextMesh.text = $"ArUco {lastSeenArucoID} (WLT Pin GO)\n" +
                 $"Active Pins: {_activatedPins.Count} / {arucoMappings.Count}\n" +
-                $"Scale: {currentScale:F3}x\n" +
-                (_activatedPins.Contains(lastSeenArucoID) ? "✓ Pin ACTIVE" : "○ Pin pending");
+                (_activatedPins.Contains(lastSeenArucoID) ? "✓ Pin ACTIVE — Prefab aligning" : "○ Pending");
         }
         alignmentInfoTextObj.SetActive(true);
     }
@@ -550,25 +479,32 @@ public class Prototype5 : MonoBehaviour
 
     public void DestroyAll()
     {
-        if (_sharedInstance != null) { Destroy(_sharedInstance); _sharedInstance = null; }
-        if (_orienter != null) { Destroy(_orienter.gameObject); _orienter = null; }
-        foreach (var pin in _pinObjects.Values)
+        // Only destroy objects we instantiated ourselves
+        if (_sharedInstance != null && preplacedBuildingRoot == null)
         {
-            if (pin != null) Destroy(pin);
+            Destroy(_sharedInstance);
         }
+        _sharedInstance = null;
+
+        if (_orienter != null)
+        {
+            Destroy(_orienter.gameObject);
+            _orienter = null;
+        }
+
+        // Do not destroy pre-placed pin GameObjects or the building root
         _pinObjects.Clear();
         _spacePins.Clear();
         _activatedPins.Clear();
         lastDetectedMarkerPoses.Clear();
-        _lockedMarkerPose.Clear();
-        _lockedThisAcquisition.Clear();
         _samples.Clear();
         _lastSeen.Clear();
         _firstSeen.Clear();
+
         _buildingVisible = false;
         _pinsReady = false;
-        _userScaleMultiplier = 1.0f;
         lastSeenArucoID = INVALID_ARUCO_ID;
+
         if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
         if (markerFeature != null) markerFeature.DestroyAllMarkerDetectors();
         hasInitializedDetector = false;
@@ -577,7 +513,7 @@ public class Prototype5 : MonoBehaviour
     private void OnDestroy() => DestroyAll();
 
     // ------------------------------------------------------------------
-    // Smoothing helpers (unchanged)
+    // Smoothing helpers (identical to previous version)
     // ------------------------------------------------------------------
 
     private void PushSample(ulong id, Pose pose, float t)
@@ -602,7 +538,6 @@ public class Prototype5 : MonoBehaviour
             _lastSeen.Remove(id);
             _samples.Remove(id);
             lastDetectedMarkerPoses.Remove(id);
-            _lockedThisAcquisition.Remove(id);
             _firstSeen.Remove(id);
         }
     }

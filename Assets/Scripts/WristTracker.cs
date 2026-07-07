@@ -31,7 +31,7 @@ public class WristTracker : MonoBehaviour
     
     void Start()
     {
-        if (MLPermissions.CheckPermission(MLPermission.HandTracking).IsOk)
+        if (UnityEngine.Android.Permission.HasUserAuthorizedPermission(MagicLeap.Android.Permissions.HandTracking))
         {
             Logger.Instance.LogInfo($"MLPermission for hand tracking was auto granted");
             InputSubsystem.Extensions.MLHandTracking.StartTracking();

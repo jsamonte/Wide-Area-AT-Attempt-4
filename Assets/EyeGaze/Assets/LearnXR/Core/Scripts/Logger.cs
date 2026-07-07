@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using System;
@@ -22,7 +22,7 @@ namespace LearnXR.Core
 
         private Button toggleButton;
 
-        private bool isVisible = true;
+
 
         void Awake()
         {

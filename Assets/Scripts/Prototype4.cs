@@ -92,7 +92,7 @@ public class Prototype4 : MonoBehaviour
     private MagicLeapSpatialAnchorsStorageFeature storageFeature;
     private MLXrAnchorSubsystem activeSubsystem;
 
-    private bool permissionGranted = false;
+
     private bool hasInitializedDetector = false;
 
     private const ulong INVALID_ARUCO_ID = ulong.MaxValue;
@@ -177,8 +177,8 @@ public class Prototype4 : MonoBehaviour
         hasInitializedDetector = true;
     }
 
-    private void OnSpacePermissionGranted(string permission) { permissionGranted = true; }
-    private void OnPermissionDenied(string permission) { permissionGranted = false; }
+    private void OnSpacePermissionGranted(string permission) { }
+    private void OnPermissionDenied(string permission) { }
 
     private Pose ApplyGravityAlignment(Pose pose)
     {
