@@ -1,0 +1,770 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 1037,
+      "max": [
+        2.122312307357788,
+        2.1220638751983643,
+        4.135939598083496
+      ],
+      "min": [
+        -2.122312307357788,
+        -2.1220638751983643,
+        0.47794225811958313
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 12444,
+      "componentType": 5126,
+      "count": 1037,
+      "max": [
+        1.0,
+        1.0,
+        0.9999910593032837
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 1037,
+      "max": [
+        0.9722222089767456,
+        1.0
+      ],
+      "min": [
+        -0.027777791023254395,
+        0.0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 5940,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 24888,
+      "componentType": 5126,
+      "count": 13323,
+      "max": [
+        7.346193313598633,
+        7.29979944229126,
+        9.192384719848633
+      ],
+      "min": [
+        -8.529481887817383,
+        -9.342004776000977,
+        -13.75286865234375
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 184764,
+      "componentType": 5126,
+      "count": 13323,
+      "max": [
+        0.9998810291290283,
+        0.9997862577438354,
+        0.9995609521865845
+      ],
+      "min": [
+        -0.9999883770942688,
+        -0.9996700882911682,
+        -0.9998977780342102
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 8296,
+      "componentType": 5126,
+      "count": 13323,
+      "max": [
+        0.8581470251083374,
+        0.8869668841362
+      ],
+      "min": [
+        0.15368515253067017,
+        0.15774603188037872
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 23760,
+      "componentType": 5125,
+      "count": 79224,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 344640,
+      "componentType": 5126,
+      "count": 2164,
+      "max": [
+        5.872661590576172,
+        5.912198066711426,
+        8.613327026367188
+      ],
+      "min": [
+        -6.489963531494141,
+        -7.824499607086182,
+        -8.417083740234375
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 370608,
+      "componentType": 5126,
+      "count": 2164,
+      "max": [
+        0.997579038143158,
+        0.996992290019989,
+        0.9992042779922485
+      ],
+      "min": [
+        -0.9969068169593811,
+        -0.996329128742218,
+        -0.9989948272705078
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 114880,
+      "componentType": 5126,
+      "count": 2164,
+      "max": [
+        2.6047232151031494,
+        2.1218626499176025
+      ],
+      "min": [
+        -2.964785575866699,
+        -1.3008148670196533
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 340656,
+      "componentType": 5125,
+      "count": 11904,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 396576,
+      "componentType": 5126,
+      "count": 884,
+      "max": [
+        1.9324359893798828,
+        1.9259933233261108,
+        3.800492525100708
+      ],
+      "min": [
+        -1.924316167831421,
+        -1.9273383617401123,
+        3.5775840282440186
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 407184,
+      "componentType": 5126,
+      "count": 884,
+      "max": [
+        0.9993863701820374,
+        0.9977512359619141,
+        1.0
+      ],
+      "min": [
+        -0.9998935461044312,
+        -0.9999058842658997,
+        -1.0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 132192,
+      "componentType": 5126,
+      "count": 884,
+      "max": [
+        0.998248815536499,
+        0.9976735711097717
+      ],
+      "min": [
+        0.002745895879343152,
+        0.0022808616049587727
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 388272,
+      "componentType": 5125,
+      "count": 5292,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 417792,
+      "componentType": 5126,
+      "count": 171,
+      "max": [
+        5.043442726135254,
+        0.49240389466285706,
+        15.905412673950195
+      ],
+      "min": [
+        -5.042765140533447,
+        -8.367039680480957,
+        0.21599237620830536
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 419844,
+      "componentType": 5126,
+      "count": 171,
+      "max": [
+        0.9999130368232727,
+        0.9847221970558167,
+        1.0
+      ],
+      "min": [
+        -0.9999130368232727,
+        -0.9847221374511719,
+        -0.9847617745399475
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 139264,
+      "componentType": 5126,
+      "count": 171,
+      "max": [
+        0.9722222089767456,
+        1.0
+      ],
+      "min": [
+        -0.027777791023254395,
+        0.013029270805418491
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 409440,
+      "componentType": 5125,
+      "count": 630,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 421896,
+      "componentType": 5126,
+      "count": 146,
+      "max": [
+        4.845744609832764,
+        2.459092378616333,
+        17.449581146240234
+      ],
+      "min": [
+        -5.865065574645996,
+        -8.263800621032715,
+        14.308568954467773
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 423648,
+      "componentType": 5126,
+      "count": 146,
+      "max": [
+        1.0,
+        0.9848077893257141,
+        0.9848083853721619
+      ],
+      "min": [
+        -1.0,
+        -0.9848079085350037,
+        -0.984808087348938
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 140632,
+      "componentType": 5126,
+      "count": 146,
+      "max": [
+        1.0,
+        1.0
+      ],
+      "min": [
+        -0.027777791023254395,
+        0.0
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 411960,
+      "componentType": 5125,
+      "count": 312,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "caridorka (https://sketchfab.com/caridorka)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/potted-plant-7cd1246fe3a2423584b3463f102ff3cc",
+      "title": "Potted Plant"
+    },
+    "generator": "Sketchfab-15.36.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 413208,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 141800,
+      "byteOffset": 413208,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 425400,
+      "byteOffset": 555008,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 980408,
+      "uri": "scene.bin"
+    }
+  ],
+  "extensionsUsed": [
+    "KHR_texture_transform"
+  ],
+  "images": [
+    {
+      "uri": "textures/fl_pot_baseColor.jpeg"
+    },
+    {
+      "uri": "textures/leaf_baseColor.png"
+    },
+    {
+      "uri": "textures/base_for_plant_baseColor.png"
+    },
+    {
+      "uri": "textures/material_baseColor.jpeg"
+    },
+    {
+      "uri": "textures/wood_ch_baseColor.jpeg"
+    },
+    {
+      "uri": "textures/white_ch_baseColor.jpeg"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "fl_pot",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "leaf",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "extensions": {
+            "KHR_texture_transform": {
+              "rotation": 4.71238898038469
+            }
+          },
+          "index": 1
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "base_for_plant",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "material",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "wood_ch",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "extensions": {
+            "KHR_texture_transform": {
+              "rotation": -2.344038869475674
+            }
+          },
+          "index": 4
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "white_ch",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 5
+        },
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Cylinder011_fl pot_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Cylinder011_leaf_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 5,
+            "POSITION": 4,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Cylinder011_base for plant_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 9,
+            "POSITION": 8,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Cylinder011_ear_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 13,
+            "POSITION": 12,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Cylinder016_wood ch_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 17,
+            "POSITION": 16,
+            "TEXCOORD_0": 18
+          },
+          "indices": 19,
+          "material": 4,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Cylinder016_white ch_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 21,
+            "POSITION": 20,
+            "TEXCOORD_0": 22
+          },
+          "indices": 23,
+          "material": 5,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.220446049250313e-16,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        2.220446049250313e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "matrix": [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0,
+        -0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "plant.fbx"
+    },
+    {
+      "children": [
+        3,
+        9
+      ],
+      "name": "RootNode"
+    },
+    {
+      "children": [
+        4
+      ],
+      "matrix": [
+        -1.0967197560613813,
+        -7.947342875895127e-17,
+        0.9202572247425791,
+        0.0,
+        0.9202572247425791,
+        1.5894685751790253e-16,
+        1.0967197560613813,
+        0.0,
+        -1.7920899072952377e-16,
+        1.0761140584945679,
+        -2.3894532097269835e-16,
+        0.0,
+        0.0,
+        18.634559631347656,
+        2.0181634141636096e-10,
+        1.0
+      ],
+      "name": "Cylinder011"
+    },
+    {
+      "children": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        -2.306941032409668,
+        1.0
+      ],
+      "name": "Object_4"
+    },
+    {
+      "mesh": 0,
+      "name": "Cylinder011_fl pot_0"
+    },
+    {
+      "mesh": 1,
+      "name": "Cylinder011_leaf_0"
+    },
+    {
+      "mesh": 2,
+      "name": "Cylinder011_base for plant_0"
+    },
+    {
+      "mesh": 3,
+      "name": "Cylinder011_ear_0"
+    },
+    {
+      "children": [
+        10,
+        11
+      ],
+      "matrix": [
+        0.0871556833432634,
+        5.551115123125783e-17,
+        -0.9961947032889549,
+        0.0,
+        -0.9812067758070729,
+        0.18578851256905285,
+        -0.08584441049944078,
+        0.0,
+        0.19799169137044584,
+        1.0536592640762459,
+        0.01732201657036365,
+        0.0,
+        -5.5749053955078125,
+        -0.28452181816101074,
+        -0.9993484020233154,
+        1.0
+      ],
+      "name": "Cylinder016"
+    },
+    {
+      "mesh": 4,
+      "name": "Cylinder016_wood ch_0"
+    },
+    {
+      "mesh": 5,
+      "name": "Cylinder016_white ch_0"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
+    },
+    {
+      "sampler": 0,
+      "source": 4
+    },
+    {
+      "sampler": 0,
+      "source": 5
+    }
+  ]
+}

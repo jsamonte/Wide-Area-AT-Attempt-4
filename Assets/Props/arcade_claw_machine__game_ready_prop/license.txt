@@ -1,0 +1,11 @@
+Model Information:
+* title:	Arcade Claw Machine | Game Ready Prop
+* source:	https://sketchfab.com/3d-models/arcade-claw-machine-game-ready-prop-e1c6e135aa6c4b069c4b35be02a78144
+* author:	GAMICO (https://sketchfab.com/gamico)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Arcade Claw Machine | Game Ready Prop" (https://sketchfab.com/3d-models/arcade-claw-machine-game-ready-prop-e1c6e135aa6c4b069c4b35be02a78144) by GAMICO (https://sketchfab.com/gamico) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
