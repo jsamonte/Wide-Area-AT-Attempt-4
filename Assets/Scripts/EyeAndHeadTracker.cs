@@ -30,9 +30,9 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool alsoExportCombinedJson = true;
 
     [Header("Optional Objects Tracking")]
-    [SerializeField] private GameObject arucoGameObject;
+    [SerializeField] private GameObject blueWireframeObject;
     [SerializeField] private GameObject mapGameObject;
-    [SerializeField] private bool enableAruco = true;
+    [SerializeField] private bool enableBlueWireframe = true;
     [SerializeField] private bool enableMap = true;
 
     // ==================== SERIALIZABLE CLASSES ====================
@@ -173,7 +173,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         lastFrameTimestamp = appStartTime;
         startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-        if (arucoGameObject != null) arucoGameObject.SetActive(enableAruco);
+        if (blueWireframeObject != null) blueWireframeObject.SetActive(enableBlueWireframe);
         if (mapGameObject != null) mapGameObject.SetActive(enableMap);
 
         sessionMeta = new SessionMeta
@@ -189,7 +189,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (useEfficientRawLogging)
         {
-            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
+            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
             rawNdjsonWriter = new StreamWriter(rawPath, false);
         }
     }
@@ -480,10 +480,10 @@ public class EyeAndHeadTracker : MonoBehaviour
                 sessionData = performanceData,
                 destructionEvents = destructionEvents,
                 rawTrackingFileReference = useEfficientRawLogging 
-                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson" : null
+                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson" : null
             };
 
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
+            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
             string json = JsonUtility.ToJson(root, true);
             File.WriteAllText(summaryPath, json);
 
@@ -499,7 +499,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     destructionEvents = destructionEvents
                 };
 
-                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_Aruco_{(enableAruco ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
+                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
                 File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
                 Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }

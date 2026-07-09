@@ -6,26 +6,16 @@ public class RandomSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     [Tooltip("The actual Target prefab to spawn.")]
     public GameObject targetPrefab;
-    [Tooltip("The actual Distractor prefab to spawn.")]
-    public GameObject distractorPrefab;
+    [Tooltip("A list of Distractor prefabs to choose from. It will pick randomly without duplicates (until it runs out).")]
+    public List<GameObject> distractorPrefabs = new List<GameObject>();
 
     [Tooltip("Number of targets to spawn.")]
     public int targetCount = 20;
-    [Tooltip("Number of distractors to spawn.")]
-    public int distractorCount = 60;
 
     [Header("Tags and Layers")]
     [Tooltip("The Unity Layer to force targets onto (MUST match the EyeTracker's LayerMask)")]
     public string targetLayer = "Default";
     public string distractorLayer = "Default";
-
-    [Header("Size Randomization")]
-    [Tooltip("If true, objects will be randomly assigned one of the 3 sizes below.")]
-    public bool randomizeSize = true;
-
-    public Vector3 normalSize = Vector3.one;
-    public Vector3 bigSize = new Vector3(1.5f, 1.5f, 1.5f);
-    public Vector3 biggerSize = new Vector3(2.0f, 2.0f, 2.0f);
 
     [Header("Placeholders")]
     [Tooltip("If left empty, this script will automatically find all child GameObjects and use them as placeholder locations.")]
@@ -67,11 +57,24 @@ public class RandomSpawner : MonoBehaviour
 
     private void SpawnObjects()
     {
-        if (targetPrefab == null || distractorPrefab == null)
+        if (targetPrefab == null || distractorPrefabs == null || distractorPrefabs.Count == 0)
         {
-            Debug.LogError("RandomSpawner: Target or Distractor prefab is not assigned!");
+            Debug.LogError("RandomSpawner: Target or Distractor prefabs are not assigned!");
             return;
         }
+
+        // Guarantee we only have unique prefabs (in case the same one was dragged in twice)
+        List<GameObject> uniquePrefabs = new List<GameObject>();
+        foreach (var p in distractorPrefabs)
+        {
+            if (p != null && !uniquePrefabs.Contains(p))
+            {
+                uniquePrefabs.Add(p);
+            }
+        }
+
+        // The number of distractors is exactly the number of unique prefabs provided
+        int distractorCount = uniquePrefabs.Count;
 
         int totalToSpawn = targetCount + distractorCount;
         if (totalToSpawn > placeholderLocations.Count)
@@ -102,10 +105,25 @@ public class RandomSpawner : MonoBehaviour
         }
 
         // 3. Spawn Distractors
+        // Shuffle the strictly unique list
+        List<GameObject> shuffledDistractors = new List<GameObject>(uniquePrefabs);
+        for (int i = 0; i < shuffledDistractors.Count; i++)
+        {
+            GameObject temp = shuffledDistractors[i];
+            int randomIndex = Random.Range(i, shuffledDistractors.Count);
+            shuffledDistractors[i] = shuffledDistractors[randomIndex];
+            shuffledDistractors[randomIndex] = temp;
+        }
+
         for (int i = targetCount; i < targetCount + distractorCount; i++)
         {
             Transform spawnPoint = shuffledLocations[i];
-            SpawnAndConfigure(distractorPrefab, spawnPoint, "Untagged", distractorLayer);
+            
+            // Pick the next unique distractor (we know distractorCount <= shuffledDistractors.Count)
+            int distractorIndex = i - targetCount;
+            GameObject distractorToSpawn = shuffledDistractors[distractorIndex];
+
+            SpawnAndConfigure(distractorToSpawn, spawnPoint, "Untagged", distractorLayer);
         }
 
         // Force the physics engine to immediately register all new colliders
@@ -115,16 +133,10 @@ public class RandomSpawner : MonoBehaviour
 
     private void SpawnAndConfigure(GameObject prefab, Transform spawnPoint, string tagToApply, string layerToApply)
     {
-        // Remember the prefab's original scale before instantiating and reparenting
-        Vector3 baseScale = prefab.transform.localScale;
-
         GameObject spawnedObj = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
         
-        // Correct the Target Prefab's orientation
-        if (prefab == targetPrefab)
-        {
-            spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
-        }
+        // Correct orientation for both targets and distractors
+        spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
 
         // Parent it to this GameObject for a clean hierarchy
         spawnedObj.transform.SetParent(transform);
@@ -136,29 +148,6 @@ public class RandomSpawner : MonoBehaviour
             spawnedObj.layer = layerId;
         } else {
             Debug.LogWarning($"RandomSpawner: Layer '{layerToApply}' does not exist in Unity! Falling back to Default.");
-        }
-
-        if (randomizeSize)
-        {
-            int sizeChoice = Random.Range(0, 3);
-            switch (sizeChoice)
-            {
-                case 0:
-                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, normalSize);
-                    break;
-                case 1:
-                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, bigSize);
-                    break;
-                case 2:
-                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, biggerSize);
-                    break;
-            }
-        }
-        else
-        {
-            // If we don't randomize, default to the normal size to prevent 
-            // the object from inheriting extreme scales from its parent
-            spawnedObj.transform.localScale = Vector3.Scale(baseScale, normalSize);
         }
     }
 }

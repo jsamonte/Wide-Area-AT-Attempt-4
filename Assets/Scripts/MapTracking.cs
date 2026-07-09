@@ -8,6 +8,8 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
+using MagicLeap.Android;
+using Unity.XR.CoreUtils;
 
 namespace MagicLeap.Examples
 {
@@ -20,57 +22,76 @@ namespace MagicLeap.Examples
         [SerializeField, Tooltip("The exact ArUco ID number printed on your marker (e.g. 88)")]
         private ulong targetArucoID = 88;
 
-        [Header("Marker Detector Settings (Inspector only - no UI needed)")]
+        [Header("Marker Detector Settings")]
         [SerializeField] private MarkerDetectorProfile profile = MarkerDetectorProfile.Default;
         [SerializeField] private ArucoType arucoType = ArucoType.Dictionary_5x5_250;
-        [SerializeField, Tooltip("Physical size of the printed ArUco marker in meters")]
-        private float arucoLengthMeters = 0.15f;
+        
+        [Tooltip("Physical size of the printed ArUco marker in meters (Default: 0.1016)")]
+        [SerializeField] private float arucoLengthMeters = 0.1016f;
+        
+        [Tooltip("Leave unchecked to prevent tracking issues on ML2 with small markers")]
         [SerializeField] private bool estimateArucoLength = false;
+
+        [Header("XR Configuration")]
+        [SerializeField, Tooltip("Required to convert Tracking Space to World Space. Will auto-find if left empty.")]
+        private XROrigin xrOrigin;
 
         [Header("Transform Correction")]
         [SerializeField, Tooltip("Rotation offset applied to the prefab so it sits correctly on the marker")]
         private Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
 
-        [Header("Smoothing (Option 2)")]
+        [Header("Smoothing")]
         [SerializeField, Tooltip("How smoothly the map follows the marker. Lower = smoother/delayed, Higher = faster/jittery.")]
         private float followSpeed = 12f;
 
         private MagicLeapMarkerUnderstandingFeature markerFeature;
         private GameObject currentCustomInstance;
         private bool markerVisible = false;
-        private WaitForEndOfFrame _waitForEndOfFrame;
         
         private Vector3 targetPosition;
         private Quaternion targetRotation;
         private bool hasInitialPose = false;
+        private bool permissionGranted = false;
+
+        private void OnValidate()
+        {
+            if (xrOrigin == null)
+                xrOrigin = FindAnyObjectByType<XROrigin>();
+        }
 
         void Start()
         {
+            if (xrOrigin == null)
+                xrOrigin = FindAnyObjectByType<XROrigin>();
+
             markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
 
             if (markerFeature == null)
             {
-                Debug.LogError("❌ MagicLeapMarkerUnderstandingFeature not found!\n" +
-                               "Go to Edit → Project Settings → XR Plug-in Management → OpenXR and enable 'Magic Leap Marker Understanding' feature.");
+                Debug.LogError("❌ MagicLeapMarkerUnderstandingFeature not found! Go to Project Settings -> OpenXR.");
                 enabled = false;
                 return;
             }
 
-            CreateMarkerDetector();
+            // Request permissions exactly like Prototype3
+            Permissions.RequestPermission(Permissions.SpaceImportExport, OnPermissionGranted, OnPermissionDenied);
 
-            _waitForEndOfFrame = new WaitForEndOfFrame();
-            StartCoroutine(DetectionLoop());
+            CreateMarkerDetector();
+        }
+
+        private void OnPermissionGranted(string permission)
+        {
+            permissionGranted = true;
+        }
+
+        private void OnPermissionDenied(string permission)
+        {
+            Debug.LogError($"[MapTracking] Permission denied: {permission}");
         }
 
         private void CreateMarkerDetector()
         {
             if (markerFeature == null) return;
-
-            if (ArucoTrackerSync.GlobalDetectorExists(markerFeature, MarkerType.Aruco))
-            {
-                Debug.Log("[Console] MapTracking: Detector already exists globally. Skipping duplicate creation.");
-                return;
-            }
 
             var settings = new MarkerDetectorSettings
             {
@@ -92,7 +113,55 @@ namespace MagicLeap.Examples
 
         void Update()
         {
-            // Hide (but don't destroy) the prefab when the marker leaves view
+            if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
+                return;
+
+            // 1. Update the OpenXR data directly every frame
+            markerFeature.UpdateMarkerDetectors();
+
+            markerVisible = false;
+
+            // 2. Loop through tracking data
+            foreach (var markerDetector in markerFeature.MarkerDetectors)
+            {
+                if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
+                    continue;
+
+                for (int i = 0; i < markerDetector.Data.Count; i++)
+                {
+                    var data = markerDetector.Data[i];
+
+                    if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
+                        continue;
+
+                    markerVisible = true;
+
+                    // Convert the raw pose from ML Tracking Space to Unity World Space!
+                    Pose worldPose = ToWorld(data.MarkerPose.Value);
+
+                    // 3. Spawn once, then just move it — never re-instantiate every frame
+                    if (currentCustomInstance == null && customMarkerPrefab != null)
+                    {
+                        currentCustomInstance = Instantiate(customMarkerPrefab);
+                        currentCustomInstance.SetActive(true);
+                    }
+
+                    if (currentCustomInstance != null)
+                    {
+                        Quaternion offsetRot = Quaternion.Euler(rotationOffset);
+                        targetPosition = worldPose.position;
+                        targetRotation = worldPose.rotation * offsetRot;
+
+                        if (!hasInitialPose)
+                        {
+                            currentCustomInstance.transform.SetPositionAndRotation(targetPosition, targetRotation);
+                            hasInitialPose = true;
+                        }
+                    }
+                }
+            }
+
+            // 4. Smooth movement
             if (currentCustomInstance != null)
             {
                 currentCustomInstance.SetActive(markerVisible);
@@ -112,66 +181,18 @@ namespace MagicLeap.Examples
             }
         }
 
-        private IEnumerator DetectionLoop()
+        private Pose ToWorld(Pose tracking)
         {
-            while (true)
-            {
-                yield return _waitForEndOfFrame;
-
-                if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
-                    continue;
-
-                ArucoTrackerSync.UpdateDetectorsOncePerFrame(markerFeature);
-
-                markerVisible = false;
-
-                foreach (var markerDetector in markerFeature.MarkerDetectors)
-                {
-                    if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
-                        continue;
-
-                    for (int i = 0; i < markerDetector.Data.Count; i++)
-                    {
-                        var data = markerDetector.Data[i];
-
-                        if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
-                            continue;
-
-                        markerVisible = true;
-
-                        // Spawn once, then just move it — never re-instantiate every frame
-                        if (currentCustomInstance == null && customMarkerPrefab != null)
-                        {
-                            currentCustomInstance = Instantiate(customMarkerPrefab);
-                            currentCustomInstance.SetActive(true);
-                        }
-
-                        if (currentCustomInstance != null)
-                        {
-                            Quaternion offsetRot = Quaternion.Euler(rotationOffset);
-                            targetPosition = data.MarkerPose.Value.position;
-                            targetRotation = data.MarkerPose.Value.rotation * offsetRot;
-
-                            if (!hasInitialPose)
-                            {
-                                currentCustomInstance.transform.SetPositionAndRotation(targetPosition, targetRotation);
-                                hasInitialPose = true;
-                            }
-                        }
-                    }
-                }
-            }
+            Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null) ? xrOrigin.CameraFloorOffsetObject.transform : null;
+            if (originT == null) return tracking;
+            
+            return new Pose(
+                originT.TransformPoint(tracking.position), 
+                originT.rotation * tracking.rotation
+            );
         }
 
         void OnDestroy()
-        {
-            DestroyMarkerTrackers();
-        }
-
-        /// <summary>
-        /// Public method so you can call this from other scripts or a UI button if you ever add one later.
-        /// </summary>
-        public void DestroyMarkerTrackers()
         {
             if (currentCustomInstance != null)
             {
@@ -179,8 +200,10 @@ namespace MagicLeap.Examples
                 currentCustomInstance = null;
             }
 
-            // Removed markerFeature.DestroyAllMarkerDetectors() to prevent destroying 
-            // detectors that might be used by other scripts (like WireframeAlignment).
+            if (markerFeature != null)
+            {
+                markerFeature.DestroyAllMarkerDetectors();
+            }
         }
     }
 }
