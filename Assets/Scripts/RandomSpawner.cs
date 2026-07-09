@@ -115,8 +115,17 @@ public class RandomSpawner : MonoBehaviour
 
     private void SpawnAndConfigure(GameObject prefab, Transform spawnPoint, string tagToApply, string layerToApply)
     {
+        // Remember the prefab's original scale before instantiating and reparenting
+        Vector3 baseScale = prefab.transform.localScale;
+
         GameObject spawnedObj = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
         
+        // Correct the Target Prefab's orientation
+        if (prefab == targetPrefab)
+        {
+            spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
+        }
+
         // Parent it to this GameObject for a clean hierarchy
         spawnedObj.transform.SetParent(transform);
 
@@ -135,15 +144,21 @@ public class RandomSpawner : MonoBehaviour
             switch (sizeChoice)
             {
                 case 0:
-                    spawnedObj.transform.localScale = normalSize;
+                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, normalSize);
                     break;
                 case 1:
-                    spawnedObj.transform.localScale = bigSize;
+                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, bigSize);
                     break;
                 case 2:
-                    spawnedObj.transform.localScale = biggerSize;
+                    spawnedObj.transform.localScale = Vector3.Scale(baseScale, biggerSize);
                     break;
             }
+        }
+        else
+        {
+            // If we don't randomize, default to the normal size to prevent 
+            // the object from inheriting extreme scales from its parent
+            spawnedObj.transform.localScale = Vector3.Scale(baseScale, normalSize);
         }
     }
 }

@@ -44,6 +44,6 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0, g: 0, b: 0, a: 1}
     - _Color: {r: 0, g: 0, b: 0, a: 1}
-    - _EmptyColor: {r: 0.50980395, g: 0, b: 1, a: 0}
+    - _EmptyColor: {r: 1, g: 0.66342634, b: 0, a: 0}
     - _FillColor: {r: 0.07450981, g: 1, b: 1, a: 0}
   m_BuildTextureStacks: []
