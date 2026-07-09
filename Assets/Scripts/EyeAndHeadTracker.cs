@@ -354,7 +354,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                 dwellDirectionsDuringCurrentDwell.Add(gazeRotation * Vector3.forward);
 
                 float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
-                float fillAmount = ConvertPercentageToRange(progress);
+                float fillAmount = ConvertPercentageToRange(progress, renderer);
                 renderer.material.SetFloat(fillProgressProperty, fillAmount);
                 ClearAllFillings(renderer.gameObject);
 
@@ -435,19 +435,27 @@ public class EyeAndHeadTracker : MonoBehaviour
         return Mathf.Sqrt(sumSq / directions.Count);
     }
 
-    private float ConvertPercentageToRange(float percentage)
+    private float ConvertPercentageToRange(float percentage, Renderer renderer)
     {
-        float rangeSize = MAX_FILL_RANGE - MIN_FILL_RANGE;
-        return (percentage * rangeSize) - MAX_FILL_RANGE;
+        if (renderer == null) return -1000f; // Safely hide it far below
+        float minY = renderer.bounds.min.y;
+        float maxY = renderer.bounds.max.y;
+        // Add 5% padding so it completely clears/fills at the edges
+        float padding = (maxY - minY) * 0.05f;
+        return Mathf.Lerp(minY - padding, maxY + padding, percentage);
     }
 
     private void ClearAllFillings(GameObject exclude = null)
     {
         if (targetRenderers == null) return;
-        float zero = ConvertPercentageToRange(0);
         foreach (var r in targetRenderers)
+        {
             if (r != null && r.gameObject != exclude)
+            {
+                float zero = ConvertPercentageToRange(0, r);
                 r.material.SetFloat(fillProgressProperty, zero);
+            }
+        }
     }
 
     // ==================== SAVE ====================
