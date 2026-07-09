@@ -201,7 +201,7 @@ public class EyeAndHeadTracker : MonoBehaviour
             var allTargets = GameObject.FindGameObjectsWithTag(targetTag);
             targetRenderers = allTargets
                 .Select(n => n.GetComponent<MeshRenderer>())
-                .Where(r => r != null)
+                .Where(r => r != null && r.enabled)
                 .ToArray();
 
             Debug.Log($"Found {targetRenderers.Length} objects with tag '{targetTag}'.");
@@ -325,16 +325,26 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void RunEyeDwellDestruction()
     {
-        var gazePosition = GazeInputManager.Instance.GazePosition;
-        var gazeRotation = GazeInputManager.Instance.GazeRotation;
+        var gazePositionTrackingSpace = GazeInputManager.Instance.GazePosition;
+        var gazeRotationTrackingSpace = GazeInputManager.Instance.GazeRotation;
+
+        Vector3 gazePosition = gazePositionTrackingSpace;
+        Quaternion gazeRotation = gazeRotationTrackingSpace;
+
+        if (Camera.main != null && Camera.main.transform.parent != null)
+        {
+            var trackingOrigin = Camera.main.transform.parent;
+            gazePosition = trackingOrigin.TransformPoint(gazePositionTrackingSpace);
+            gazeRotation = trackingOrigin.rotation * gazeRotationTrackingSpace;
+        }
 
         // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log
-        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, 10.0f))
+        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, Mathf.Infinity))
         {
             currentHitObjectName = debugHit.collider.name + " (Layer: " + LayerMask.LayerToName(debugHit.collider.gameObject.layer) + ")";
         }
 
-        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit hitInfo, 10.0f, layersToIncludeWithRay))
+        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit hitInfo, Mathf.Infinity, layersToIncludeWithRay))
         {
             var renderer = hitInfo.collider.GetComponent<MeshRenderer>();
 

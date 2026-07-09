@@ -1,0 +1,4 @@
+<linker>
+  <assembly fullname="Unity.Mathematics" preserve="all"/>
+  <assembly fullname="UnityEngine.UI" preserve="all"/>
+</linker>

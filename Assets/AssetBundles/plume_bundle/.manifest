@@ -3,12 +3,12 @@ CompatibilityAssetBundleManifest:
   AssetBundleInfos:
     Info_0:
       Name: plume_assets
-      Hash: 6dac58207d40d72ae87b872ad14aa0af
-      CRC: 1130754480
+      Hash: 3d600a3abdf7e368f18630eacb42a32b
+      CRC: 3626291744
       Dependencies: {}
     Info_1:
       Name: plume_scenes
-      Hash: eb2a490093e87525263f93d447af359a
-      CRC: 2706801051
+      Hash: d8c6435acba8c9b2f73a166dbb0fc7bf
+      CRC: 3385193515
       Dependencies: {}
         Dependency_0: plume_assets
