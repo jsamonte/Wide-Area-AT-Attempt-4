@@ -51,10 +51,16 @@ public class RandomSpawner : MonoBehaviour
     [Tooltip("If left empty, this script will automatically find all child GameObjects and use them as placeholder locations.")]
     public List<Transform> placeholderLocations = new List<Transform>();
 
+    [Tooltip("If true, automatically spawns objects when the scene starts. If false, you must call SpawnObjects() manually.")]
+    public bool spawnOnAwake = true;
+
     private void Awake()
     {
         InitializeLocations();
-        SpawnObjects();
+        if (spawnOnAwake)
+        {
+            SpawnObjects();
+        }
     }
 
     private void InitializeLocations()
@@ -97,7 +103,7 @@ public class RandomSpawner : MonoBehaviour
         }
     }
 
-    private void SpawnObjects()
+    public void SpawnObjects()
     {
         List<GameObject> activeRecallObjectPrefabs = GetActivePool();
 

@@ -21,6 +21,10 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool enableDwellDestroyFeature = true;
 
     [Header("Logging")]
+    [Tooltip("If true, starts recording immediately. If false, wait until StartRecording() is called.")]
+    public bool recordOnAwake = true;
+    private bool isRecording = false;
+
     [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
     [SerializeField] [Tooltip("How often to silently save the JSON to disk to prevent data loss on crash (in seconds).")]
@@ -169,10 +173,6 @@ public class EyeAndHeadTracker : MonoBehaviour
         persistentDataPath = Application.persistentDataPath;
         Directory.CreateDirectory(persistentDataPath);
 
-        appStartTime = Time.realtimeSinceStartup;
-        lastFrameTimestamp = appStartTime;
-        startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-
         if (blueWireframeObject != null) blueWireframeObject.SetActive(enableBlueWireframe);
         if (mapGameObject != null) mapGameObject.SetActive(enableMap);
 
@@ -187,11 +187,28 @@ public class EyeAndHeadTracker : MonoBehaviour
         if (Application.platform == RuntimePlatform.Android)
             RequestWritePermission();
 
+        if (recordOnAwake)
+        {
+            StartRecording();
+        }
+    }
+
+    public void StartRecording()
+    {
+        if (isRecording) return;
+
+        appStartTime = Time.realtimeSinceStartup;
+        lastFrameTimestamp = appStartTime;
+        startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
         if (useEfficientRawLogging)
         {
             string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
             rawNdjsonWriter = new StreamWriter(rawPath, false);
         }
+
+        isRecording = true;
+        Debug.Log("EyeAndHeadTracker: JSON recording started.");
     }
 
     private void Start()
@@ -227,6 +244,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void Update()
     {
+        if (!isRecording) return;
+
         currentHitObjectName = "None";
 
         if (enableDwellDestroyFeature &&
