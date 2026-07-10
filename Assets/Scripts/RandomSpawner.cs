@@ -14,6 +14,19 @@ public class RandomSpawner : MonoBehaviour
         Pool4
     }
 
+    [Header("Randomization")]
+    [Tooltip("If true, uses the fixed seed associated with the selected pool to generate the exact same locations every time.")]
+    public bool useFixedSeed = true;
+
+    [Tooltip("Seed for Pool 1")]
+    public int pool1Seed = 100;
+    [Tooltip("Seed for Pool 2")]
+    public int pool2Seed = 200;
+    [Tooltip("Seed for Pool 3")]
+    public int pool3Seed = 300;
+    [Tooltip("Seed for Pool 4")]
+    public int pool4Seed = 400;
+
     [Tooltip("Select which pool to use for Recall Objects.")]
     public PoolSelection selectedPool = PoolSelection.Pool1;
 
@@ -104,6 +117,19 @@ public class RandomSpawner : MonoBehaviour
             }
         }
 
+        if (useFixedSeed)
+        {
+            int seedToUse = pool1Seed;
+            switch (selectedPool)
+            {
+                case PoolSelection.Pool1: seedToUse = pool1Seed; break;
+                case PoolSelection.Pool2: seedToUse = pool2Seed; break;
+                case PoolSelection.Pool3: seedToUse = pool3Seed; break;
+                case PoolSelection.Pool4: seedToUse = pool4Seed; break;
+            }
+            Random.InitState(seedToUse);
+        }
+
         // The number of recall objects is exactly the number of unique prefabs provided
         int recallObjectCount = uniquePrefabs.Count;
 
@@ -132,7 +158,7 @@ public class RandomSpawner : MonoBehaviour
         for (int i = 0; i < targetCount; i++)
         {
             Transform spawnPoint = shuffledLocations[i];
-            SpawnAndConfigure(targetPrefab, spawnPoint, "DwellDestroyTarget", targetLayer);
+            SpawnAndConfigure(targetPrefab, spawnPoint, "DwellDestroyTarget", targetLayer, true);
         }
 
         // 3. Spawn Recall Objects
@@ -154,7 +180,7 @@ public class RandomSpawner : MonoBehaviour
             int recallObjectIndex = i - targetCount;
             GameObject recallObjectToSpawn = shuffledRecallObjects[recallObjectIndex];
 
-            SpawnAndConfigure(recallObjectToSpawn, spawnPoint, "Untagged", recallObjectLayer);
+            SpawnAndConfigure(recallObjectToSpawn, spawnPoint, "Untagged", recallObjectLayer, false);
         }
 
         // Force the physics engine to immediately register all new colliders
@@ -162,12 +188,15 @@ public class RandomSpawner : MonoBehaviour
         Physics.SyncTransforms();
     }
 
-    private void SpawnAndConfigure(GameObject prefab, Transform spawnPoint, string tagToApply, string layerToApply)
+    private void SpawnAndConfigure(GameObject prefab, Transform spawnPoint, string tagToApply, string layerToApply, bool rotate90)
     {
         GameObject spawnedObj = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
         
-        // Correct orientation for both targets and recall objects
-        spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
+        // Only apply the 90-degree rotation fix if requested (usually just for flat targets)
+        if (rotate90)
+        {
+            spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
+        }
 
         // Parent it to this GameObject for a clean hierarchy
         spawnedObj.transform.SetParent(transform);
