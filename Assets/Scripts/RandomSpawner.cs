@@ -6,8 +6,25 @@ public class RandomSpawner : MonoBehaviour
     [Header("Spawn Settings")]
     [Tooltip("The actual Target prefab to spawn.")]
     public GameObject targetPrefab;
-    [Tooltip("A list of Distractor prefabs to choose from. It will pick randomly without duplicates (until it runs out).")]
-    public List<GameObject> distractorPrefabs = new List<GameObject>();
+    public enum PoolSelection
+    {
+        Pool1,
+        Pool2,
+        Pool3,
+        Pool4
+    }
+
+    [Tooltip("Select which pool to use for Recall Objects.")]
+    public PoolSelection selectedPool = PoolSelection.Pool1;
+
+    [Tooltip("Recall Object Pool 1")]
+    public List<GameObject> recallObjectPool1 = new List<GameObject>();
+    [Tooltip("Recall Object Pool 2")]
+    public List<GameObject> recallObjectPool2 = new List<GameObject>();
+    [Tooltip("Recall Object Pool 3")]
+    public List<GameObject> recallObjectPool3 = new List<GameObject>();
+    [Tooltip("Recall Object Pool 4")]
+    public List<GameObject> recallObjectPool4 = new List<GameObject>();
 
     [Tooltip("Number of targets to spawn.")]
     public int targetCount = 20;
@@ -15,7 +32,7 @@ public class RandomSpawner : MonoBehaviour
     [Header("Tags and Layers")]
     [Tooltip("The Unity Layer to force targets onto (MUST match the EyeTracker's LayerMask)")]
     public string targetLayer = "Default";
-    public string distractorLayer = "Default";
+    public string recallObjectLayer = "Default";
 
     [Header("Placeholders")]
     [Tooltip("If left empty, this script will automatically find all child GameObjects and use them as placeholder locations.")]
@@ -55,17 +72,31 @@ public class RandomSpawner : MonoBehaviour
         }
     }
 
+    private List<GameObject> GetActivePool()
+    {
+        switch (selectedPool)
+        {
+            case PoolSelection.Pool1: return recallObjectPool1;
+            case PoolSelection.Pool2: return recallObjectPool2;
+            case PoolSelection.Pool3: return recallObjectPool3;
+            case PoolSelection.Pool4: return recallObjectPool4;
+            default: return recallObjectPool1;
+        }
+    }
+
     private void SpawnObjects()
     {
-        if (targetPrefab == null || distractorPrefabs == null || distractorPrefabs.Count == 0)
+        List<GameObject> activeRecallObjectPrefabs = GetActivePool();
+
+        if (targetPrefab == null || activeRecallObjectPrefabs == null || activeRecallObjectPrefabs.Count == 0)
         {
-            Debug.LogError("RandomSpawner: Target or Distractor prefabs are not assigned!");
+            Debug.LogError($"RandomSpawner: Target or Recall Object prefabs (in {selectedPool}) are not assigned!");
             return;
         }
 
         // Guarantee we only have unique prefabs (in case the same one was dragged in twice)
         List<GameObject> uniquePrefabs = new List<GameObject>();
-        foreach (var p in distractorPrefabs)
+        foreach (var p in activeRecallObjectPrefabs)
         {
             if (p != null && !uniquePrefabs.Contains(p))
             {
@@ -73,10 +104,10 @@ public class RandomSpawner : MonoBehaviour
             }
         }
 
-        // The number of distractors is exactly the number of unique prefabs provided
-        int distractorCount = uniquePrefabs.Count;
+        // The number of recall objects is exactly the number of unique prefabs provided
+        int recallObjectCount = uniquePrefabs.Count;
 
-        int totalToSpawn = targetCount + distractorCount;
+        int totalToSpawn = targetCount + recallObjectCount;
         if (totalToSpawn > placeholderLocations.Count)
         {
             Debug.LogWarning($"RandomSpawner: Not enough placeholder locations! Tried to spawn {totalToSpawn} objects but only found {placeholderLocations.Count} locations. Reducing spawn counts proportionally.");
@@ -84,7 +115,7 @@ public class RandomSpawner : MonoBehaviour
             // Adjust proportionally if there aren't enough slots
             float ratio = (float)placeholderLocations.Count / totalToSpawn;
             targetCount = Mathf.FloorToInt(targetCount * ratio);
-            distractorCount = placeholderLocations.Count - targetCount;
+            recallObjectCount = placeholderLocations.Count - targetCount;
         }
 
         // 1. Shuffle the locations using Fisher-Yates shuffle
@@ -104,26 +135,26 @@ public class RandomSpawner : MonoBehaviour
             SpawnAndConfigure(targetPrefab, spawnPoint, "DwellDestroyTarget", targetLayer);
         }
 
-        // 3. Spawn Distractors
+        // 3. Spawn Recall Objects
         // Shuffle the strictly unique list
-        List<GameObject> shuffledDistractors = new List<GameObject>(uniquePrefabs);
-        for (int i = 0; i < shuffledDistractors.Count; i++)
+        List<GameObject> shuffledRecallObjects = new List<GameObject>(uniquePrefabs);
+        for (int i = 0; i < shuffledRecallObjects.Count; i++)
         {
-            GameObject temp = shuffledDistractors[i];
-            int randomIndex = Random.Range(i, shuffledDistractors.Count);
-            shuffledDistractors[i] = shuffledDistractors[randomIndex];
-            shuffledDistractors[randomIndex] = temp;
+            GameObject temp = shuffledRecallObjects[i];
+            int randomIndex = Random.Range(i, shuffledRecallObjects.Count);
+            shuffledRecallObjects[i] = shuffledRecallObjects[randomIndex];
+            shuffledRecallObjects[randomIndex] = temp;
         }
 
-        for (int i = targetCount; i < targetCount + distractorCount; i++)
+        for (int i = targetCount; i < targetCount + recallObjectCount; i++)
         {
             Transform spawnPoint = shuffledLocations[i];
             
-            // Pick the next unique distractor (we know distractorCount <= shuffledDistractors.Count)
-            int distractorIndex = i - targetCount;
-            GameObject distractorToSpawn = shuffledDistractors[distractorIndex];
+            // Pick the next unique recall object (we know recallObjectCount <= shuffledRecallObjects.Count)
+            int recallObjectIndex = i - targetCount;
+            GameObject recallObjectToSpawn = shuffledRecallObjects[recallObjectIndex];
 
-            SpawnAndConfigure(distractorToSpawn, spawnPoint, "Untagged", distractorLayer);
+            SpawnAndConfigure(recallObjectToSpawn, spawnPoint, "Untagged", recallObjectLayer);
         }
 
         // Force the physics engine to immediately register all new colliders
@@ -135,7 +166,7 @@ public class RandomSpawner : MonoBehaviour
     {
         GameObject spawnedObj = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
         
-        // Correct orientation for both targets and distractors
+        // Correct orientation for both targets and recall objects
         spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
 
         // Parent it to this GameObject for a clean hierarchy

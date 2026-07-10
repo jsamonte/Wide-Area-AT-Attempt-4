@@ -122,8 +122,9 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
     private void OnSpacePermissionGranted(string permission)
     {
         permissionGranted = true;
-        if (storageFeature != null && xrOrigin != null)
-            storageFeature.QueryStoredSpatialAnchors(xrOrigin.transform.position, 15f);
+        // 🚨 BUG FIX: Commenting out QueryStoredSpatialAnchors to prevent Magic Leap OS crash (too many SQL variables) when map is empty or corrupted.
+        // if (storageFeature != null && xrOrigin != null)
+        //    storageFeature.QueryStoredSpatialAnchors(xrOrigin.transform.position, 15f);
     }
 
     private void OnPermissionDenied(string permission)
