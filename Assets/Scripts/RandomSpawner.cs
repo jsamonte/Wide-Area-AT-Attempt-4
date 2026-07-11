@@ -51,8 +51,12 @@ public class RandomSpawner : MonoBehaviour
     [Tooltip("If left empty, this script will automatically find all child GameObjects and use them as placeholder locations.")]
     public List<Transform> placeholderLocations = new List<Transform>();
 
-    [Tooltip("If true, automatically spawns objects when the scene starts. If false, you must call SpawnObjects() manually.")]
+    [Header("Toggle Features")]
+    [Tooltip("If unchecked, you must manually call SpawnObjects() from another script (like a HUD button).")]
     public bool spawnOnAwake = true;
+
+    // Track all spawned objects so they can be cleaned up between trials
+    private List<GameObject> spawnedObjects = new List<GameObject>();
 
     private void Awake()
     {
@@ -207,6 +211,9 @@ public class RandomSpawner : MonoBehaviour
         // Parent it to this GameObject for a clean hierarchy
         spawnedObj.transform.SetParent(transform);
 
+        // Keep track of it so we can destroy it later
+        spawnedObjects.Add(spawnedObj);
+
         // Force the tag and layer
         spawnedObj.tag = tagToApply;
         int layerId = LayerMask.NameToLayer(layerToApply);
@@ -215,5 +222,21 @@ public class RandomSpawner : MonoBehaviour
         } else {
             Debug.LogWarning($"RandomSpawner: Layer '{layerToApply}' does not exist in Unity! Falling back to Default.");
         }
+    }
+
+    /// <summary>
+    /// Destroys all objects spawned by this spawner and clears the list.
+    /// Call this before starting a new trial.
+    /// </summary>
+    public void DestroyAllSpawnedObjects()
+    {
+        foreach (GameObject obj in spawnedObjects)
+        {
+            if (obj != null)
+            {
+                Destroy(obj);
+            }
+        }
+        spawnedObjects.Clear();
     }
 }

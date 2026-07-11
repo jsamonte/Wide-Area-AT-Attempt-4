@@ -551,6 +551,8 @@ MonoBehaviour:
       guid: 54e1f2b4b81648998c84a66312ad660c
     - object: {fileID: 445236488}
       guid: e8bddbba4937425098d5fdec2d9f3958
+    - object: {fileID: 12870880}
+      guid: 222a089011684c7b8af7bad8820fd8e1
     - object: {fileID: 12870881}
       guid: 9eadb27faeac4c9bbe6e451b7c916d4a
     - object: {fileID: 12870882}
@@ -559,8 +561,46 @@ MonoBehaviour:
       guid: 850c5d4ca9894c828fb0e5e7f18fa25f
     - object: {fileID: 1854789613}
       guid: a6f5ba3a71fd4acfbfe79c7533959c2c
+    - object: {fileID: 749111786168796108}
+      guid: b965bd5372744a8d80342ccd6487e438
+    - object: {fileID: 9147546957427497837}
+      guid: ca12aa249c5c4346b751760c8cdf6e78
+    - object: {fileID: 904619053218751523}
+      guid: 9ee3527207d5434aa31e435101a923a0
+    - object: {fileID: 173726637}
+      guid: 7575289757634c4fa6d8a0ed9645dd4d
+    - object: {fileID: 173726638}
+      guid: 5097b9956f334cfea6ad98be0f1bc520
+    - object: {fileID: 173726640}
+      guid: 1b6bfc0bab0141228bb4fdce9ec93b28
+    - object: {fileID: 173726639}
+      guid: ec8f5ad63a8d4271b7cf45710eb4c9d7
+    - object: {fileID: 1643837723}
+      guid: 544920d3b73a4069ab4dfbb0b06a7cd6
+    - object: {fileID: 203844589}
+      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
     - object: {fileID: 203844588}
       guid: 5acde119b28a4d878b6335054d2a329b
+    - object: {fileID: 203844590}
+      guid: 600ea8de9fa8427d8bacb88a93a418b4
+    - object: {fileID: 233706974}
+      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
+    - object: {fileID: 233706975}
+      guid: 752a8fe3fe434c25847862446d15c833
+    - object: {fileID: 233706978}
+      guid: 21a5ca91249c4b1b911e6b1515368809
+    - object: {fileID: 233706977}
+      guid: 43098aca48ac4d088d86166d344a674c
+    - object: {fileID: 233706976}
+      guid: 7f2ec95574ac4af388465dbc7b51888c
+    - object: {fileID: 1418918578}
+      guid: 781d2a97dc5f4d0482b73fd2e5a14a1c
+    - object: {fileID: 7771136013120700886}
+      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
+    - object: {fileID: 234454531}
+      guid: a1c3b2075ddd4b91bee3ee47a1c27091
+    - object: {fileID: 234454530}
+      guid: 61e81f66ae764fcc96974ab71f801dc6
     - object: {fileID: 5466027754726013495}
       guid: 5eebd9b5123048d389c029b716cb6be9
     - object: {fileID: 8868794673715969271}
@@ -605,8 +645,6 @@ MonoBehaviour:
       guid: 8ccb023d24e44d92a0eaa4ed0d1925e5
     - object: {fileID: 445236490}
       guid: 04a92f8b1dd344a0aa253a5aae89beb8
-    - object: {fileID: 1602444174}
-      guid: aa79986bab2344128272fec747e2e351
     - object: {fileID: 1602444178}
       guid: 77710809263040a08a708484eb6be564
     - object: {fileID: 3835362160448431992}
@@ -1603,30 +1641,6 @@ MonoBehaviour:
       guid: d9285d49e5774840bb527db4aef92bbd
     - object: {fileID: 4250855907863523461}
       guid: 1d33713784f94d5bb0c255720e1f933a
-    - object: {fileID: 749111786168796108}
-      guid: b965bd5372744a8d80342ccd6487e438
-    - object: {fileID: 904619053218751523}
-      guid: 9ee3527207d5434aa31e435101a923a0
-    - object: {fileID: 173726637}
-      guid: 7575289757634c4fa6d8a0ed9645dd4d
-    - object: {fileID: 173726638}
-      guid: 5097b9956f334cfea6ad98be0f1bc520
-    - object: {fileID: 173726640}
-      guid: 1b6bfc0bab0141228bb4fdce9ec93b28
-    - object: {fileID: 173726639}
-      guid: ec8f5ad63a8d4271b7cf45710eb4c9d7
-    - object: {fileID: 1643837723}
-      guid: 544920d3b73a4069ab4dfbb0b06a7cd6
-    - object: {fileID: 203844589}
-      guid: d8c51f6460a84e9f96727dd6c7ee3a1b
-    - object: {fileID: 203844590}
-      guid: 600ea8de9fa8427d8bacb88a93a418b4
-    - object: {fileID: 233706978}
-      guid: 21a5ca91249c4b1b911e6b1515368809
-    - object: {fileID: 12870880}
-      guid: 222a089011684c7b8af7bad8820fd8e1
-    - object: {fileID: 9147546957427497837}
-      guid: ca12aa249c5c4346b751760c8cdf6e78
     - object: {fileID: 7184356132249675457}
       guid: aa8bd186047c462dae76467e59c87a78
     - object: {fileID: 6281997885283753167}
@@ -1771,22 +1785,6 @@ MonoBehaviour:
       guid: bb1f2352ca17404299fc97a6673997df
     - object: {fileID: 4973225092534585978}
       guid: f55c49433aba4033a835988acff5b7bc
-    - object: {fileID: 233706974}
-      guid: 6946b1eaaf8c409db24bc0a8aeffd72b
-    - object: {fileID: 233706975}
-      guid: 752a8fe3fe434c25847862446d15c833
-    - object: {fileID: 233706977}
-      guid: 43098aca48ac4d088d86166d344a674c
-    - object: {fileID: 233706976}
-      guid: 7f2ec95574ac4af388465dbc7b51888c
-    - object: {fileID: 1418918578}
-      guid: 781d2a97dc5f4d0482b73fd2e5a14a1c
-    - object: {fileID: 7771136013120700886}
-      guid: 8a7c5a55c3ea4ec2ad3ede0722343e12
-    - object: {fileID: 234454531}
-      guid: a1c3b2075ddd4b91bee3ee47a1c27091
-    - object: {fileID: 234454530}
-      guid: 61e81f66ae764fcc96974ab71f801dc6
     - object: {fileID: 1182322433386825883}
       guid: f5a870ace881453a983fcb3dec787476
     - object: {fileID: 5557098725121019627}
@@ -2157,6 +2155,8 @@ MonoBehaviour:
       guid: fbf804ae5a754b9596ee5c9451c9e216
     - object: {fileID: 445236492}
       guid: efb5dbea1d52406ab3fcdacbad350fa7
+    - object: {fileID: 1602444180}
+      guid: 063b2499dcc4411fb53d2d904d035650
 --- !u!4 &234454531
 Transform:
   m_ObjectHideFlags: 0
@@ -3126,6 +3126,9 @@ MonoBehaviour:
   minDwellTimeOverTarget: 3
   enableDwellDestroyFeature: 1
   recordOnAwake: 0
+  OnAllTargetsDestroyed:
+    m_PersistentCalls:
+      m_Calls: []
   useEfficientRawLogging: 1
   autoSaveWhenAllTargetsDestroyed: 1
   autoSaveIntervalSeconds: 15
@@ -3145,8 +3148,8 @@ GameObject:
   - component: {fileID: 1602444178}
   - component: {fileID: 1602444177}
   - component: {fileID: 1602444176}
-  - component: {fileID: 1602444174}
   - component: {fileID: 1602444179}
+  - component: {fileID: 1602444180}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -3154,24 +3157,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1602444174
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1602444173}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7856ed969040d5444a973cbf66854938, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  spawner: {fileID: 7088960002035862348}
-  tracker: {fileID: 1578528531}
-  mainInstructionsObject: {fileID: 1442447058}
-  mainInstructionsMessage: Select begin after the all markers scanned
-  buttonTextObject: {fileID: 173726637}
-  buttonMessage: Start Trial 1
 --- !u!114 &1602444176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3258,6 +3243,23 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
+--- !u!114 &1602444180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1602444173}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57cd01c512603774b857f67ee5e816de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawner: {fileID: 7088960002035862348}
+  tracker: {fileID: 1578528531}
+  trialOrder: 00000000010000000200000003000000
+  mainInstructionsObject: {fileID: 1442447058}
+  buttonTextObject: {fileID: 173726637}
 --- !u!1 &1643837722
 GameObject:
   m_ObjectHideFlags: 0
@@ -3341,8 +3343,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1602444174}
-        m_TargetAssemblyTypeName: StartupHUD, Assembly-CSharp
+      - m_Target: {fileID: 1602444180}
+        m_TargetAssemblyTypeName: TrialManager, Assembly-CSharp
         m_MethodName: OnStartButtonClicked
         m_Mode: 1
         m_Arguments:

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Android;
+using UnityEngine.Events;
 
 public class EyeAndHeadTracker : MonoBehaviour
 {
@@ -21,9 +22,13 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool enableDwellDestroyFeature = true;
 
     [Header("Logging")]
-    [Tooltip("If true, starts recording immediately. If false, wait until StartRecording() is called.")]
+    [Tooltip("If true, starts recording immediately. If false, wait until ResumeRecording() is called.")]
     public bool recordOnAwake = true;
     private bool isRecording = false;
+    private bool hasInitializedRecording = false;
+
+    [Header("Events")]
+    public UnityEvent OnAllTargetsDestroyed = new UnityEvent();
 
     [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
@@ -189,29 +194,47 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (recordOnAwake)
         {
-            StartRecording();
+            ResumeRecording();
         }
     }
 
-    public void StartRecording()
+    public void ResumeRecording()
     {
         if (isRecording) return;
 
-        appStartTime = Time.realtimeSinceStartup;
-        lastFrameTimestamp = appStartTime;
-        startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-
-        if (useEfficientRawLogging)
+        if (!hasInitializedRecording)
         {
-            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
-            rawNdjsonWriter = new StreamWriter(rawPath, false);
+            appStartTime = Time.realtimeSinceStartup;
+            lastFrameTimestamp = appStartTime;
+            startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            if (useEfficientRawLogging)
+            {
+                string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
+                // Use true to append, though it is fresh on first run
+                rawNdjsonWriter = new StreamWriter(rawPath, true);
+            }
+            hasInitializedRecording = true;
+        }
+        else
+        {
+            // Just resuming, update timestamp so we don't log a massive delta time gap
+            lastFrameTimestamp = Time.realtimeSinceStartup;
         }
 
         isRecording = true;
-        Debug.Log("EyeAndHeadTracker: JSON recording started.");
+        Debug.Log("EyeAndHeadTracker: JSON recording RESUMED.");
     }
 
-    private void Start()
+    public void PauseRecording()
+    {
+        if (!isRecording) return;
+        isRecording = false;
+        SaveSessionData(); // Force save to disk whenever we pause to ensure data safety
+        Debug.Log("EyeAndHeadTracker: JSON recording PAUSED.");
+    }
+
+    public void RefreshTargetList()
     {
         if (enableDwellDestroyFeature)
         {
@@ -221,8 +244,13 @@ public class EyeAndHeadTracker : MonoBehaviour
                 .Where(r => r != null && r.enabled)
                 .ToArray();
 
-            Debug.Log($"Found {targetRenderers.Length} objects with tag '{targetTag}'.");
+            Debug.Log($"RefreshTargetList: Found {targetRenderers.Length} objects with tag '{targetTag}'.");
         }
+    }
+
+    private void Start()
+    {
+        RefreshTargetList();
 
         // Diagnostic: Verify GazeInputManager is properly set up in the scene
         if (GazeInputManager.Instance == null)
@@ -264,6 +292,21 @@ public class EyeAndHeadTracker : MonoBehaviour
             SaveSessionData();
             autoSaveTimer = 0f;
         }
+    }
+
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            SaveSessionData();
+            Debug.Log("EyeAndHeadTracker: App paused, data saved safely.");
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        SaveSessionData();
+        Debug.Log("EyeAndHeadTracker: App quit, data saved safely.");
     }
 
     // ==================== TRACKING ====================
@@ -415,14 +458,20 @@ public class EyeAndHeadTracker : MonoBehaviour
                     // OPTION B: Save immediately on every destruction event
                     SaveSessionData();
 
-                    if (targetRenderers.Length == 0 && autoSaveWhenAllTargetsDestroyed)
+                    if (targetRenderers.Length == 0)
                     {
-                        performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
-                        performanceData.totalObjectsDestroyed = destroyCount;
-                        performanceData.meanInterDestroyInterval = destructionEvents.Count > 1 
-                            ? destructionEvents.Skip(1).Average(e => e.timeSincePreviousDestroy) : 0f;
+                        if (autoSaveWhenAllTargetsDestroyed)
+                        {
+                            performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
+                            performanceData.totalObjectsDestroyed = destroyCount;
+                            performanceData.meanInterDestroyInterval = destructionEvents.Count > 1 
+                                ? destructionEvents.Skip(1).Average(e => e.timeSincePreviousDestroy) : 0f;
 
-                        SaveSessionData();
+                            SaveSessionData();
+                        }
+                        
+                        // Fire the event to notify TrialManager
+                        OnAllTargetsDestroyed?.Invoke();
                     }
                 }
             }
@@ -537,19 +586,6 @@ public class EyeAndHeadTracker : MonoBehaviour
     }
 
     public void ForceSaveNow() => SaveSessionData();
-
-    private void OnApplicationPause(bool isPaused)
-    {
-        if (isPaused)
-        {
-            SaveSessionData();
-        }
-    }
-
-    private void OnApplicationQuit()
-    {
-        SaveSessionData();
-    }
 
     private void OnDestroy()
     {

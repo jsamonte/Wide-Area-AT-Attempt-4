@@ -69,7 +69,7 @@ public class StartupHUD : MonoBehaviour
 
         if (tracker != null)
         {
-            tracker.StartRecording();
+            tracker.ResumeRecording();
         }
         else
         {
