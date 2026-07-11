@@ -206,11 +206,11 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             appStartTime = Time.realtimeSinceStartup;
             lastFrameTimestamp = appStartTime;
-            startTimeString = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            startTimeString = DateTime.Now.ToString("MM_dd_HH_mm");
 
             if (useEfficientRawLogging)
             {
-                string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson");
+                string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.ndjson");
                 // Use true to append, though it is fresh on first run
                 rawNdjsonWriter = new StreamWriter(rawPath, true);
             }
@@ -272,8 +272,6 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void Update()
     {
-        if (!isRecording) return;
-
         currentHitObjectName = "None";
 
         if (enableDwellDestroyFeature &&
@@ -283,14 +281,17 @@ public class EyeAndHeadTracker : MonoBehaviour
             RunEyeDwellDestruction();
         }
 
-        CaptureTrackingFrame();
-
-        // Periodic auto-save to prevent data loss on crash
-        autoSaveTimer += Time.deltaTime;
-        if (autoSaveTimer >= autoSaveIntervalSeconds)
+        if (isRecording)
         {
-            SaveSessionData();
-            autoSaveTimer = 0f;
+            CaptureTrackingFrame();
+
+            // Periodic auto-save to prevent data loss on crash
+            autoSaveTimer += Time.deltaTime;
+            if (autoSaveTimer >= autoSaveIntervalSeconds)
+            {
+                SaveSessionData();
+                autoSaveTimer = 0f;
+            }
         }
     }
 
@@ -423,44 +424,51 @@ public class EyeAndHeadTracker : MonoBehaviour
                 if (dwellOverTargetTracker >= minDwellTimeOverTarget)
                 {
                     float currentTime = Time.realtimeSinceStartup;
-                    float timeSinceStart = currentTime - appStartTime;
-                    float timeSincePrev = (destroyCount == 0) ? 0f : (currentTime - previousDestroyTime);
 
-                    if (destroyCount == 0)
-                        performanceData.timeToFirstDestroy = timeSinceStart;
-
-                    var head = Camera.main != null ? Camera.main.transform : transform;
-                    Vector3 headPos = head.position;
-                    Vector3 headEuler = head.rotation.eulerAngles;
-                    Vector3 targetPos = renderer.transform.position;
-                    float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
-
-                    destructionEvents.Add(new DestructionEvent
+                    if (isRecording)
                     {
-                        destroyOrder = destroyCount + 1,
-                        objectName = renderer.gameObject.name,
-                        timeSinceAppStart = timeSinceStart,
-                        timeSincePreviousDestroy = timeSincePrev,
-                        headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
-                        headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
-                        targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
-                        gazeStabilityDuringDwell_deg = stability
-                    });
+                        float timeSinceStart = currentTime - appStartTime;
+                        float timeSincePrev = (destroyCount == 0) ? 0f : (currentTime - previousDestroyTime);
 
-                    destroyCount++;
-                    previousDestroyTime = currentTime;
+                        if (destroyCount == 0)
+                            performanceData.timeToFirstDestroy = timeSinceStart;
+
+                        var head = Camera.main != null ? Camera.main.transform : transform;
+                        Vector3 headPos = head.position;
+                        Vector3 headEuler = head.rotation.eulerAngles;
+                        Vector3 targetPos = renderer.transform.position;
+                        float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
+
+                        destructionEvents.Add(new DestructionEvent
+                        {
+                            destroyOrder = destroyCount + 1,
+                            objectName = renderer.gameObject.name,
+                            timeSinceAppStart = timeSinceStart,
+                            timeSincePreviousDestroy = timeSincePrev,
+                            headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
+                            headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
+                            targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+                            gazeStabilityDuringDwell_deg = stability
+                        });
+
+                        destroyCount++;
+                        previousDestroyTime = currentTime;
+                    }
+
                     dwellDirectionsDuringCurrentDwell.Clear();
 
                     targetRenderers = targetRenderers.Where(r => r != renderer).ToArray();
                     Destroy(renderer.gameObject);
                     dwellOverTargetTracker = 0;
 
-                    // OPTION B: Save immediately on every destruction event
-                    SaveSessionData();
+                    if (isRecording)
+                    {
+                        SaveSessionData();
+                    }
 
                     if (targetRenderers.Length == 0)
                     {
-                        if (autoSaveWhenAllTargetsDestroyed)
+                        if (isRecording && autoSaveWhenAllTargetsDestroyed)
                         {
                             performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
                             performanceData.totalObjectsDestroyed = destroyCount;
@@ -528,6 +536,20 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     // ==================== SAVE ====================
 
+    public void LogMarker(string message)
+    {
+        // We will hijack the DestructionEvent list to store our text markers 
+        // so they show up clearly in your final JSON without changing your data structure!
+        destructionEvents.Add(new DestructionEvent
+        {
+            destroyOrder = -1, // -1 indicates this is a text marker, not a real target
+            objectName = $"MARKER: {message}",
+            timeSinceAppStart = Time.realtimeSinceStartup - appStartTime,
+            notes = message
+        });
+        Debug.Log($"JSON MARKER: {message}");
+    }
+
     public void SaveSessionData()
     {
         try
@@ -548,10 +570,10 @@ public class EyeAndHeadTracker : MonoBehaviour
                 sessionData = performanceData,
                 destructionEvents = destructionEvents,
                 rawTrackingFileReference = useEfficientRawLogging 
-                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.ndjson" : null
+                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.ndjson" : null
             };
 
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
+            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{startTimeString}.json");
             string json = JsonUtility.ToJson(root, true);
             File.WriteAllText(summaryPath, json);
 
@@ -567,7 +589,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     destructionEvents = destructionEvents
                 };
 
-                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_BlueWireframe_{(enableBlueWireframe ? "On" : "Off")}_Map_{(enableMap ? "On" : "Off")}_{startTimeString}.json");
+                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.json");
                 File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
                 Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }
