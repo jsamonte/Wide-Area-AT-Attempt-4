@@ -196,7 +196,7 @@ public class SequenceManager : MonoBehaviour
         if (tracker != null)
         {
             tracker.RefreshTargetList();
-            // Optional: You could call tracker.ResumeRecording() here if you want to record the tutorial
+            tracker.StartNewTrialRecording("Tutorial");
         }
     }
 
@@ -267,7 +267,7 @@ public class SequenceManager : MonoBehaviour
         if (tracker != null)
         {
             tracker.RefreshTargetList();
-            tracker.ResumeRecording();
+            tracker.StartNewTrialRecording($"Trial_{currentTrialIndex + 1}");
             string wireframeText = useWireframe ? "Wireframe" : "Zero Wireframe";
             tracker.LogMarker($"Trial {currentTrialIndex + 1} ({timeOfDay}): Pool {poolNum} + {wireframeText}");
         }

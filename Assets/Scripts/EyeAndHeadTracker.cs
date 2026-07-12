@@ -107,6 +107,9 @@ public class EyeAndHeadTracker : MonoBehaviour
         public Vector3Data headPositionAtDestroy;
         public Vector3Data headRotationEulerAtDestroy;
         public Vector3Data targetPositionAtDestroy;
+        public float target_X;
+        public float target_Y;
+        public float target_Z;
         public float gazeStabilityDuringDwell_deg;
         public string notes;
     }
@@ -151,6 +154,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     private List<TrackingFrame> trackingFrames = new List<TrackingFrame>();
     private List<DestructionEvent> destructionEvents = new List<DestructionEvent>();
     private SessionPerformanceData performanceData = new SessionPerformanceData();
+    private string currentTrialName = "Tutorial";
 
     private MeshRenderer[] targetRenderers;
     private float dwellOverTargetTracker;
@@ -232,6 +236,42 @@ public class EyeAndHeadTracker : MonoBehaviour
         isRecording = false;
         SaveSessionData(); // Force save to disk whenever we pause to ensure data safety
         Debug.Log("EyeAndHeadTracker: JSON recording PAUSED.");
+    }
+
+    public void StartNewTrialRecording(string trialName)
+    {
+        // Save old data before clearing
+        if (trackingFrames.Count > 0 || destructionEvents.Count > 0)
+        {
+            SaveSessionData();
+        }
+
+        currentTrialName = trialName;
+        trackingFrames.Clear();
+        destructionEvents.Clear();
+        destroyCount = 0;
+        performanceData = new SessionPerformanceData();
+        
+        appStartTime = Time.realtimeSinceStartup;
+        lastFrameTimestamp = appStartTime;
+        startTimeString = DateTime.Now.ToString("MM_dd_HH_mm");
+
+        if (rawNdjsonWriter != null)
+        {
+            rawNdjsonWriter.Flush();
+            rawNdjsonWriter.Close();
+            rawNdjsonWriter = null;
+        }
+
+        if (useEfficientRawLogging)
+        {
+            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson");
+            rawNdjsonWriter = new StreamWriter(rawPath, true);
+        }
+
+        hasInitializedRecording = true;
+        isRecording = true;
+        Debug.Log($"EyeAndHeadTracker: JSON recording started for {currentTrialName}.");
     }
 
     public void RefreshTargetList()
@@ -448,6 +488,9 @@ public class EyeAndHeadTracker : MonoBehaviour
                             headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
                             headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
                             targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+                            target_X = targetPos.x,
+                            target_Y = targetPos.y,
+                            target_Z = targetPos.z,
                             gazeStabilityDuringDwell_deg = stability
                         });
 
@@ -570,10 +613,10 @@ public class EyeAndHeadTracker : MonoBehaviour
                 sessionData = performanceData,
                 destructionEvents = destructionEvents,
                 rawTrackingFileReference = useEfficientRawLogging 
-                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.ndjson" : null
+                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson" : null
             };
 
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{startTimeString}.json");
+            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
             string json = JsonUtility.ToJson(root, true);
             File.WriteAllText(summaryPath, json);
 
@@ -589,7 +632,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                     destructionEvents = destructionEvents
                 };
 
-                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.json");
+                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
                 File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
                 Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }
