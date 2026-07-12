@@ -14,11 +14,17 @@ public class SequenceManager : MonoBehaviour
     public GameObject mainInstructionsObject;
     
     [Header("Sequence Buttons")]
-    [Tooltip("Drag your 4 Sequence Buttons here. Button Element 0 will transform into the Start button automatically.")]
+    [Tooltip("Drag your 4 Sequence Buttons here.")]
     public GameObject[] sequenceButtons; 
 
-    [Tooltip("Drag the Text child of each button into this array (Element 0 must be the text for Sequence Button 1).")]
+    [Tooltip("Drag the Text child of each sequence button into this array.")]
     public GameObject[] sequenceButtonTexts;
+
+    [Header("Start Button")]
+    [Tooltip("Drag your dedicated Start Trial button here.")]
+    public GameObject startButton;
+    [Tooltip("Drag the Text child of the Start button here.")]
+    public GameObject startButtonText;
 
     [Header("Pool 9Baseline Objects")]
     public GameObject pool1_9Baseline;
@@ -71,13 +77,26 @@ public class SequenceManager : MonoBehaviour
                 if (btn != null)
                 {
                     btn.onClick.RemoveAllListeners();
-                    btn.onClick.AddListener(() => OnUnifiedButtonClicked(index));
+                    btn.onClick.AddListener(() => SelectSequence(index));
                 }
                 else
                 {
                     Debug.LogWarning($"SequenceManager: Could not find Button component for Sequence Button {i}.");
                 }
             }
+        }
+
+        // Set up Start button
+        if (startButton != null)
+        {
+            var sBtn = startButton.GetComponent<UnityEngine.UI.Button>();
+            if (sBtn == null) sBtn = startButton.GetComponentInParent<UnityEngine.UI.Button>(true);
+            if (sBtn != null)
+            {
+                sBtn.onClick.RemoveAllListeners();
+                sBtn.onClick.AddListener(() => OnStartButtonClicked());
+            }
+            startButton.SetActive(false); // Hide until needed
         }
 
         ShowMenu("Please scan all ArUco Markers and Select a Sequence to start.");
@@ -102,12 +121,14 @@ public class SequenceManager : MonoBehaviour
 
     private void SelectSequence(int index)
     {
+        if (currentSequenceIndex != -1) return; // Prevent double-fire on sequence selection
+
         currentSequenceIndex = index;
         currentTrialIndex = 0;
         sequenceComplete = false;
 
-        // Hide buttons 1, 2, and 3 (leave Button 0 visible)
-        for (int i = 1; i < sequenceButtons.Length; i++)
+        // Hide ALL sequence buttons
+        for (int i = 0; i < sequenceButtons.Length; i++)
         {
             if (sequenceButtons[i] != null)
             {
@@ -118,6 +139,10 @@ public class SequenceManager : MonoBehaviour
                 else sequenceButtons[i].SetActive(false); // Fallback
             }
         }
+        
+        // Ensure start button is hidden
+        if (startButton != null) startButton.SetActive(false);
+
         // Start Tutorial Phase instead of going straight to the first trial
         StartTutorialPhase();
     }
@@ -183,8 +208,7 @@ public class SequenceManager : MonoBehaviour
         {
             sequenceComplete = true;
             ShowMenu($"Sequence {currentSequenceIndex + 1} Complete!\nPlease close the application or restart.");
-            SetButtonText(0, "Done");
-            SetFirstButtonInteractable(false);
+            if (startButton != null) startButton.SetActive(false);
             if (tracker != null) tracker.PauseRecording();
             return;
         }
@@ -201,13 +225,18 @@ public class SequenceManager : MonoBehaviour
             ShowMenu($"Trial {currentTrialIndex} Complete!\n\nPlease wait until the researcher approves the next trial:\nTrial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
         }
 
-        SetButtonText(0, $"Start Trial {currentTrialIndex + 1}");
-        SetFirstButtonInteractable(true);
+        if (startButton != null)
+        {
+            startButton.SetActive(true);
+            SetButtonTextSingle(startButtonText, startButton, $"Start Trial {currentTrialIndex + 1}");
+            SetButtonInteractable(startButton, true);
+        }
     }
 
     private void OnStartButtonClicked()
     {
         if (sequenceComplete || currentSequenceIndex == -1) return;
+        if (!gameObject.activeSelf) return; // Anti-double-fire guard!
 
         gameObject.SetActive(false); // Hide HUD
 
@@ -314,11 +343,25 @@ public class SequenceManager : MonoBehaviour
         if (legacy != null) { legacy.text = msg; return; }
     }
 
-    private void SetFirstButtonInteractable(bool interactable)
+    private void SetButtonInteractable(GameObject buttonObj, bool interactable)
     {
-        if (sequenceButtons.Length == 0 || sequenceButtons[0] == null) return;
-        var btn = sequenceButtons[0].GetComponent<UnityEngine.UI.Button>();
-        if (btn == null) btn = sequenceButtons[0].GetComponentInParent<UnityEngine.UI.Button>(true);
+        if (buttonObj == null) return;
+        var btn = buttonObj.GetComponent<UnityEngine.UI.Button>();
+        if (btn == null) btn = buttonObj.GetComponentInParent<UnityEngine.UI.Button>(true);
         if (btn != null) btn.interactable = interactable;
+    }
+
+    private void SetButtonTextSingle(GameObject textObj, GameObject fallbackObj, string msg)
+    {
+        GameObject target = textObj != null ? textObj : fallbackObj;
+        if (target == null) return;
+
+        var tmp = target.GetComponent<TMPro.TMP_Text>();
+        if (tmp == null) tmp = target.GetComponentInChildren<TMPro.TMP_Text>(true);
+        if (tmp != null) { tmp.text = msg; return; }
+
+        var legacy = target.GetComponent<UnityEngine.UI.Text>();
+        if (legacy == null) legacy = target.GetComponentInChildren<UnityEngine.UI.Text>(true);
+        if (legacy != null) { legacy.text = msg; return; }
     }
 }
