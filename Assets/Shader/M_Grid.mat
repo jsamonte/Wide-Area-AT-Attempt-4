@@ -60,7 +60,7 @@ Material:
     - _Transparent: 1
     m_Colors:
     - _Background: {r: 0.21960783, g: 0.21960783, b: 0.21960783, a: 0}
-    - _Cell_Size: {r: 0.08, g: 0.08, b: 0, a: 0}
+    - _Cell_Size: {r: 0.04, g: 0.04, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _Grid_Color: {r: 0, g: 0, b: 1, a: 1}
   m_BuildTextureStacks: []
