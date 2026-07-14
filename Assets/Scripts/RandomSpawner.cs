@@ -378,34 +378,15 @@ public class RandomSpawner : MonoBehaviour
         // Keep track of it so we can destroy it later
         spawnedObjects.Add(spawnedObj);
 
-        // Force the tag and layer recursively so all children (e.g. colliders and meshes) inherit them
+        // Force the tag and layer on the root object only.
+        // We rely on EyeAndHeadTracker.cs to correctly identify child colliders 
+        // without overriding specially configured child layers (like "Invisible").
+        spawnedObj.tag = tagToApply;
         int layerId = LayerMask.NameToLayer(layerToApply);
         if (layerId > -1) {
-            SetLayerRecursively(spawnedObj, layerId);
+            spawnedObj.layer = layerId;
         } else {
             Debug.LogWarning($"RandomSpawner: Layer '{layerToApply}' does not exist in Unity! Falling back to Default.");
-        }
-        
-        SetTagRecursively(spawnedObj, tagToApply);
-    }
-
-    private void SetLayerRecursively(GameObject obj, int newLayer)
-    {
-        if (obj == null) return;
-        obj.layer = newLayer;
-        foreach (Transform child in obj.transform)
-        {
-            SetLayerRecursively(child.gameObject, newLayer);
-        }
-    }
-
-    private void SetTagRecursively(GameObject obj, string newTag)
-    {
-        if (obj == null) return;
-        obj.tag = newTag;
-        foreach (Transform child in obj.transform)
-        {
-            SetTagRecursively(child.gameObject, newTag);
         }
     }
 
