@@ -1,0 +1,11 @@
+Model Information:
+* title:	Беговая дорожка. Treadmill Tunturi T85
+* source:	https://sketchfab.com/3d-models/treadmill-tunturi-t85-327b6f6cb02c41df99a8d6f6b0796a74
+* author:	dima051983 (https://sketchfab.com/dima051983)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Беговая дорожка. Treadmill Tunturi T85" (https://sketchfab.com/3d-models/treadmill-tunturi-t85-327b6f6cb02c41df99a8d6f6b0796a74) by dima051983 (https://sketchfab.com/dima051983) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

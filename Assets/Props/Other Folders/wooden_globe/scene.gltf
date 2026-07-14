@@ -1,0 +1,317 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        0.09474499523639679,
+        0.12022534757852554,
+        0.09763233363628387
+      ],
+      "min": [
+        -0.09474463015794754,
+        -0.18534505367279053,
+        -0.272701233625412
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 31008,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        1.0,
+        0.9993909001350403,
+        0.9998354315757751
+      ],
+      "min": [
+        -1.0,
+        -0.9999145269393921,
+        -0.9998353719711304
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        1.0,
+        0.99974125623703,
+        0.9995366334915161,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -0.9999405741691589,
+        -0.9992212057113647,
+        -1.0
+      ],
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        0.8926936388015747,
+        0.999755859375
+      ],
+      "min": [
+        0.0005918741226196289,
+        0.00024414891959168017
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 20672,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        0.8926936388015747,
+        0.999755859375
+      ],
+      "min": [
+        0.0005918741226196289,
+        0.00024414891959168017
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 41344,
+      "componentType": 5126,
+      "count": 2584,
+      "max": [
+        0.8926936388015747,
+        0.999755859375
+      ],
+      "min": [
+        0.0005918741226196289,
+        0.00024414891959168017
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 11040,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "M. Zamzam (https://sketchfab.com/Zamzam2003)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/wooden-globe-63837c8831284982abe6d733bd662996",
+      "title": "Wooden Globe"
+    },
+    "generator": "Sketchfab-14.51.0",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 44160,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 62016,
+      "byteOffset": 44160,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 62016,
+      "byteOffset": 106176,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 41344,
+      "byteOffset": 168192,
+      "byteStride": 16,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 209536,
+      "uri": "scene.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/Globe_texture.001_baseColor.png"
+    },
+    {
+      "uri": "textures/Globe_texture.001_metallicRoughness.png"
+    },
+    {
+      "uri": "textures/Globe_texture.001_normal.png"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "Globe_texture.001",
+      "normalTexture": {
+        "index": 2,
+        "scale": 0.75
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 1
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Sphere_low_Globe texture.001_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TANGENT": 2,
+            "TEXCOORD_0": 3,
+            "TEXCOORD_1": 4,
+            "TEXCOORD_2": 5
+          },
+          "indices": 6,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "matrix": [
+        1.4285714626312256,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.172065860271246e-16,
+        -1.4285714626312256,
+        0.0,
+        0.0,
+        1.4285714626312256,
+        3.172065860271246e-16,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "Sketchfab_model"
+    },
+    {
+      "children": [
+        2
+      ],
+      "matrix": [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0,
+        -0.009999999776482582,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "name": "866db32496de40159ebcf7d44b188184.fbx"
+    },
+    {
+      "children": [
+        3
+      ],
+      "name": "RootNode"
+    },
+    {
+      "children": [
+        4
+      ],
+      "matrix": [
+        157.87051391601563,
+        1.3977868351898213e-14,
+        2.9074008565851045e-15,
+        0.0,
+        -2.9074029352080796e-15,
+        62.95074629308317,
+        -144.7767506303299,
+        0.0,
+        -1.3977869329008786e-14,
+        144.7767506303299,
+        62.95074629308317,
+        0.0,
+        0.0,
+        40.78571319580078,
+        0.0,
+        1.0
+      ],
+      "name": "Sphere_low"
+    },
+    {
+      "mesh": 0,
+      "name": "Sphere_low_Globe texture.001_0"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ]
+}
