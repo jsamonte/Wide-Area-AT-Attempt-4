@@ -8,6 +8,8 @@ using UnityEngine.Events;
 
 public class EyeAndHeadTracker : MonoBehaviour
 {
+    public static EyeAndHeadTracker Instance { get; private set; }
+
     [Header("Session Configuration")]
     [SerializeField] private string participantId = "P002";
     [SerializeField] private string sessionId = "S001";
@@ -179,6 +181,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void Awake()
     {
+        Instance = this;
+
         persistentDataPath = Application.persistentDataPath;
         Directory.CreateDirectory(persistentDataPath);
 
@@ -228,6 +232,16 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         isRecording = true;
         Debug.Log("EyeAndHeadTracker: JSON recording RESUMED.");
+    }
+
+    public int GetTargetsDestroyed() => destroyCount;
+    
+    public float GetCurrentTrialTime() => isRecording ? (Time.realtimeSinceStartup - appStartTime) : 0f;
+    
+    public List<Vector3> GetRemainingTargetPositions()
+    {
+        if (targetRenderers == null) return new List<Vector3>();
+        return targetRenderers.Where(r => r != null).Select(r => r.transform.position).ToList();
     }
 
     public void PauseRecording()
@@ -280,7 +294,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             var allTargets = GameObject.FindGameObjectsWithTag(targetTag);
             targetRenderers = allTargets
-                .Select(n => n.GetComponent<MeshRenderer>())
+                .Select(n => n.GetComponentInChildren<MeshRenderer>())
                 .Where(r => r != null && r.enabled)
                 .ToArray();
 
@@ -449,7 +463,21 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit hitInfo, Mathf.Infinity, layersToIncludeWithRay))
         {
-            var renderer = hitInfo.collider.GetComponent<MeshRenderer>();
+            Transform current = hitInfo.collider.transform;
+            MeshRenderer renderer = null;
+            while (current != null)
+            {
+                if (current.CompareTag(targetTag))
+                {
+                    renderer = current.GetComponentInChildren<MeshRenderer>();
+                    break;
+                }
+                current = current.parent;
+            }
+
+            // Fallback just in case
+            if (renderer == null)
+                renderer = hitInfo.collider.GetComponentInChildren<MeshRenderer>();
 
             if (renderer != null && targetRenderers != null && targetRenderers.Contains(renderer))
             {

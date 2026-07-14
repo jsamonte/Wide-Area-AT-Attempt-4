@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR Cockpit trial dashboard</title>
+<style>
+  :root { --bg:#111417; --card:#1b2026; --line:#2c333b; --text:#e8edf2; --dim:#8b98a5;
+          --ok:#3fb950; --bad:#f85149; --warn:#d29922; --rec:#f85149; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);
+       margin:0 0 10px; font-weight:600; }
+  .sub { color:var(--dim); font-size:13px; margin-bottom:16px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:12px;
+         padding:5px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .row:last-child { border-bottom:0; }
+  .k { color:var(--dim); }
+  .v { font-variant-numeric:tabular-nums; font-weight:600; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px;
+         vertical-align:middle; background:var(--bad); }
+  .dot.ok { background:var(--ok); }
+  .dot.warn { background:var(--warn); }
+  .state { font-size:26px; font-weight:700; letter-spacing:.02em; }
+  .state.rec { color:var(--rec); animation:blink 1s steps(1,end) infinite; }
+  .state.idle { color:var(--ok); }
+  .state.paused { color:var(--warn); }
+  @keyframes blink { 50% { opacity:.35; } }
+  .alert { background:rgba(248,81,73,.12); border:1px solid var(--bad); color:#ffb4b0;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .alert.hidden { display:none; }
+  .stale { background:rgba(210,153,34,.12); border:1px solid var(--warn); color:#f0cd7a;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .stale.hidden { display:none; }
+
+  /* CRITICAL. Deliberately louder than everything else on the page: solid red, pulsing, full width. These
+     fire only for battery and tracking loss, and the loudness IS the design. An alert that fires often
+     teaches you to ignore it, so nothing else is allowed to use this class. */
+  .critical { background:#8b1a15; border:2px solid #ff6b64; color:#fff;
+              border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:16px; line-height:1.4;
+              animation:pulse 1.1s ease-in-out infinite; }
+  .critical.hidden { display:none; }
+  @keyframes pulse { 50% { background:#c02a22; } }
+
+  /* The outcome of the last command. This is where a refusal finally becomes visible: the reasons were
+     always written, they just went to logcat on a headset with no PC attached to it. */
+  .msg { border-radius:8px; padding:9px 12px; margin-top:10px; font-size:13px; line-height:1.4;
+         border:1px solid var(--line); background:#0d1116; }
+  .msg.hidden { display:none; }
+  .msg.ok { border-color:var(--ok); color:#8ee79b; }
+  .msg.warn { border-color:var(--warn); color:#f0cd7a; }
+  .msg.error { border-color:var(--bad); color:#ffb4b0; background:rgba(248,81,73,.10); }
+  .chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600;
+          margin:2px 4px 2px 0; }
+  .chip.ok { background:rgba(63,185,80,.16); color:var(--ok); }
+  .chip.bad { background:rgba(248,81,73,.16); color:var(--bad); }
+  a { color:#58a6ff; }
+  ul { margin:0; padding-left:18px; }
+  .note { color:var(--dim); font-size:12px; margin-top:10px; }
+  .idrow { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .idrow input { flex:1; min-width:120px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+                 border-radius:7px; padding:9px 10px; font-size:14px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { background:#252c34; border:1px solid var(--line); color:var(--text); border-radius:7px;
+         padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn:active { transform:translateY(1px); }
+  .btn.go { background:rgba(63,185,80,.16); border-color:var(--ok); color:var(--ok); }
+  .btn.ok { border-color:var(--ok); color:var(--ok); }
+  .btn.warn { background:rgba(210,153,34,.14); border-color:var(--warn); color:var(--warn); }
+  .btn.dev { border-color:#8957e5; color:#c4a3ff; }
+  .btn.dev.on { background:rgba(137,87,229,.18); }
+
+  /* DEV mode. Everything below is hidden on run day: the normal view stays the calm, uncluttered thing a
+     researcher operates with a participant in the chair. DEV is what replaces sitting in a terminal running
+     adb logcat with a Select-String filter, which is not possible on run day anyway (no PC on the headset). */
+  #devPanel.hidden { display:none; }
+  #devPanel { margin-top:20px; border-top:2px solid #8957e5; padding-top:16px; }
+  .devhead { color:#c4a3ff; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+             font-weight:700; margin-bottom:12px; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .tab { background:#252c34; border:1px solid var(--line); color:var(--dim); border-radius:7px;
+         padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer; }
+  .tab.on { border-color:#8957e5; color:#c4a3ff; background:rgba(137,87,229,.14); }
+  .pane.hidden { display:none; }
+
+  /* The log view. Monospace, because these are log lines and alignment is information. */
+  #logbox { background:#0b0e12; border:1px solid var(--line); border-radius:8px; padding:10px;
+            height:52vh; overflow-y:auto; font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .ln { white-space:pre-wrap; word-break:break-word; padding:1px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+  .ln .t { color:#5c6773; }
+  .ln .tg { color:#58a6ff; font-weight:600; }
+  .ln.warn { color:#f0cd7a; }
+  .ln.error { color:#ff9a94; background:rgba(248,81,73,.07); }
+  .filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+  .f { background:#252c34; border:1px solid var(--line); color:var(--dim); border-radius:999px;
+       padding:4px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+  .f.on { border-color:#58a6ff; color:#58a6ff; background:rgba(88,166,255,.12); }
+  .search { flex:1; min-width:140px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+            border-radius:7px; padding:7px 10px; font-size:13px; }
+
+  /* Tunables: the live dev-settings registry, read-only. */
+  #tunbox { max-height:60vh; overflow-y:auto; }
+  .tsec { color:#c4a3ff; font-size:12px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;
+          margin:12px 0 4px; }
+  .trow { display:flex; justify-content:space-between; gap:10px; padding:4px 0;
+          border-bottom:1px solid rgba(255,255,255,.04); font-size:13px; }
+  .trow .tk { color:var(--dim); font:12px ui-monospace,Menlo,Consolas,monospace; }
+  .trow .tl { color:var(--text); }
+  .tval { font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
+  .tval.ovr { color:var(--warn); }
+  .tdef { color:#5c6773; font-size:11px; }
+</style>
+</head>
+<body>
+
+<h1>AR Cockpit trial dashboard</h1>
+<div class="sub" id="conn">connecting...</div>
+<div class="btns" style="margin-bottom:14px">
+  <button class="btn" id="wake" onclick="toggleWake()">Keep this screen awake: OFF</button>
+  <button class="btn dev" id="devbtn" onclick="toggleDev()">DEV: OFF</button>
+</div>
+
+<!-- The single most dangerous failure in this study: uncalibrated eyes return a Success result code with
+     confidence 0 and invalid pupils. The recording looks healthy and is worthless. So it gets a banner. -->
+<div class="alert hidden" id="calib">
+  <strong>Eye calibration looks missing.</strong> The tracker is running but has never reported high
+  confidence. Run the ML2 eye calibration (Custom Fit) on this participant before recording. Data taken
+  now cannot be recovered later.
+</div>
+<div class="stale hidden" id="staleBox">
+  <strong>No update from the headset.</strong> The last status is <span id="staleAge">?</span>s old.
+  The recording is unaffected (the CSV does not go through this page), but this view is stale.
+</div>
+
+<!-- CRITICAL alerts. These two are separated from the ordinary readiness rows, and made impossible to miss,
+     because they are the failures that leave EVERY OTHER LIGHT ON THIS PAGE GREEN. Eye tracking is fine, the
+     data link is fine, rows are still going down at frame rate, and yet the session is being destroyed. They
+     also happen to be the two that matter most in the untethered outdoor case, where nobody is watching a
+     terminal and there is no PC to plug into. -->
+<div class="critical hidden" id="trackBox">
+  <strong>HEAD TRACKING LOST.</strong> The AR elements are not where the participant thinks they are, so
+  anything recorded right now is not measuring what you think it is measuring. Marked in the CSV
+  (TRACKING_LOST) so the segment can be cut at analysis. Look at a textured surface, not blank sky or a
+  bare wall.
+</div>
+<div class="critical hidden" id="battBox">
+  <strong>BATTERY <span id="battPct">?</span>%.</strong> If the headset dies mid-trial the file is left in
+  _incomplete/ and that run is gone. Finish the current trial and charge.
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>Trial</h2>
+    <div class="row"><span class="k">State</span><span class="state idle v" id="state">-</span></div>
+    <div class="row"><span class="k">Participant</span><span class="v" id="participant">-</span></div>
+    <div class="row"><span class="k">Condition</span><span class="v" id="condition">-</span></div>
+    <div class="row"><span class="k">Trial</span><span class="v" id="number">-</span></div>
+    <div class="row"><span class="k">File</span><span class="v" id="file">-</span></div>
+    <div class="row"><span class="k">Elapsed</span><span class="v" id="elapsed">-</span></div>
+    <div class="row"><span class="k">Rows written</span><span class="v" id="rows">-</span></div>
+    <div class="note">The row counter is the proof that data is flowing: a stream that is present but
+      frozen is what this number exists to catch.</div>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+
+    <!-- The trial number is editable on purpose. TrialData is in-memory, so if the app restarts mid-session
+         the counter silently drops back to 1 and the next file for a participant on their fifth trial is
+         labeled trial 1. The timestamp keeps it from overwriting anything, so no data is lost, but the label
+         is what analysis groups by. This box is the only way to repair that without a rebuild. -->
+    <div class="idrow">
+      <input id="in_participant" placeholder="participant (e.g. P04)" autocomplete="off">
+      <input id="in_condition" placeholder="condition (e.g. physical_ar)" autocomplete="off">
+      <input id="in_trial" type="number" min="1" step="1" placeholder="trial #" style="flex:0 0 90px;min-width:90px">
+      <button class="btn" onclick="identify()">Set</button>
+    </div>
+    <div class="btns">
+      <button class="btn go" onclick="cmd('start')">Start trial</button>
+      <button class="btn ok" onclick="stopTrial(true)">Stop: GOOD</button>
+      <button class="btn warn" onclick="stopTrial(false)">Stop: BAD</button>
+      <button class="btn" onclick="cmd('pause')">Pause</button>
+      <button class="btn" onclick="cmd('resume')">Resume</button>
+      <button class="btn" onclick="redoTrial()">Redo</button>
+      <button class="btn" onclick="cmd('capture')">Capture start pose</button>
+    </div>
+    <div class="idrow" style="margin-top:10px">
+      <input id="in_note" placeholder="reason, if the trial was bad (e.g. AP disengaged)" autocomplete="off">
+    </div>
+
+    <!-- The middle option. Before this, an operator who saw something go slightly wrong mid-trial could only
+         kill the run or try to remember it. Neither survives twenty participants. This writes the moment into
+         the CSV on a real sample and lets the trial carry on, so whether it mattered is decided later, at
+         analysis, with the trace in front of you. -->
+    <div class="idrow" style="margin-top:4px">
+      <input id="in_mark" placeholder="note an event without stopping (e.g. AP kicked off)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')markEvent()">
+      <button class="btn" onclick="markEvent()">Mark event</button>
+    </div>
+
+    <div class="msg hidden" id="msgbox"></div>
+
+    <div class="note" id="cmdnote">Start opens the file (and repositions the aircraft, if the trial reset is
+      on). It is refused unless the state is Idle, a participant is set, and the eyes are calibrated. Watch the
+      state above change: that, not this button, is the confirmation that it worked. If a command is refused,
+      the reason appears right here. A BAD trial is filed under invalid/ and its number is retaken; nothing is
+      ever deleted.</div>
+  </div>
+
+  <div class="card">
+    <h2>Headset vitals</h2>
+    <div class="row"><span class="k">Battery</span><span class="v" id="v_batt">-</span></div>
+    <div class="row"><span class="k">Head tracking</span><span class="v" id="v_track">-</span></div>
+    <div class="note">The two failures that leave every other light on this page green. A dead battery loses
+      the trial in progress; lost tracking means the AR elements are not where the participant thinks, while
+      the data keeps recording as if nothing happened.</div>
+  </div>
+
+  <div class="card">
+    <h2>Readiness</h2>
+    <div class="row"><span class="k">Eye tracking</span><span class="v" id="r_eye">-</span></div>
+    <div class="row"><span class="k">Eye permission</span><span class="v" id="r_eyeperm">-</span></div>
+    <div class="row"><span class="k">Pupil permission</span><span class="v" id="r_pupilperm">-</span></div>
+    <div class="row"><span class="k">Calibrated (saw high conf)</span><span class="v" id="r_calib">-</span></div>
+
+    <div class="row"><span class="k">Trial start pose</span><span class="v" id="r_pose">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Elements the participant has actually looked at</h2>
+    <div id="seen"></div>
+    <div class="note">An element turns green once gaze has dwelled on it. This is the per-participant
+      "can you see it" check: it proves each element is placed where their eyes can find it. Ask them to
+      look at each one before the first trial.</div>
+  </div>
+
+  <div class="card">
+    <h2>Eyes (live)</h2>
+    <div class="row"><span class="k">Gaze confidence</span><span class="v" id="e_conf">-</span></div>
+    <div class="row"><span class="k">Looking at</span><span class="v" id="e_aoi">-</span></div>
+    <div class="row"><span class="k">Dwell</span><span class="v" id="e_dwell">-</span></div>
+    <div class="row"><span class="k">Behavior</span><span class="v" id="e_behavior">-</span></div>
+    <div class="row"><span class="k">Pupil L / R</span><span class="v" id="e_pupil">-</span></div>
+    <div class="row"><span class="k">Openness L / R</span><span class="v" id="e_open">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Wide Area AR Trial</h2>
+    <div class="row"><span class="k">Time Elapsed</span><span class="v" id="ar_time">-</span></div>
+    <div class="row"><span class="k">Targets Destroyed</span><span class="v" id="ar_destroyed">-</span></div>
+    <div class="row" style="flex-direction:column;align-items:flex-start">
+      <span class="k" style="margin-bottom:6px">Remaining Targets</span>
+      <div id="ar_targets" style="font-family:monospace;font-size:12px;color:var(--text);opacity:0.8;">-</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recorded files</h2>
+    <ul id="files"><li class="k">none yet</li></ul>
+    <div class="note">Downloading from here is a convenience. The authoritative pull at the end of a
+      session is still <code>adb pull</code> of the whole data directory.</div>
+  </div>
+
+</div>
+
+<!-- DEV MODE. Read-only, always. Nothing in this panel can start a trial, arm the AP writer, or change a
+     tunable: the headset's own dev window (the ArUco tags) stays the single place a value is edited, so
+     there is one editing path to trust rather than two that can disagree. -->
+<div id="devPanel" class="hidden">
+  <div class="devhead">Dev mode (read-only)</div>
+
+  <div class="tabs">
+    <button class="tab on" id="tab_log"  onclick="devTab('log')">Log stream</button>
+    <button class="tab"    id="tab_sys"  onclick="devTab('sys')">System &amp; write path</button>
+    <button class="tab"    id="tab_tun"  onclick="devTab('tun')">Tunables</button>
+  </div>
+
+  <!-- The log stream. This is the whole point of dev mode: on run day there is no PC tethered to the
+       headset, so `adb logcat -s Unity | Select-String "\[FDCmd\]"` is simply not available. The tag
+       buttons are the same filter, from a phone. They are built from the tags the app is ACTUALLY
+       logging, so they can never go stale against a renamed subsystem. -->
+  <div class="pane" id="pane_log">
+    <div class="filters" id="logfilters"></div>
+    <div class="filters">
+      <input class="search" id="logsearch" placeholder="filter text (e.g. 404, refused, magvar)" autocomplete="off">
+      <button class="f on" id="f_follow" onclick="toggleFollow()">Follow</button>
+      <button class="f" onclick="clearLog()">Clear view</button>
+    </div>
+    <div id="logbox"><div class="ln"><span class="t">waiting for log lines...</span></div></div>
+    <div class="note" id="lognote"></div>
+  </div>
+
+  <div class="pane hidden" id="pane_sys">
+    <div class="grid">
+      <div class="card">
+        <h2>Headset</h2>
+        <div class="row"><span class="k">Frame rate</span><span class="v" id="d_fps">-</span></div>
+        <div class="row"><span class="k">Frame time</span><span class="v" id="d_ms">-</span></div>
+        <div class="row"><span class="k">Log lines captured</span><span class="v" id="d_loglines">-</span></div>
+        <div class="row"><span class="k">Tunables registered</span><span class="v" id="d_tuncount">-</span></div>
+      </div>
+
+
+
+      <div class="card">
+        <h2>Gaze dwell totals (session)</h2>
+        <div id="d_dwell"><span class="k">nothing yet</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- The live dev-tunable registry. This is the honest answer to "is everything exposed?": if a value is
+       not in this list, it is not reachable on the headset, full stop. Read-only here on purpose. -->
+  <div class="pane hidden" id="pane_tun">
+    <div class="filters">
+      <input class="search" id="tunsearch" placeholder="filter (e.g. ownship, gaze, cmd)" autocomplete="off">
+      <button class="f" id="f_ovr" onclick="toggleOverridesOnly()">Changed only</button>
+    </div>
+    <div id="tunbox"><span class="k">loading...</span></div>
+    <div class="note">Values are edited on the headset (the ArUco dev windows), not here. An amber value has
+      been changed from what the build shipped with; its authored default is shown beside it. Elements
+      register their knobs when their tag places them, so a list that looks short usually just means the map
+      or NavBall has not been shown yet.</div>
+  </div>
+</div>
+
+<script>
+// The server ACCEPTS a command (202) and runs it on Unity's main thread a frame later. So a 202 means
+// "heard you", never "done".
+//
+// This used to be the whole story, and it was a trap: a refused command still returned 202, this line still
+// said "Sent", and the actual reason ("no participant set", "eyes never calibrated") went to logcat on a
+// headset with no PC attached to it. The operator saw a confirmation and watched nothing happen. Now the
+// controller reports every outcome into the status blob, so this line reports only what it actually knows
+// (the headset received the bytes) and the OUTCOME appears in the message box below the buttons.
+function post(path, body) {
+  var note = document.getElementById('cmdnote');
+  note.textContent = 'Sending ' + path + '...';
+  return fetch(path, { method: 'POST', body: body || '' })
+    .then(function (r) {
+      note.textContent = r.ok ? 'The headset received ' + path + '. The result appears below.'
+                              : 'Server returned ' + r.status + ' for ' + path;
+      // The command runs on Unity's next frame. Poll straight away (and again shortly after) rather than
+      // waiting up to 500 ms for the next scheduled tick: the button felt dead when the command had in fact
+      // already run and only the display was behind.
+      setTimeout(poll, 60);
+      setTimeout(poll, 400);
+    })
+    .catch(function (e) { note.textContent = 'Could not reach the headset: ' + e; });
+}
+
+function cmd(name) { post('/api/trial/' + name); }
+
+// Phones lock their screen after ~30 s. For a long walking session that means constantly waking the phone
+// just to see the panel. Wake Lock needs a user gesture, so it is a button, not automatic. It is also
+// dropped by the browser whenever the page is hidden, hence the re-request on visibilitychange below.
+var wakeLock = null;
+
+function setWakeLabel() {
+  document.getElementById('wake').textContent = 'Keep this screen awake: ' + (wakeLock ? 'ON' : 'OFF');
+}
+
+function toggleWake() {
+  if (!('wakeLock' in navigator)) {
+    document.getElementById('wake').textContent = 'Screen wake lock not supported by this browser';
+    return;
+  }
+  if (wakeLock) { wakeLock.release(); wakeLock = null; setWakeLabel(); return; }
+
+  navigator.wakeLock.request('screen').then(function (lock) {
+    wakeLock = lock;
+    lock.addEventListener('release', function () { wakeLock = null; setWakeLabel(); });
+    setWakeLabel();
+  }).catch(function (e) {
+    document.getElementById('wake').textContent = 'Could not keep the screen awake: ' + e.message;
+  });
+}
+
+// Stopping is the one place a run-day mistake is expensive, so the verdict is explicit: there is no plain
+// "Stop" that guesses for you. GOOD files it under valid/, BAD under invalid/ with your reason and retakes
+// the trial number. Both keep the file.
+function stopTrial(valid) {
+  var note = document.getElementById('in_note').value.trim();
+  if (!valid && !note && !confirm('Mark this trial BAD with no reason given?')) return;
+  post('/api/trial/stop', JSON.stringify({ valid: valid, note: note }))
+    .then(function () { document.getElementById('in_note').value = ''; });
+}
+
+// The trial number is optional here: send it only when the box has something in it, because a 0 would be
+// ignored by the controller anyway and an empty box must mean "leave the counter alone", not "reset it".
+function identify() {
+  var p = document.getElementById('in_participant').value.trim();
+  var c = document.getElementById('in_condition').value.trim();
+  var t = parseInt(document.getElementById('in_trial').value, 10);
+  if (!p || !c) { document.getElementById('cmdnote').textContent = 'Enter both a participant and a condition.'; return; }
+
+  var body = { participant: p, condition: c };
+  if (t > 0) body.trial = t;
+  post('/api/trial/identify', JSON.stringify(body));
+}
+
+// Abandon the running trial (files it invalid and flags the next start as a redo), or, from Idle, just arm
+// the redo flag for the next start.
+function redoTrial() {
+  var note = document.getElementById('in_note').value.trim() || 'redo';
+  post('/api/trial/redo', JSON.stringify({ note: note }))
+    .then(function () { document.getElementById('in_note').value = ''; });
+}
+
+// Stamp an event into the running CSV without stopping. The trial keeps recording; the moment is now in the
+// data instead of in someone's memory.
+function markEvent() {
+  var el = document.getElementById('in_mark');
+  var text = el.value.trim();
+  if (!text) { document.getElementById('cmdnote').textContent = 'Type what happened, then press Mark event.'; return; }
+  post('/api/trial/mark', JSON.stringify({ note: text }))
+    .then(function () { el.value = ''; });
+}
+
+(function () {
+  var lastOk = 0;
+
+  function txt(id, s) { document.getElementById(id).textContent = s; }
+
+  function flag(id, good, goodText, badText) {
+    var el = document.getElementById(id);
+    el.innerHTML = '<span class="dot ' + (good ? 'ok' : '') + '"></span>' + (good ? goodText : badText);
+  }
+
+  function n(v, digits, unit) {
+    if (v === null || v === undefined) return '-';
+    return v.toFixed(digits === undefined ? 1 : digits) + (unit || '');
+  }
+
+  function render(d) {
+    var st = d.trial.state;
+    var el = document.getElementById('state');
+    el.textContent = st === 'Recording' ? 'RECORDING' : st.toUpperCase();
+    el.className = 'state v ' + (st === 'Recording' ? 'rec' : st === 'Paused' ? 'paused' : 'idle');
+
+    txt('participant', d.trial.participant || '(not set)');
+    txt('condition', d.trial.condition || '(not set)');
+    txt('number', d.trial.number + (d.trial.redoPending ? ' (redo pending)' : ''));
+    txt('file', d.trial.file || '-');
+    txt('elapsed', n(d.trial.elapsed, 1, ' s'));
+    txt('rows', d.trial.rows);
+
+    // The outcome of the last command, refusals included. It ages out after 20 s: a reason still sitting
+    // under a button you pressed ten minutes ago reads as a fresh refusal of the one you just pressed.
+    var msg = document.getElementById('msgbox');
+    var showMsg = d.trial.message && d.trial.messageAge < 20;
+    msg.className = 'msg ' + (showMsg ? (d.trial.messageLevel || 'ok') : 'hidden');
+    if (showMsg) msg.textContent = d.trial.message;
+
+    // ---- Vitals. Loud, because these are the failures nothing else on the page would reveal. ----
+    var vt = d.vitals || {};
+
+    if (vt.batteryPct === null || vt.batteryPct === undefined) {
+      txt('v_batt', 'not reported');
+    } else {
+      var lowBatt = vt.batteryPct < 15 && !vt.charging;
+      document.getElementById('v_batt').innerHTML =
+        '<span class="dot ' + (vt.batteryPct < 15 ? '' : vt.batteryPct < 30 ? 'warn' : 'ok') + '"></span>' +
+        vt.batteryPct.toFixed(0) + '%' + (vt.charging ? ' (charging)' : '');
+      document.getElementById('battBox').classList.toggle('hidden', !lowBatt);
+      txt('battPct', vt.batteryPct.toFixed(0));
+    }
+
+    // Only shout when there IS a headset to lose tracking on. With no XR device (the Editor, a browser test)
+    // "not tracked" is a different situation entirely, and a red banner on every desk test is how an alarm
+    // gets ignored on the day it matters.
+    if (!vt.xrPresent) {
+      document.getElementById('v_track').innerHTML = '<span class="dot warn"></span>no XR device';
+      document.getElementById('trackBox').classList.add('hidden');
+    } else {
+      flag('v_track', vt.headTracked, 'tracking', 'LOST for ' + n(vt.trackingLostFor, 1, ' s'));
+      document.getElementById('trackBox').classList.toggle('hidden', !vt.trackingLost);
+    }
+
+    var r = d.ready;
+    flag('r_eye', r.eyeTracking, 'active', 'not tracking');
+    flag('r_eyeperm', r.eyePermission, 'granted', 'denied');
+    flag('r_pupilperm', r.pupilPermission, 'granted', 'denied');
+    flag('r_calib', r.sawHighConfidence, 'yes', 'NOT SEEN');
+
+    // Only a real warning when the reposition is actually in use. Off means you are starting trials from
+    // wherever the aircraft sits, which is a choice, not a fault.
+    if (!r.useTrialReset) {
+      document.getElementById('r_pose').innerHTML = '<span class="dot warn"></span>reset off (manual setup)';
+    } else {
+      flag('r_pose', r.startPoseCaptured, 'captured', 'NOT CAPTURED');
+    }
+
+    document.getElementById('calib').classList.toggle('hidden', !r.calibrationSuspect);
+
+    var chips = '';
+    r.seen.forEach(function (k) { chips += '<span class="chip ok">' + k + ' seen</span>'; });
+    r.unseen.forEach(function (k) { chips += '<span class="chip bad">' + k + ' NOT seen</span>'; });
+    document.getElementById('seen').innerHTML = chips || '<span class="k">no gaze targets in the scene yet</span>';
+
+    var e = d.eye;
+    txt('e_conf', e.confidence + (e.confidence >= 2 ? ' (high)' : e.confidence == 1 ? ' (medium)' : ' (low)'));
+    txt('e_aoi', d.aoi.current || '(nothing)');
+    txt('e_dwell', n(d.aoi.dwell, 1, ' s'));
+    txt('e_behavior', e.behavior || '-');
+    txt('e_pupil', n(e.leftPupilMm, 2) + ' / ' + n(e.rightPupilMm, 2) + ' mm');
+    txt('e_open', n(e.leftOpenness, 2) + ' / ' + n(e.rightOpenness, 2));
+
+    var ar = d.wideAreaAR;
+    if (ar) {
+      txt('ar_time', n(ar.timeElapsed, 1, ' s'));
+      txt('ar_destroyed', String(ar.destroyedCount));
+      var tHtml = (ar.remainingTargets || []).map(function(t) {
+        return 'X: ' + n(t.x, 2) + ' Y: ' + n(t.y, 2) + ' Z: ' + n(t.z, 2);
+      }).join('<br>');
+      document.getElementById('ar_targets').innerHTML = tHtml || '(none)';
+    } else {
+      txt('ar_time', '-');
+      txt('ar_destroyed', '-');
+      document.getElementById('ar_targets').innerHTML = '-';
+    }
+
+    txt('conn', 'headset ' + (d.ip || '(usb tether)') + ':' + d.port + '  |  updated ' + new Date().toLocaleTimeString());
+
+    if (devOn) renderDev(d);
+  }
+
+  // ---- DEV MODE ------------------------------------------------------------------------------------
+  // Read-only. It exists so that on run day, with no PC tethered to the headset, the questions that used to
+  // need `adb logcat` (what is the write path doing, is the receiver actually connected or just in test
+  // mode, what is the frame rate, which knob got changed) are answerable from the phone already in your hand.
+
+  var devOn = localStorage.getItem('dev') === '1';
+  var devPane = 'log';
+
+  window.toggleDev = function () {
+    devOn = !devOn;
+    localStorage.setItem('dev', devOn ? '1' : '0');
+    applyDev();
+    if (devOn) { pollTunables(true); pollLogs(); }
+  };
+
+  function applyDev() {
+    document.getElementById('devPanel').classList.toggle('hidden', !devOn);
+    var b = document.getElementById('devbtn');
+    b.textContent = 'DEV: ' + (devOn ? 'ON' : 'OFF');
+    b.classList.toggle('on', devOn);
+  }
+
+  window.devTab = function (name) {
+    devPane = name;
+    ['log', 'sys', 'tun'].forEach(function (p) {
+      document.getElementById('pane_' + p).classList.toggle('hidden', p !== name);
+      document.getElementById('tab_' + p).classList.toggle('on', p === name);
+    });
+    if (name === 'tun') pollTunables(true);
+  };
+
+  function renderDev(d) {
+    var v = d.dev;
+    if (!v) return;
+
+    txt('d_fps', n(v.fps, 1));
+    txt('d_ms', n(v.frameMs, 1, ' ms'));
+    txt('d_loglines', v.logLines);
+    txt('d_tuncount', v.tunables.count + ' (' + v.tunables.overridden + ' changed)');
+
+
+
+    var totals = d.aoi.totals || {};
+    var keys = Object.keys(totals);
+    document.getElementById('d_dwell').innerHTML = keys.length
+      ? keys.map(function (k) {
+          return '<div class="row"><span class="k">' + k + '</span><span class="v">' + n(totals[k], 1, ' s') + '</span></div>';
+        }).join('')
+      : '<span class="k">nothing yet</span>';
+  }
+
+  // ---- Log stream ----------------------------------------------------------------------------------
+  // Cursor-based: we ask for everything since the last sequence number we saw, so lines are never fetched
+  // twice and never skipped. If the headset's ring wrapped while we were away it tells us how many lines
+  // were dropped, and we say so, rather than presenting a log with a silent hole in it.
+
+  var logCursor = 0;
+  var logTag = '';          // '' = all subsystems
+  var logFollow = true;
+  var logLines = [];        // held client-side so the text filter can re-apply without refetching
+  var MAX_HELD = 1500;
+  var knownTags = [];
+  var logTimer = 0;
+
+  window.toggleFollow = function () {
+    logFollow = !logFollow;
+    document.getElementById('f_follow').classList.toggle('on', logFollow);
+  };
+
+  window.clearLog = function () {
+    logLines = [];
+    drawLog();
+  };
+
+  window.setLogTag = function (t) {
+    logTag = t;
+    // The server filters by tag, so switching tags means re-reading the ring from the start rather than
+    // continuing the cursor: otherwise you would see only NEW lines of that tag and the history would look
+    // empty, which reads as "this subsystem is silent" when it is not.
+    logCursor = 0;
+    logLines = [];
+    drawTagFilters();
+    pollLogs();
+  };
+
+  function drawTagFilters() {
+    var html = '<button class="f' + (logTag === '' ? ' on' : '') + '" onclick="setLogTag(\'\')">ALL</button>';
+    knownTags.forEach(function (t) {
+      html += '<button class="f' + (logTag === t ? ' on' : '') + '" onclick="setLogTag(\'' + t + '\')">' + t + '</button>';
+    });
+    document.getElementById('logfilters').innerHTML = html;
+  }
+
+  function pollLogs() {
+    if (!devOn) return;
+
+    fetch('/api/logs?max=300&since=' + logCursor + (logTag ? '&tag=' + encodeURIComponent(logTag) : ''),
+          { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        logCursor = d.cursor;
+
+        if (d.dropped > 0) {
+          logLines.push({ seq: -1, type: 'warn', tag: '', t: 0,
+                          msg: '... ' + d.dropped + ' line(s) dropped: the headset ring buffer wrapped before this page read them.' });
+        }
+        if (d.lines.length) logLines = logLines.concat(d.lines);
+        if (logLines.length > MAX_HELD) logLines = logLines.slice(logLines.length - MAX_HELD);
+
+        if (d.lines.length || d.dropped) drawLog();
+        txt('lognote', d.total + ' lines logged on the headset since launch. Showing ' + logLines.length + '.');
+      })
+      .catch(function () {});
+
+    // The tag list only grows, and only when a subsystem logs for the first time. Every 5 s is plenty.
+    if (Date.now() - logTimer > 5000) {
+      logTimer = Date.now();
+      fetch('/api/logtags', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.tags.join(',') === knownTags.join(',')) return;
+          knownTags = d.tags;
+          drawTagFilters();
+        })
+        .catch(function () {});
+    }
+  }
+
+  function drawLog() {
+    var box = document.getElementById('logbox');
+    var q = document.getElementById('logsearch').value.trim().toLowerCase();
+
+    var html = logLines.filter(function (l) {
+      return !q || l.msg.toLowerCase().indexOf(q) >= 0 || (l.tag || '').toLowerCase().indexOf(q) >= 0;
+    }).map(function (l) {
+      return '<div class="ln ' + l.type + '"><span class="t">' + l.t.toFixed(1) + 's</span> ' +
+             (l.tag ? '<span class="tg">[' + esc(l.tag) + ']</span> ' : '') + esc(l.msg) + '</div>';
+    }).join('');
+
+    box.innerHTML = html || '<div class="ln"><span class="t">no lines match.</span></div>';
+    if (logFollow) box.scrollTop = box.scrollHeight;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ---- Tunables ------------------------------------------------------------------------------------
+
+  var tunables = [];
+  var tunTimer = 0;
+  var overridesOnly = false;
+
+  window.toggleOverridesOnly = function () {
+    overridesOnly = !overridesOnly;
+    document.getElementById('f_ovr').classList.toggle('on', overridesOnly);
+    drawTunables();
+  };
+
+  function pollTunables(force) {
+    if (!devOn) return;
+    if (!force && Date.now() - tunTimer < 5000) return;
+    tunTimer = Date.now();
+
+    fetch('/api/tunables', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { tunables = d.tunables; drawTunables(); })
+      .catch(function () {});
+  }
+
+  function drawTunables() {
+    var q = document.getElementById('tunsearch').value.trim().toLowerCase();
+
+    var rows = tunables.filter(function (t) {
+      if (overridesOnly && !t.overridden) return false;
+      if (!q) return true;
+      return t.key.toLowerCase().indexOf(q) >= 0 || t.label.toLowerCase().indexOf(q) >= 0;
+    });
+
+    if (!rows.length) {
+      document.getElementById('tunbox').innerHTML =
+        '<span class="k">nothing matches. If the list is empty entirely, no element has registered its knobs yet: show the map or NavBall tag.</span>';
+      return;
+    }
+
+    // Grouped by element (the key prefix) then by the section the dev window uses, so the web list reads in
+    // the same order as the window on the headset. One mental model, two views of it.
+    var groups = {};
+    rows.forEach(function (t) {
+      var g = t.key.split('.')[0] + '  /  ' + (t.section || 'General');
+      (groups[g] = groups[g] || []).push(t);
+    });
+
+    var html = '';
+    Object.keys(groups).sort().forEach(function (g) {
+      html += '<div class="tsec">' + esc(g) + '</div>';
+      groups[g].forEach(function (t) {
+        var val = t.kind === 'bool' ? (t.value === '1' ? 'on' : 'off') : t.value;
+        var def = t.overridden
+          ? '<div class="tdef">was ' + esc(t.kind === 'bool' ? (t.default === '1' ? 'on' : 'off') : t.default) + '</div>'
+          : '';
+        html += '<div class="trow">' +
+                  '<div><div class="tl">' + esc(t.label) + '</div><div class="tk">' + esc(t.key) + '</div></div>' +
+                  '<div style="text-align:right"><span class="tval' + (t.overridden ? ' ovr' : '') + '">' +
+                    esc(val) + '</span>' + def + '</div>' +
+                '</div>';
+      });
+    });
+    document.getElementById('tunbox').innerHTML = html;
+  }
+
+  function poll() {
+    fetch('/api/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { lastOk = Date.now(); render(d); })
+      .catch(function () { /* handled by the staleness check */ });
+
+    pollFiles();
+
+    // Only when DEV is open. With it closed the page costs exactly what it always did, so the run-day
+    // dashboard is not paying for a log stream nobody is reading.
+    if (devOn) {
+      pollLogs();
+      if (devPane === 'tun') pollTunables(false);
+    }
+  }
+
+  // Listing recurses the trials directory ON THE HEADSET. Doing that twice a second, for every connected
+  // browser, is real disk work for a list that changes once per trial. Every 5 s, and only redrawn when it
+  // actually changed.
+  var lastFilesJson = '';
+  var filesTimer = 0;
+
+  function pollFiles() {
+    if (Date.now() - filesTimer < 5000) return;
+    filesTimer = Date.now();
+
+    fetch('/api/files', { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        if (text === lastFilesJson) return;
+        lastFilesJson = text;
+        var d = JSON.parse(text);
+
+        var ul = document.getElementById('files');
+        if (!d.files.length) { ul.innerHTML = '<li class="k">none yet</li>'; return; }
+
+        // Grouped by folder, and _incomplete is called out. A partial file from a crashed run sitting
+        // undistinguished in a flat list is exactly how bad data gets analyzed as good.
+        var groups = {};
+        d.files.forEach(function (f) { (groups[f.folder || '(root)'] = groups[f.folder || '(root)'] || []).push(f); });
+
+        var html = '';
+        Object.keys(groups).sort().forEach(function (g) {
+          var label = g === '_incomplete' ? '_incomplete (crashed or unfinished, NOT usable as-is)' : g;
+          html += '<li><strong>' + label + '</strong><ul>' + groups[g].map(function (f) {
+            return '<li><a href="/api/file?name=' + encodeURIComponent(f.path) + '">' + f.name + '</a>' +
+                   ' <span class="k">(' + (f.bytes / 1024).toFixed(0) + ' KB)</span></li>';
+          }).join('') + '</ul></li>';
+        });
+        ul.innerHTML = html;
+      })
+      .catch(function () {});
+  }
+
+  // Staleness is checked on the CLIENT clock, not the server's. A dashboard that silently keeps showing
+  // the last good numbers after the headset drops is worse than one that shows nothing.
+  setInterval(function () {
+    var age = (Date.now() - lastOk) / 1000;
+    var stale = lastOk > 0 && age > 3;
+    document.getElementById('staleBox').classList.toggle('hidden', !stale);
+    if (stale) txt('staleAge', age.toFixed(0));
+    if (lastOk === 0) txt('conn', 'no response from the headset yet');
+  }, 1000);
+
+  // Phones freeze background JS timers when the screen locks or you switch apps. On return, lastOk is
+  // minutes old and the staleness check would scream that the headset died when nothing happened at all.
+  // A false alarm mid-session is expensive: it is the alarm you learn to ignore.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    lastOk = Date.now();                                  // do not judge the link on a timer that was frozen
+    document.getElementById('staleBox').classList.add('hidden');
+    filesTimer = 0;
+    poll();                                               // re-establish the truth immediately
+
+    // The browser silently drops the wake lock while hidden, so it has to be retaken or the screen starts
+    // sleeping again halfway through the session with the button still cheerfully reading ON.
+    if (wakeLock === null && document.getElementById('wake').textContent.indexOf('ON') >= 0) toggleWake();
+  });
+
+  window.poll = poll;   // so a button press can refresh immediately instead of waiting for the next tick
+
+  // The text filters redraw from what is already held, so typing never refetches.
+  document.getElementById('logsearch').addEventListener('input', drawLog);
+  document.getElementById('tunsearch').addEventListener('input', drawTunables);
+
+  applyDev();           // DEV survives a reload, so a debugging session is not undone by a refresh
+  if (devOn) { pollLogs(); pollTunables(true); }
+
+  poll();
+  setInterval(poll, 500);   // 2 Hz. Nothing here needs to be faster; the data path is not this page.
+})();
+</script>
+
+</body>
+</html>
