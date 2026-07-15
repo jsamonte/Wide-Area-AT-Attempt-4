@@ -38,7 +38,8 @@ public class EyeAndHeadTracker : MonoBehaviour
     private float autoSaveIntervalSeconds = 15f;
 
     [Header("Combined JSON (your requested format)")]
-    [SerializeField] private bool alsoExportCombinedJson = true;
+    [Tooltip("If true, generates a massive combined JSON array. Recommended to leave FALSE and rely on the highly efficient .ndjson file to prevent lag spikes.")]
+    [SerializeField] private bool alsoExportCombinedJson = false;
 
     [Header("Optional Objects Tracking")]
     [SerializeField] private GameObject blueWireframeObject;
@@ -646,7 +647,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
             string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
             string json = JsonUtility.ToJson(root, true);
-            File.WriteAllText(summaryPath, json);
+            WriteTextAtomically(summaryPath, json);
 
             Debug.Log($"✅ Summary saved: {summaryPath}");
 
@@ -661,7 +662,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                 };
 
                 string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
-                File.WriteAllText(combinedPath, JsonUtility.ToJson(combined, true));
+                WriteTextAtomically(combinedPath, JsonUtility.ToJson(combined, true));
                 Debug.Log($"Combined tracking JSON saved: {combinedPath}");
             }
 
@@ -679,6 +680,21 @@ public class EyeAndHeadTracker : MonoBehaviour
     }
 
     public void ForceSaveNow() => SaveSessionData();
+
+    private void WriteTextAtomically(string path, string content)
+    {
+        string tempPath = path + ".tmp";
+        
+        // 1. Write the entire file to the temporary location safely
+        File.WriteAllText(tempPath, content);
+        
+        // 2. Once fully written, swap it with the main file
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+        File.Move(tempPath, path);
+    }
 
     private void OnDestroy()
     {
