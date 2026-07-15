@@ -215,7 +215,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             appStartTime = Time.realtimeSinceStartup;
             lastFrameTimestamp = appStartTime;
-            startTimeString = DateTime.Now.ToString("MM_dd_HH_mm");
+            startTimeString = DateTime.Now.ToString("MM_dd_HH_mm_ss");
 
             if (useEfficientRawLogging)
             {
@@ -269,7 +269,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         
         appStartTime = Time.realtimeSinceStartup;
         lastFrameTimestamp = appStartTime;
-        startTimeString = DateTime.Now.ToString("MM_dd_HH_mm");
+        startTimeString = DateTime.Now.ToString("MM_dd_HH_mm_ss");
 
         if (rawNdjsonWriter != null)
         {
@@ -627,7 +627,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         try
         {
             // Finalize numbers
-            if (performanceData.totalObjectsDestroyed == 0 && destructionEvents.Count > 0)
+            if (destructionEvents.Count > 0)
             {
                 performanceData.totalObjectsDestroyed = destructionEvents.Count;
                 performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
@@ -669,7 +669,6 @@ public class EyeAndHeadTracker : MonoBehaviour
             if (rawNdjsonWriter != null)
             {
                 rawNdjsonWriter.Flush();
-                rawNdjsonWriter.Close();
             }
         }
         catch (Exception ex)
