@@ -7493,6 +7493,7 @@ GameObject:
   m_Component:
   - component: {fileID: 969004514}
   - component: {fileID: 969004520}
+  - component: {fileID: 969004521}
   m_Layer: 0
   m_Name: ArUco
   m_TagString: Untagged
@@ -7522,7 +7523,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969004512}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb551df83ba85ae4588078da60b11483, type: 3}
   m_Name: 
@@ -7654,6 +7655,149 @@ MonoBehaviour:
   showAlignmentInfoText: 1
   textHeightAboveMarker: 0.12
   textColor: {r: 0, g: 1, b: 1, a: 1}
+  textWorldScale: 0.022
+  textFontSize: 72
+  emptyAnchorPrefab: {fileID: 6257280532679844328, guid: ad5091e4d9227ed4494995a42bc1036b,
+    type: 3}
+--- !u!114 &969004521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969004512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 775c123bfa4b1154cac717bb5a699a2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sharedPrefab: {fileID: 0}
+  preplacedBuildingRoot: {fileID: 4622167002792610358}
+  arucoMappings:
+  - arucoID: 2
+    virtualPinGO: {fileID: 8991155075104898400}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 4
+    virtualPinGO: {fileID: 375624228828973168}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 8
+    virtualPinGO: {fileID: 2017837621071980409}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 20
+    virtualPinGO: {fileID: 3104547888547252960}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 22
+    virtualPinGO: {fileID: 8006975251746756497}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 88
+    virtualPinGO: {fileID: 2511893735821597938}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 222
+    virtualPinGO: {fileID: 8573503715085078226}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 200
+    virtualPinGO: {fileID: 2473638644677475305}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 3
+    virtualPinGO: {fileID: 3450593806798750280}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 44
+    virtualPinGO: {fileID: 1788415923342651325}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 33
+    virtualPinGO: {fileID: 8975232792957717039}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 84
+    virtualPinGO: {fileID: 788272153911540643}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 202
+    virtualPinGO: {fileID: 6766275880117898678}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 82
+    virtualPinGO: {fileID: 8696155228255160932}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 80
+    virtualPinGO: {fileID: 9075924119303513502}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 48
+    virtualPinGO: {fileID: 1080546338}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 40
+    virtualPinGO: {fileID: 6619502580929425742}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  - arucoID: 30
+    virtualPinGO: {fileID: 1439731116}
+    offsetX: 0
+    offsetY: 0
+    offsetZ: 0
+    rotationOffset: {x: 0, y: 0, z: 0}
+  arucoDictionary: 6
+  arucoPhysicalLengthMeters: 0.1016
+  estimateArucoLength: 0
+  visibleHoldSeconds: 0.75
+  poseAverageSeconds: 0.25
+  minSamplesForRelocalize: 2
+  freshLockSeconds: 0.2
+  requiredDwellSeconds: 2
+  enableControllerAdjustment: 0
+  offsetAdjustSpeed: 0.8
+  rotationAdjustSpeed: 45
+  inputDeadzone: 0.12
+  enableZAxisRotation: 0
+  showAlignmentInfoText: 0
+  textHeightAboveMarker: 0.12
+  textColor: {r: 0.5294118, g: 0, b: 1, a: 1}
   textWorldScale: 0.022
   textFontSize: 72
   emptyAnchorPrefab: {fileID: 6257280532679844328, guid: ad5091e4d9227ed4494995a42bc1036b,
@@ -40410,7 +40554,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!33 &5854826166975323036
 MeshFilter:
   m_ObjectHideFlags: 0
