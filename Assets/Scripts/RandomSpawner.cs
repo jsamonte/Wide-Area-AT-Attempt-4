@@ -332,7 +332,9 @@ public class RandomSpawner : MonoBehaviour
 
     private void SpawnAndConfigure(GameObject prefab, Vector3 position, Quaternion rotation, string tagToApply, string layerToApply, bool rotate90, bool alignBottomToPosition)
     {
-        GameObject spawnedObj = Instantiate(prefab, position, rotation);
+        // Multiply the spawn point's rotation by the prefab's native rotation to preserve it
+        Quaternion finalRotation = rotation * prefab.transform.rotation;
+        GameObject spawnedObj = Instantiate(prefab, position, finalRotation);
         
         // Only apply the 90-degree rotation fix if requested (usually just for flat targets)
         if (rotate90)
