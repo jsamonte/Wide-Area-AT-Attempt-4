@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trial server dashboard</title>
+<style>
+  :root { --bg:#111417; --card:#1b2026; --line:#2c333b; --text:#e8edf2; --dim:#8b98a5;
+          --ok:#3fb950; --bad:#f85149; --warn:#d29922; --rec:#f85149; --sel:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);
+       margin:0 0 10px; font-weight:600; }
+  .sub { color:var(--dim); font-size:13px; margin-bottom:16px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:12px;
+         padding:5px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .row:last-child { border-bottom:0; }
+  .k { color:var(--dim); }
+  .v { font-variant-numeric:tabular-nums; font-weight:600; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px;
+         vertical-align:middle; background:var(--bad); }
+  .dot.ok { background:var(--ok); }
+  .dot.warn { background:var(--warn); }
+  .state { font-size:26px; font-weight:700; letter-spacing:.02em; }
+  .state.rec { color:var(--rec); animation:blink 1s steps(1,end) infinite; }
+  .state.idle { color:var(--ok); }
+  .state.ready { color:var(--warn); }
+  @keyframes blink { 50% { opacity:.35; } }
+  .stale { background:rgba(210,153,34,.12); border:1px solid var(--warn); color:#f0cd7a;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .stale.hidden { display:none; }
+
+  /* The outcome of the last command. This is where a refusal finally becomes visible: the reasons are
+     written by the bridge, and without this they would only reach logcat on a headset with no PC attached. */
+  .msg { border-radius:8px; padding:9px 12px; margin-top:10px; font-size:13px; line-height:1.4;
+         border:1px solid var(--line); background:#0d1116; }
+  .msg.hidden { display:none; }
+  .msg.ok { border-color:var(--ok); color:#8ee79b; }
+  .msg.warn { border-color:var(--warn); color:#f0cd7a; }
+  .msg.error { border-color:var(--bad); color:#ffb4b0; background:rgba(248,81,73,.10); }
+  a { color:#58a6ff; }
+  ul { margin:0; padding-left:18px; }
+  .note { color:var(--dim); font-size:12px; margin-top:10px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { background:#252c34; border:1px solid var(--line); color:var(--text); border-radius:7px;
+         padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn:active { transform:translateY(1px); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.go { background:rgba(63,185,80,.16); border-color:var(--ok); color:var(--ok); }
+  .btn.sel { border-color:var(--sel); color:var(--sel); background:rgba(88,166,255,.16); }
+  .btn.dev { border-color:#8957e5; color:#c4a3ff; }
+  .btn.dev.on { background:rgba(137,87,229,.18); }
+  .seqbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .startbtn { width:100%; margin-top:4px; padding:15px; font-size:16px; }
+  .idrow { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .idrow input { flex:1; min-width:120px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+                 border-radius:7px; padding:9px 10px; font-size:14px; }
+
+  /* DEV mode. Hidden on run day: the normal view stays the calm thing a researcher operates with a
+     participant present. DEV replaces sitting in a terminal running adb logcat, which is not available on
+     run day anyway (no PC on the headset). */
+  #devPanel.hidden { display:none; }
+  #devPanel { margin-top:20px; border-top:2px solid #8957e5; padding-top:16px; }
+  .devhead { color:#c4a3ff; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+             font-weight:700; margin-bottom:12px; }
+  #logbox { background:#0b0e12; border:1px solid var(--line); border-radius:8px; padding:10px;
+            height:52vh; overflow-y:auto; font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .ln { white-space:pre-wrap; word-break:break-word; padding:1px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+  .ln .t { color:#5c6773; }
+  .ln .tg { color:#58a6ff; font-weight:600; }
+  .ln.warn { color:#f0cd7a; }
+  .ln.error { color:#ff9a94; background:rgba(248,81,73,.07); }
+  .filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+  .f { background:#252c34; border:1px solid var(--line); color:var(--dim); border-radius:999px;
+       padding:4px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+  .f.on { border-color:#58a6ff; color:#58a6ff; background:rgba(88,166,255,.12); }
+  .search { flex:1; min-width:140px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+            border-radius:7px; padding:7px 10px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<h1>Trial server dashboard</h1>
+<div class="sub" id="conn">connecting...</div>
+<div class="btns" style="margin-bottom:14px">
+  <button class="btn" id="wake" onclick="toggleWake()">Keep this screen awake: OFF</button>
+  <button class="btn dev" id="devbtn" onclick="toggleDev()">DEV: OFF</button>
+</div>
+
+<div class="stale hidden" id="staleBox">
+  <strong>No update from the headset.</strong> The last status is <span id="staleAge">?</span>s old.
+  The recording is unaffected (his gaze JSON does not go through this page), but this view is stale.
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>Trial</h2>
+    <div class="row"><span class="k">Phase</span><span class="state idle v" id="phase">-</span></div>
+    <div class="row"><span class="k">Sequence</span><span class="v" id="sequence">-</span></div>
+    <div class="row"><span class="k">Trial</span><span class="v" id="number">-</span></div>
+    <div class="row"><span class="k">Pool</span><span class="v" id="pool">-</span></div>
+    <div class="row"><span class="k">Wireframe</span><span class="v" id="wireframe">-</span></div>
+    <div class="row"><span class="k">Time of day</span><span class="v" id="tod">-</span></div>
+    <div class="note">Pool, wireframe and time of day are read from his sequence tables. If they read a dash
+      while a trial is queued, the reflection into those private fields could not bind (the log says so once).</div>
+  </div>
+
+  <div class="card">
+    <h2>Live</h2>
+    <div class="row"><span class="k">Recording</span><span class="v" id="recording">-</span></div>
+    <div class="row"><span class="k">Trial time</span><span class="v" id="trialTime">-</span></div>
+    <div class="row"><span class="k">Targets remaining</span><span class="v" id="remaining">-</span></div>
+    <div class="row"><span class="k">Targets destroyed</span><span class="v" id="destroyed">-</span></div>
+    <div class="note">Straight off his EyeAndHeadTracker. Trial time reads 0 whenever he is not recording.</div>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+
+    <!-- One sequence, picked once. His SequenceManager ignores a second selection, so these lock after the
+         first pick; restart the app to choose another. -->
+    <div class="seqbtns" id="seqbtns">
+      <button class="btn" onclick="selectSequence(0)">Sequence 1</button>
+      <button class="btn" onclick="selectSequence(1)">Sequence 2</button>
+      <button class="btn" onclick="selectSequence(2)">Sequence 3</button>
+      <button class="btn" onclick="selectSequence(3)">Sequence 4</button>
+    </div>
+
+    <!-- Approve/start the queued trial. The tutorial runs on its own after a sequence is picked; this button
+         is for the numbered trials, and it only lights when one is actually waiting for approval. -->
+    <button class="btn go startbtn" id="startbtn" onclick="startTrial()" disabled>Start trial</button>
+
+    <div class="idrow">
+      <input id="in_mark" placeholder="note an event (lands in his gaze JSON)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')markEvent()">
+      <button class="btn" onclick="markEvent()">Mark</button>
+    </div>
+
+    <div class="msg hidden" id="msgbox"></div>
+
+    <div class="note">A command returns 202 the instant the headset hears it, which is not the same as it
+      running. Watch the Phase above change: that, not the button, is the confirmation. If a command is
+      refused, the reason appears in the box right here.</div>
+  </div>
+
+  <div class="card">
+    <h2>Readiness</h2>
+    <div class="row"><span class="k">Eye permission</span><span class="v" id="r_eyeperm">-</span></div>
+    <div class="row"><span class="k">Gaze manager</span><span class="v" id="r_gaze">-</span></div>
+    <div class="row"><span class="k">Tracker</span><span class="v" id="r_tracker">-</span></div>
+    <div class="note">All three green means a trial can record. Eye permission missing produces a
+      healthy-looking but worthless file; a missing tracker means nothing is being written at all.</div>
+  </div>
+
+</div>
+
+<!-- DEV MODE. Read-only. The log stream is the whole point: on run day there is no PC tethered to the
+     headset, so `adb logcat -s Unity | Select-String "\[SERVER\]"` is not available. The tag buttons are the
+     same filter, from a phone, built from the tags the app is actually logging. The session files list is
+     here too, for pulling his gaze JSON off the headset without adb. -->
+<div id="devPanel" class="hidden">
+  <div class="devhead">Dev mode (read-only)</div>
+
+  <div class="filters" id="logfilters"></div>
+  <div class="filters">
+    <input class="search" id="logsearch" placeholder="filter text (e.g. BRIDGE, refused, bound)" autocomplete="off">
+    <button class="f on" id="f_follow" onclick="toggleFollow()">Follow</button>
+    <button class="f" onclick="clearLog()">Clear view</button>
+  </div>
+  <div id="logbox"><div class="ln"><span class="t">waiting for log lines...</span></div></div>
+  <div class="note" id="lognote"></div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Gaze session files on the headset</h2>
+    <ul id="files"><li class="k">none yet</li></ul>
+    <div class="btns"><a class="btn" id="zipall" href="/api/files/zip">Download all (zip)</a></div>
+    <div class="note">Downloading from here is a convenience. The authoritative pull at the end of a session
+      is still <code>adb pull</code> of his persistent data directory.</div>
+  </div>
+</div>
+
+<script>
+// The server ACCEPTS a command (202) and runs it on Unity's main thread a frame later. So a 202 means
+// "heard you", never "done". The bridge reports the real outcome (accepted or refused) into the status blob,
+// and the OUTCOME appears in the message box below the buttons. This line only reports what it truly knows:
+// that the headset received the bytes.
+function post(path, body) {
+  var note = document.getElementById('msgbox');
+  return fetch(path, { method: 'POST', body: body === undefined ? '' : body })
+    .then(function (r) {
+      // The command runs on Unity's next frame. Poll straight away (and again shortly after) rather than
+      // waiting up to 500 ms for the next scheduled tick.
+      setTimeout(poll, 60);
+      setTimeout(poll, 400);
+    })
+    .catch(function (e) {
+      note.className = 'msg error';
+      note.textContent = 'Could not reach the headset: ' + e;
+    });
+}
+
+// His SequenceManager takes a 0-based sequence index; the bridge parses the raw body as an int, so send the
+// number itself, not JSON.
+function selectSequence(i) { post('/api/trial/sequence', String(i)); }
+
+function startTrial() { post('/api/trial/start'); }
+
+// The bridge uses the raw body as the marker text, so send the plain string.
+function markEvent() {
+  var el = document.getElementById('in_mark');
+  var text = el.value.trim();
+  if (!text) { return; }
+  post('/api/trial/mark', text).then(function () { el.value = ''; });
+}
+
+// Phones lock their screen after ~30 s. For a long session that means constantly waking the phone just to
+// see the panel. Wake Lock needs a user gesture, so it is a button. It is dropped whenever the page is
+// hidden, hence the re-request on visibilitychange below.
+var wakeLock = null;
+
+function setWakeLabel() {
+  document.getElementById('wake').textContent = 'Keep this screen awake: ' + (wakeLock ? 'ON' : 'OFF');
+}
+
+function toggleWake() {
+  if (!('wakeLock' in navigator)) {
+    document.getElementById('wake').textContent = 'Screen wake lock not supported by this browser';
+    return;
+  }
+  if (wakeLock) { wakeLock.release(); wakeLock = null; setWakeLabel(); return; }
+
+  navigator.wakeLock.request('screen').then(function (lock) {
+    wakeLock = lock;
+    lock.addEventListener('release', function () { wakeLock = null; setWakeLabel(); });
+    setWakeLabel();
+  }).catch(function (e) {
+    document.getElementById('wake').textContent = 'Could not keep the screen awake: ' + e.message;
+  });
+}
+
+(function () {
+  var lastOk = 0;
+
+  function txt(id, s) { document.getElementById(id).textContent = s; }
+
+  function flag(id, good, goodText, badText) {
+    var el = document.getElementById(id);
+    el.innerHTML = '<span class="dot ' + (good ? 'ok' : '') + '"></span>' + (good ? goodText : badText);
+  }
+
+  function n(v, digits, unit) {
+    if (v === null || v === undefined) return '-';
+    return v.toFixed(digits === undefined ? 1 : digits) + (unit || '');
+  }
+
+  function render(d) {
+    var t = d.trial || {};
+    var phase = t.phase || '-';
+
+    var el = document.getElementById('phase');
+    el.textContent = phase === 'Recording' ? 'RECORDING' : phase.toUpperCase();
+    el.className = 'state v ' + (phase === 'Recording' ? 'rec' : phase === 'Ready' ? 'ready' : 'idle');
+
+    txt('sequence', t.sequence ? ('Sequence ' + t.sequence) : '(none picked)');
+    txt('number', t.number ? (t.number + ' of ' + t.total) : '-');
+    txt('pool', t.pool ? String(t.pool) : '-');
+    txt('wireframe', t.pool ? (t.wireframe ? 'ON' : 'off') : '-');
+    txt('tod', t.timeOfDay || '-');
+
+    var lv = d.live || {};
+    document.getElementById('recording').innerHTML =
+      '<span class="dot ' + (lv.recording ? 'ok' : '') + '"></span>' + (lv.recording ? 'recording' : 'idle');
+    txt('trialTime', n(lv.trialTime, 1, ' s'));
+    txt('remaining', lv.targetsRemaining === undefined ? '-' : String(lv.targetsRemaining));
+    txt('destroyed', lv.destroyed === undefined ? '-' : String(lv.destroyed));
+
+    // Sequence buttons lock once a sequence is picked (phase leaves Menu). Highlight the chosen one.
+    var seqEnabled = phase === 'Menu';
+    var seqEls = document.getElementById('seqbtns').children;
+    for (var i = 0; i < seqEls.length; i++) {
+      seqEls[i].disabled = !seqEnabled;
+      seqEls[i].classList.toggle('sel', (t.sequence === i + 1));
+    }
+
+    // Start only lights when a numbered trial is actually queued (Ready).
+    var startBtn = document.getElementById('startbtn');
+    startBtn.disabled = phase !== 'Ready';
+    startBtn.textContent = phase === 'Ready'
+      ? ('Start Trial ' + t.number + (t.pool ? ' (' + (t.timeOfDay || '?') + ' - Pool ' + t.pool + ')' : ''))
+      : 'Start trial';
+
+    // The outcome of the last command, refusals included. Ages out after 20 s: a reason still sitting under a
+    // button you pressed ten minutes ago reads as a fresh refusal of the one you just pressed.
+    var m = d.msg || {};
+    var msg = document.getElementById('msgbox');
+    var showMsg = m.text && m.age < 20;
+    msg.className = 'msg ' + (showMsg ? (m.level || 'ok') : 'hidden');
+    if (showMsg) msg.textContent = m.text;
+
+    var r = d.ready || {};
+    flag('r_eyeperm', r.eyePermission, 'granted', 'denied');
+    flag('r_gaze', r.gazeManager, 'present', 'MISSING');
+    flag('r_tracker', r.tracker, 'present', 'MISSING');
+
+    var s = d.server || {};
+    txt('conn', 'headset ' + (s.ip || '(usb tether)') + ':' + s.port + '  |  updated ' + new Date().toLocaleTimeString());
+
+    if (devOn) txt('lognote', (d.logLines || 0) + ' lines logged on the headset since launch. Showing ' + logLines.length + '.');
+  }
+
+  // ---- DEV MODE ------------------------------------------------------------------------------------
+  // Read-only. On run day, with no PC tethered to the headset, the log stream is how you answer "did the
+  // bridge bind to the study, and why was that command refused" from the phone already in your hand.
+
+  var devOn = localStorage.getItem('dev') === '1';
+
+  window.toggleDev = function () {
+    devOn = !devOn;
+    localStorage.setItem('dev', devOn ? '1' : '0');
+    applyDev();
+    if (devOn) { pollLogs(); pollFiles(true); }
+  };
+
+  function applyDev() {
+    document.getElementById('devPanel').classList.toggle('hidden', !devOn);
+    var b = document.getElementById('devbtn');
+    b.textContent = 'DEV: ' + (devOn ? 'ON' : 'OFF');
+    b.classList.toggle('on', devOn);
+  }
+
+  // ---- Log stream ----------------------------------------------------------------------------------
+  // Cursor-based: ask for everything since the last sequence number seen, so lines are never fetched twice
+  // and never skipped. If the headset ring wrapped while we were away it reports how many lines dropped, and
+  // we say so rather than presenting a log with a silent hole in it. Tags are derived from the lines
+  // themselves, so the filter buttons are always whatever the app is actually logging.
+
+  var logCursor = 0;
+  var logTag = '';          // '' = all subsystems
+  var logFollow = true;
+  var logLines = [];        // held client-side so the text filter can re-apply without refetching
+  var MAX_HELD = 1500;
+  var knownTags = [];
+
+  window.toggleFollow = function () {
+    logFollow = !logFollow;
+    document.getElementById('f_follow').classList.toggle('on', logFollow);
+  };
+
+  window.clearLog = function () { logLines = []; drawLog(); };
+
+  window.setLogTag = function (tg) {
+    logTag = tg;
+    // The server filters by tag, so switching tags means re-reading the ring from the start rather than
+    // continuing the cursor: otherwise only NEW lines of that tag would show and the history would look
+    // empty, which reads as "this subsystem is silent" when it is not.
+    logCursor = 0;
+    logLines = [];
+    drawTagFilters();
+    pollLogs();
+  };
+
+  function drawTagFilters() {
+    var html = '<button class="f' + (logTag === '' ? ' on' : '') + '" onclick="setLogTag(\'\')">ALL</button>';
+    knownTags.forEach(function (tg) {
+      html += '<button class="f' + (logTag === tg ? ' on' : '') + '" onclick="setLogTag(\'' + tg + '\')">' + tg + '</button>';
+    });
+    document.getElementById('logfilters').innerHTML = html;
+  }
+
+  function pollLogs() {
+    if (!devOn) return;
+
+    fetch('/api/logs?max=300&since=' + logCursor + (logTag ? '&tag=' + encodeURIComponent(logTag) : ''),
+          { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        logCursor = d.cursor;
+
+        if (d.dropped > 0) {
+          logLines.push({ seq: -1, type: 'warn', tag: '', t: 0,
+                          msg: '... ' + d.dropped + ' line(s) dropped: the headset ring buffer wrapped before this page read them.' });
+        }
+        if (d.lines.length) {
+          logLines = logLines.concat(d.lines);
+          // Derive tag filter buttons from what has actually been logged.
+          var changed = false;
+          d.lines.forEach(function (l) {
+            if (l.tag && knownTags.indexOf(l.tag) < 0) { knownTags.push(l.tag); changed = true; }
+          });
+          if (changed) { knownTags.sort(); drawTagFilters(); }
+        }
+        if (logLines.length > MAX_HELD) logLines = logLines.slice(logLines.length - MAX_HELD);
+
+        if (d.lines.length || d.dropped) drawLog();
+      })
+      .catch(function () {});
+  }
+
+  function drawLog() {
+    var box = document.getElementById('logbox');
+    var q = document.getElementById('logsearch').value.trim().toLowerCase();
+
+    var html = logLines.filter(function (l) {
+      return !q || l.msg.toLowerCase().indexOf(q) >= 0 || (l.tag || '').toLowerCase().indexOf(q) >= 0;
+    }).map(function (l) {
+      return '<div class="ln ' + l.type + '"><span class="t">' + l.t.toFixed(1) + 's</span> ' +
+             (l.tag ? '<span class="tg">[' + esc(l.tag) + ']</span> ' : '') + esc(l.msg) + '</div>';
+    }).join('');
+
+    box.innerHTML = html || '<div class="ln"><span class="t">no lines match.</span></div>';
+    if (logFollow) box.scrollTop = box.scrollHeight;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ---- Session files -------------------------------------------------------------------------------
+  // Listing recurses his persistent data directory ON THE HEADSET. Doing that twice a second is real disk
+  // work for a list that changes once per trial. Every 5 s, redrawn only when it changed, and only while DEV
+  // is open (the list lives in the DEV panel).
+
+  var lastFilesJson = '';
+  var filesTimer = 0;
+
+  function pollFiles(force) {
+    if (!devOn) return;
+    if (!force && Date.now() - filesTimer < 5000) return;
+    filesTimer = Date.now();
+
+    fetch('/api/files', { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        if (text === lastFilesJson) return;
+        lastFilesJson = text;
+        var d = JSON.parse(text);
+
+        var ul = document.getElementById('files');
+        if (!d.files.length) { ul.innerHTML = '<li class="k">none yet</li>'; return; }
+
+        ul.innerHTML = d.files.map(function (f) {
+          return '<li><a href="/api/file?name=' + encodeURIComponent(f.path) + '">' + esc(f.name) + '</a>' +
+                 ' <span class="k">(' + (f.bytes / 1024).toFixed(0) + ' KB)</span></li>';
+        }).join('');
+      })
+      .catch(function () {});
+  }
+
+  function poll() {
+    fetch('/api/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { lastOk = Date.now(); render(d); })
+      .catch(function () { /* handled by the staleness check */ });
+
+    // Only when DEV is open. With it closed the page costs exactly what it always did, so the run-day
+    // dashboard is not paying for a log stream nobody is reading.
+    if (devOn) { pollLogs(); pollFiles(false); }
+  }
+
+  // Staleness is checked on the CLIENT clock, not the server's. A dashboard that silently keeps showing the
+  // last good numbers after the headset drops is worse than one that shows nothing.
+  setInterval(function () {
+    var age = (Date.now() - lastOk) / 1000;
+    var stale = lastOk > 0 && age > 3;
+    document.getElementById('staleBox').classList.toggle('hidden', !stale);
+    if (stale) txt('staleAge', age.toFixed(0));
+    if (lastOk === 0) txt('conn', 'no response from the headset yet');
+  }, 1000);
+
+  // Phones freeze background JS timers when the screen locks or you switch apps. On return, lastOk is minutes
+  // old and the staleness check would scream that the headset died when nothing happened. A false alarm
+  // mid-session is the alarm you learn to ignore.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    lastOk = Date.now();                                  // do not judge the link on a timer that was frozen
+    document.getElementById('staleBox').classList.add('hidden');
+    filesTimer = 0;
+    poll();                                               // re-establish the truth immediately
+
+    // The browser silently drops the wake lock while hidden, so it has to be retaken or the screen starts
+    // sleeping again halfway through the session with the button still reading ON.
+    if (wakeLock === null && document.getElementById('wake').textContent.indexOf('ON') >= 0) toggleWake();
+  });
+
+  window.poll = poll;   // so a button press can refresh immediately instead of waiting for the next tick
+
+  // The text filter redraws from what is already held, so typing never refetches.
+  document.getElementById('logsearch').addEventListener('input', drawLog);
+
+  applyDev();           // DEV survives a reload, so a debugging session is not undone by a refresh
+  if (devOn) { pollLogs(); pollFiles(true); }
+
+  poll();
+  setInterval(poll, 500);   // 2 Hz. Nothing here needs to be faster; the data path is not this page.
+})();
+</script>
+
+</body>
+</html>

@@ -10,6 +10,7 @@
     </activity>
   </application>
   <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="com.magicleap.permission.MARKER_TRACKING" />
   <uses-permission android:name="com.magicleap.permission.EYE_TRACKING" />
   <uses-permission android:name="com.magicleap.permission.SPATIAL_ANCHOR" />
