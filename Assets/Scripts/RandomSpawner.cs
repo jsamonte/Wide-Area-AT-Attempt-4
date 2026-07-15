@@ -191,7 +191,7 @@ public class RandomSpawner : MonoBehaviour
             for (int i = 0; i < targetCount; i++)
             {
                 Transform spawnPoint = shuffledLocations[i];
-                SpawnAndConfigure(targetPrefab, spawnPoint.position, spawnPoint.rotation, "DwellDestroyTarget", targetLayer, true, false);
+                SpawnAndConfigure(targetPrefab, spawnPoint.position, spawnPoint.rotation, "DwellDestroyTarget", targetLayer, false);
             }
 
             // 3. Spawn Recall Objects
@@ -212,8 +212,7 @@ public class RandomSpawner : MonoBehaviour
                 // Pick the next unique recall object (we know recallObjectCount <= shuffledRecallObjects.Count)
                 int recallObjectIndex = i - targetCount;
                 GameObject recallObjectToSpawn = shuffledRecallObjects[recallObjectIndex];
-
-                SpawnAndConfigure(recallObjectToSpawn, spawnPoint.position, spawnPoint.rotation, "Untagged", recallObjectLayer, false, false);
+                SpawnAndConfigure(recallObjectToSpawn, spawnPoint.position, spawnPoint.rotation, "Untagged", recallObjectLayer, false);
             }
         }
         else if (currentSpawnMode == SpawnMode.Planes)
@@ -313,7 +312,7 @@ public class RandomSpawner : MonoBehaviour
             for (int i = 0; i < targetCount && spawnIndex < validPoints.Count; i++, spawnIndex++)
             {
                 Vector3 pos = validPoints[spawnIndex] + Vector3.up * spawnHeightOffset;
-                SpawnAndConfigure(targetPrefab, pos, Quaternion.identity, "DwellDestroyTarget", targetLayer, true, true);
+                SpawnAndConfigure(targetPrefab, pos, Quaternion.identity, "DwellDestroyTarget", targetLayer, true);
             }
 
             // Spawn Recall Objects
@@ -321,7 +320,7 @@ public class RandomSpawner : MonoBehaviour
             {
                 Vector3 pos = validPoints[spawnIndex] + Vector3.up * spawnHeightOffset;
                 GameObject recallObj = shuffledRecallObjects[i % shuffledRecallObjects.Count];
-                SpawnAndConfigure(recallObj, pos, Quaternion.identity, "Untagged", recallObjectLayer, false, true);
+                SpawnAndConfigure(recallObj, pos, Quaternion.identity, "Untagged", recallObjectLayer, true);
             }
         }
 
@@ -330,17 +329,11 @@ public class RandomSpawner : MonoBehaviour
         Physics.SyncTransforms();
     }
 
-    private void SpawnAndConfigure(GameObject prefab, Vector3 position, Quaternion rotation, string tagToApply, string layerToApply, bool rotate90, bool alignBottomToPosition)
+    private void SpawnAndConfigure(GameObject prefab, Vector3 position, Quaternion rotation, string tagToApply, string layerToApply, bool alignBottomToPosition)
     {
-        // Multiply the spawn point's rotation by the prefab's native rotation to preserve it
-        Quaternion finalRotation = rotation * prefab.transform.rotation;
+        // Ignore the placeholder's rotation entirely to guarantee it matches the prefab viewer exactly
+        Quaternion finalRotation = prefab.transform.rotation;
         GameObject spawnedObj = Instantiate(prefab, position, finalRotation);
-        
-        // Only apply the 90-degree rotation fix if requested (usually just for flat targets)
-        if (rotate90)
-        {
-            spawnedObj.transform.Rotate(90f, 0f, 0f, Space.Self);
-        }
 
         // Parent it to this GameObject for a clean hierarchy
         spawnedObj.transform.SetParent(transform);
