@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &7931061340547576529
+--- !u!1 &7954561608045066577
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,43 +8,43 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 980773403820981179}
-  - component: {fileID: 850282479878740411}
-  m_Layer: 0
+  - component: {fileID: 2600498974182387704}
+  - component: {fileID: 3926494947700111158}
+  m_Layer: 13
   m_Name: Digital Twin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &980773403820981179
+--- !u!4 &2600498974182387704
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7931061340547576529}
+  m_GameObject: {fileID: 7954561608045066577}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
---- !u!114 &850282479878740411
+  m_LocalEulerAnglesHint: {x: 180, y: 0, z: 180}
+--- !u!114 &3926494947700111158
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7931061340547576529}
+  m_GameObject: {fileID: 7954561608045066577}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ce0eaa90dbf24670a230447dc3ec09f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GsplatAsset: {fileID: 4599839170941234424, guid: 8ddac4747e422b641996af96fca47ba9,
+  GsplatAsset: {fileID: 4599839170941234424, guid: 85cf0c6b6f85f1f47b3da6b13c5da6f9,
     type: 3}
   SHDegree: 0
   RenderOrder: 0
@@ -57,4 +57,4 @@ MonoBehaviour:
   SortMode: 0
   SortRefreshRate: 1
   CutoutsRefreshRate: 1
-  m_assetGuid: 8ddac4747e422b641996af96fca47ba9
+  m_assetGuid: 85cf0c6b6f85f1f47b3da6b13c5da6f9
