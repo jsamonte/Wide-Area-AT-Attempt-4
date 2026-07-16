@@ -37,10 +37,6 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] [Tooltip("How often to silently save the JSON to disk to prevent data loss on crash (in seconds).")]
     private float autoSaveIntervalSeconds = 60f;
 
-    [Header("Combined JSON (your requested format)")]
-    [Tooltip("If true, generates a massive combined JSON array. Recommended to leave FALSE and rely on the highly efficient .ndjson file to prevent lag spikes.")]
-    [SerializeField] private bool alsoExportCombinedJson = false;
-
     [Header("Optional Objects Tracking")]
     [SerializeField] private GameObject blueWireframeObject;
     [SerializeField] private GameObject mapGameObject;
@@ -154,7 +150,6 @@ public class EyeAndHeadTracker : MonoBehaviour
     // ==================== PRIVATE STATE ====================
 
     private SessionMeta sessionMeta;
-    private List<TrackingFrame> trackingFrames = new List<TrackingFrame>();
     private List<DestructionEvent> destructionEvents = new List<DestructionEvent>();
     private SessionPerformanceData performanceData = new SessionPerformanceData();
     private string currentTrialName = "Tutorial";
@@ -256,13 +251,12 @@ public class EyeAndHeadTracker : MonoBehaviour
     public void StartNewTrialRecording(string trialName)
     {
         // Save old data before clearing
-        if (trackingFrames.Count > 0 || destructionEvents.Count > 0)
+        if (destructionEvents.Count > 0)
         {
             SaveSessionData();
         }
 
         currentTrialName = trialName;
-        trackingFrames.Clear();
         destructionEvents.Clear();
         destroyCount = 0;
         performanceData = new SessionPerformanceData();
@@ -391,9 +385,10 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (useEfficientRawLogging && rawNdjsonWriter != null)
             rawNdjsonWriter.WriteLine(JsonUtility.ToJson(frame));
-        
-        if (alsoExportCombinedJson || !useEfficientRawLogging)
-            trackingFrames.Add(frame);
+        else if (!useEfficientRawLogging)
+        {
+            Debug.LogWarning("EyeAndHeadTracker: useEfficientRawLogging is false, but in-memory logging has been removed. Please enable useEfficientRawLogging!");
+        }
     }
 
     private EyeTrackingData GetEyeTrackingData()
@@ -660,16 +655,6 @@ public class EyeAndHeadTracker : MonoBehaviour
                 ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson" : null;
             
             string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
-            
-            bool shouldExportCombined = alsoExportCombinedJson && trackingFrames.Count > 0;
-            string combinedPath = null;
-            List<TrackingFrame> trackingCopy = null;
-
-            if (shouldExportCombined)
-            {
-                combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
-                trackingCopy = new List<TrackingFrame>(trackingFrames);
-            }
 
             // Fire and forget background thread
             System.Threading.Tasks.Task.Run(() =>
@@ -687,20 +672,6 @@ public class EyeAndHeadTracker : MonoBehaviour
                     string json = JsonUtility.ToJson(root, true);
                     WriteTextAtomically(summaryPath, json);
                     Debug.Log($"✅ Summary saved in background: {summaryPath}");
-
-                    // 2. Save Combined JSON
-                    if (shouldExportCombined && trackingCopy != null)
-                    {
-                        var combined = new CombinedExportRoot
-                        {
-                            sessionMeta = metaCopy,
-                            trackingData = trackingCopy,
-                            destructionEvents = destructionCopy
-                        };
-                        string combinedJson = JsonUtility.ToJson(combined, true);
-                        WriteTextAtomically(combinedPath, combinedJson);
-                        Debug.Log($"Combined tracking JSON saved in background: {combinedPath}");
-                    }
                 }
                 catch (Exception ex)
                 {

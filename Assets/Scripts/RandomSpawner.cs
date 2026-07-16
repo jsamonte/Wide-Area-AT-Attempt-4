@@ -341,13 +341,22 @@ public class RandomSpawner : MonoBehaviour
         // Optional: Ensure the visual bottom of the object aligns with the spawn position
         if (alignBottomToPosition)
         {
-            Renderer[] renderers = spawnedObj.GetComponentsInChildren<Renderer>();
-            if (renderers.Length > 0)
+            Renderer[] allRenderers = spawnedObj.GetComponentsInChildren<Renderer>();
+            System.Collections.Generic.List<Renderer> validRenderers = new System.Collections.Generic.List<Renderer>();
+            foreach (Renderer r in allRenderers)
             {
-                Bounds bounds = renderers[0].bounds;
-                for (int i = 1; i < renderers.Length; i++)
+                if (r.gameObject.name.ToLower() != "sphere")
                 {
-                    bounds.Encapsulate(renderers[i].bounds);
+                    validRenderers.Add(r);
+                }
+            }
+
+            if (validRenderers.Count > 0)
+            {
+                Bounds bounds = validRenderers[0].bounds;
+                for (int i = 1; i < validRenderers.Count; i++)
+                {
+                    bounds.Encapsulate(validRenderers[i].bounds);
                 }
                 
                 float bottomY = bounds.min.y;
