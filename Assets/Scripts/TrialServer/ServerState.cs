@@ -7,8 +7,10 @@ namespace TrialServer
     {
         Menu,        // nothing selected yet; the operator picks one of the four sequences
         Tutorial,    // the four-gem cross is up; no numbered trial is recording
-        Ready,       // a trial is queued and waiting for the researcher to approve/start it
+        Ready,       // a trial is queued; the device Start button is DISABLED until the operator arms it
+        Armed,       // the operator approved the trial; the device Start button is live for the participant
         Recording,   // a numbered trial is live
+        Paused,      // a numbered trial is live but its recording is paused from the dashboard
         Done         // the sequence's four trials are finished
     }
 
@@ -28,14 +30,14 @@ namespace TrialServer
         /// <summary>1-based trial number the study is on (queued or recording). 0 before the first trial.</summary>
         public static int TrialNumber;
 
-        /// <summary>Total numbered trials in a sequence. His study is a fixed four.</summary>
+        /// <summary>Total numbered trials in a sequence. The study is a fixed four.</summary>
         public static int TotalTrials = 4;
 
-        /// <summary>Pool 1-4 for the current/queued trial, 0 when unknown (reflection into his private table
+        /// <summary>Pool 1-4 for the current/queued trial, 0 when unknown (reflection into the private table
         /// failed, or no trial is queued). Populated by the bridge via guarded reflection.</summary>
         public static int Pool;
 
-        /// <summary>Whether the current/queued trial has the wireframe overlay on. From his private table.</summary>
+        /// <summary>Whether the current/queued trial has the wireframe overlay on. From the private table.</summary>
         public static bool Wireframe;
 
         /// <summary>"Dusk" or "Night" for the current/queued trial (trials 0-1 Dusk, 2-3 Night), or "" if
@@ -44,6 +46,22 @@ namespace TrialServer
 
         /// <summary>Where the flow is. The bridge sets this as it drives the study.</summary>
         public static TrialPhase Phase = TrialPhase.Menu;
+
+        /// <summary>The dashboard's trial clock in seconds, published by the bridge each frame. Unlike the
+        /// tracker's own clock (which reads 0 while paused and counts paused time back in on resume), this
+        /// one FREEZES during a pause and excludes paused time afterward. Display only; whether the trial
+        /// rules should follow this clock or the tracker's is an open decision (see TRIAL_SERVER.md).</summary>
+        public static float TrialElapsed;
+
+        /// <summary>Soft trial time limit in seconds, for the dashboard's elapsed-vs-limit display and its
+        /// over-limit banner. Display only: nothing auto-ends a trial. The bridge publishes its serialized
+        /// field here once at startup so the value lives in one place the snapshot can read.</summary>
+        public static float TrialLimitSeconds = 20f * 60f;
+
+        /// <summary>Trials the operator flagged as bad, one entry per flag ("Trial 2: participant sneezed").
+        /// The authoritative record is the LogMarker line in the study's own gaze JSON; this list only exists
+        /// so the dashboard can keep showing the flags after a page reload.</summary>
+        public static readonly System.Collections.Generic.List<string> BadTrials = new System.Collections.Generic.List<string>();
 
         // ---- Operator feedback -------------------------------------------------------------------------
         //

@@ -2,6 +2,24 @@
 
 Captured at end of session. Raw list, prioritize tomorrow.
 
+**STATUS 2026-07-16: all items below are FIXED IN CODE or DOCUMENTED, none device-verified.**
+Items 1-8: written (arm model, end/pause/resume, bad-trial flags, 20-min limit banner, wording, condition
+label). Item 2 was NOT a control bug: sequence select correctly starts the study's TUTORIAL (4 gems +
+recording, the study's design); the dashboard now shows TUTORIAL as its own state. Items 9-11 + the docs
+section: written into `Assets/Scripts/TrialServer/TRIAL_SERVER.md` under "Notes for the study's maintainer"
+(9 and 10 are one fact: the eye permission was genuinely not granted, which is exactly why dwell did not
+fire). Next: build, deploy, walk the verification list.
+
+**SECOND DEVICE TEST 2026-07-16, addressed same day:** the paused trial clock now freezes on the page
+instead of blanking (whether the trial rules should use the page's pause-excluding clock or the tracker's
+pause-including one is flagged as an OPEN DECISION in TRIAL_SERVER.md). New findings documented for the
+colleague in TRIAL_SERVER.md ("Findings from the second device test"): no distance cap on dwell destroys
+(raycast is Mathf.Infinity; ~3 m rule needs a cap in EyeAndHeadTracker), dwell unreliability (zero-grace
+timer reset + stale gaze pose on tracking dropout + tiny angular size at range), tutorial gems not
+destroyable (ranked suspects: child-collider layer not propagated, RefreshTargetList count, the
+eyeRaycastHitObject diagnostic), and the sequence-flow design question (no confirm step before the tutorial
+auto-starts) to discuss with him. Server is otherwise ready for handoff prep.
+
 ## Behavior / control model
 1. **Server should only ARM a trial, not start it.** The dashboard "Start" must arm/approve the queued trial;
    the USER (participant) starts it on device. Rework the command + phase so operator = arm, participant =

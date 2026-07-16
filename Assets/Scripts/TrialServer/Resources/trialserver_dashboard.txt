@@ -29,10 +29,22 @@
   .state.rec { color:var(--rec); animation:blink 1s steps(1,end) infinite; }
   .state.idle { color:var(--ok); }
   .state.ready { color:var(--warn); }
+  .state.armed { color:var(--warn); animation:blink 1s steps(1,end) infinite; }
+  .state.tut { color:var(--sel); }
+  .state.paused { color:var(--dim); }
+  .cond { font-size:20px; font-weight:700; }
   @keyframes blink { 50% { opacity:.35; } }
   .stale { background:rgba(210,153,34,.12); border:1px solid var(--warn); color:#f0cd7a;
            border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
   .stale.hidden { display:none; }
+  .alarm { background:rgba(248,81,73,.14); border:1px solid var(--bad); color:#ffb4b0;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .alarm.hidden { display:none; }
+  .hidden { display:none !important; }
+  .btn.stop { border-color:var(--bad); color:#ffb4b0; background:rgba(248,81,73,.10); }
+  .btn.warn { border-color:var(--warn); color:#f0cd7a; }
+  .badlist { color:#f0cd7a; font-size:13px; margin-top:8px; }
+  .badlist li { padding:1px 0; }
 
   /* The outcome of the last command. This is where a refusal finally becomes visible: the reasons are
      written by the bridge, and without this they would only reach logcat on a headset with no PC attached. */
@@ -93,7 +105,22 @@
 
 <div class="stale hidden" id="staleBox">
   <strong>No update from the headset.</strong> The last status is <span id="staleAge">?</span>s old.
-  The recording is unaffected (his gaze JSON does not go through this page), but this view is stale.
+  The recording is unaffected (the study's gaze JSON does not go through this page), but this view is stale.
+</div>
+
+<!-- Denied eye permission is the failure that otherwise LOOKS fine: the app runs, the UI responds, but
+     dwell-destroy never fires and the gaze data is worthless. A quiet red dot in the Readiness card was too
+     easy to miss on device, so it screams up here instead. -->
+<div class="alarm hidden" id="eyeBox">
+  <strong>Eye tracking permission is NOT granted.</strong> Gems cannot be destroyed by gaze and the recorded
+  gaze data is empty. Accept the eye tracking popup on the headset (it appears after the photos/videos one)
+  before running anything.
+</div>
+
+<!-- The soft trial time limit. Display only, nothing auto-ends; the operator decides. -->
+<div class="alarm hidden" id="limitBox">
+  <strong>Trial over the time limit.</strong> This trial has run <span id="limitElapsed">?</span> of the
+  <span id="limitTotal">?</span> limit. Consider ending it from the Controls card.
 </div>
 
 <div class="grid">
@@ -101,29 +128,33 @@
   <div class="card">
     <h2>Trial</h2>
     <div class="row"><span class="k">Phase</span><span class="state idle v" id="phase">-</span></div>
+    <div class="row"><span class="k">Condition</span><span class="cond v" id="condition">-</span></div>
     <div class="row"><span class="k">Sequence</span><span class="v" id="sequence">-</span></div>
     <div class="row"><span class="k">Trial</span><span class="v" id="number">-</span></div>
     <div class="row"><span class="k">Pool</span><span class="v" id="pool">-</span></div>
-    <div class="row"><span class="k">Wireframe</span><span class="v" id="wireframe">-</span></div>
-    <div class="row"><span class="k">Time of day</span><span class="v" id="tod">-</span></div>
-    <div class="note">Pool, wireframe and time of day are read from his sequence tables. If they read a dash
-      while a trial is queued, the reflection into those private fields could not bind (the log says so once).</div>
+    <div class="note">The condition is (Dusk or Night) x (wireframe on or off), read from the study's own
+      sequence tables. If it reads a dash while a trial is queued, the reflection into those private fields
+      could not bind (the log says so once).</div>
   </div>
 
   <div class="card">
     <h2>Live</h2>
     <div class="row"><span class="k">Recording</span><span class="v" id="recording">-</span></div>
     <div class="row"><span class="k">Trial time</span><span class="v" id="trialTime">-</span></div>
+    <div class="row"><span class="k">Time limit</span><span class="v" id="limit">-</span></div>
     <div class="row"><span class="k">Targets remaining</span><span class="v" id="remaining">-</span></div>
     <div class="row"><span class="k">Targets destroyed</span><span class="v" id="destroyed">-</span></div>
-    <div class="note">Straight off his EyeAndHeadTracker. Trial time reads 0 whenever he is not recording.</div>
+    <div class="note">Targets are straight off the study's EyeAndHeadTracker. Trial time is this page's clock:
+      it freezes while paused and excludes paused time afterward. The tracker's own internal clock does NOT
+      exclude pauses; which one the trial rules should follow is an open decision (see TRIAL_SERVER.md).</div>
   </div>
 
   <div class="card">
     <h2>Controls</h2>
 
-    <!-- One sequence, picked once. His SequenceManager ignores a second selection, so these lock after the
-         first pick; restart the app to choose another. -->
+    <!-- One sequence, picked once. The study's SequenceManager ignores a second selection, so these lock
+         after the first pick; restart the app to choose another. Picking one starts the study's TUTORIAL
+         (4 practice gems) immediately, and the tutorial records: that is the study's design, not a trial. -->
     <div class="seqbtns" id="seqbtns">
       <button class="btn" onclick="selectSequence(0)">Sequence 1</button>
       <button class="btn" onclick="selectSequence(1)">Sequence 2</button>
@@ -131,15 +162,32 @@
       <button class="btn" onclick="selectSequence(3)">Sequence 4</button>
     </div>
 
-    <!-- Approve/start the queued trial. The tutorial runs on its own after a sequence is picked; this button
-         is for the numbered trials, and it only lights when one is actually waiting for approval. -->
-    <button class="btn go startbtn" id="startbtn" onclick="startTrial()" disabled>Start trial</button>
+    <!-- ARM, never start. Arming re-enables the Start button on the DEVICE; the participant is the one who
+         presses it. Until a trial is armed, this page holds that device button disabled. -->
+    <button class="btn go startbtn" id="armbtn" onclick="armTrial()" disabled>Arm trial</button>
+
+    <!-- In-trial controls. Pause/resume drive the tracker's own PauseRecording/ResumeRecording; End routes
+         through the study's own end-of-trial path and writes a MANUAL_END marker into the gaze JSON first. -->
+    <div class="btns" style="margin-top:8px">
+      <button class="btn warn" id="pausebtn" onclick="pauseTrial()" disabled>Pause</button>
+      <button class="btn" id="resumebtn" onclick="resumeTrial()" disabled>Resume</button>
+      <button class="btn stop" id="endbtn" onclick="endTrial()" disabled>End trial</button>
+    </div>
 
     <div class="idrow">
-      <input id="in_mark" placeholder="note an event (lands in his gaze JSON)" autocomplete="off"
+      <input id="in_mark" placeholder="note an event (lands in the gaze JSON)" autocomplete="off"
              onkeydown="if(event.key==='Enter')markEvent()">
       <button class="btn" onclick="markEvent()">Mark</button>
     </div>
+
+    <!-- Flag a spoiled run. The flag is a TRIAL_INVALID marker in the study's own gaze JSON, so the file
+         itself records that it should not be analyzed; the list below is just the session's tally. -->
+    <div class="idrow">
+      <input id="in_bad" placeholder="why the run is bad (e.g. tracking lost)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')flagBad()">
+      <button class="btn stop" id="badbtn" onclick="flagBad()" disabled>Flag BAD</button>
+    </div>
+    <ul class="badlist hidden" id="badlist"></ul>
 
     <div class="msg hidden" id="msgbox"></div>
 
@@ -162,7 +210,7 @@
 <!-- DEV MODE. Read-only. The log stream is the whole point: on run day there is no PC tethered to the
      headset, so `adb logcat -s Unity | Select-String "\[SERVER\]"` is not available. The tag buttons are the
      same filter, from a phone, built from the tags the app is actually logging. The session files list is
-     here too, for pulling his gaze JSON off the headset without adb. -->
+     here too, for pulling the study's gaze JSON off the headset without adb. -->
 <div id="devPanel" class="hidden">
   <div class="devhead">Dev mode (read-only)</div>
 
@@ -180,7 +228,7 @@
     <ul id="files"><li class="k">none yet</li></ul>
     <div class="btns"><a class="btn" id="zipall" href="/api/files/zip">Download all (zip)</a></div>
     <div class="note">Downloading from here is a convenience. The authoritative pull at the end of a session
-      is still <code>adb pull</code> of his persistent data directory.</div>
+      is still <code>adb pull</code> of the app's persistent data directory.</div>
   </div>
 </div>
 
@@ -204,11 +252,22 @@ function post(path, body) {
     });
 }
 
-// His SequenceManager takes a 0-based sequence index; the bridge parses the raw body as an int, so send the
-// number itself, not JSON.
+// The study's SequenceManager takes a 0-based sequence index; the bridge parses the raw body as an int, so
+// send the number itself, not JSON.
 function selectSequence(i) { post('/api/trial/sequence', String(i)); }
 
-function startTrial() { post('/api/trial/start'); }
+// Arming re-enables the device Start button so the PARTICIPANT starts the trial. This page never starts one
+// (/api/trial/start still exists on the server as a bring-up backdoor, deliberately unwired here).
+function armTrial() { post('/api/trial/arm'); }
+
+function pauseTrial() { post('/api/trial/pause'); }
+function resumeTrial() { post('/api/trial/resume'); }
+
+// Ending early is destructive to the run, so it confirms. It routes through the study's own end path.
+function endTrial() {
+  if (!confirm('End the current set early? A MANUAL_END marker is written to the gaze JSON.')) return;
+  post('/api/trial/end');
+}
 
 // The bridge uses the raw body as the marker text, so send the plain string.
 function markEvent() {
@@ -216,6 +275,12 @@ function markEvent() {
   var text = el.value.trim();
   if (!text) { return; }
   post('/api/trial/mark', text).then(function () { el.value = ''; });
+}
+
+// Flag the current (or just-finished) trial invalid; the bridge picks which trial the flag names.
+function flagBad() {
+  var el = document.getElementById('in_bad');
+  post('/api/trial/bad', el.value.trim()).then(function () { el.value = ''; });
 }
 
 // Phones lock their screen after ~30 s. For a long session that means constantly waking the phone just to
@@ -258,26 +323,49 @@ function toggleWake() {
     return v.toFixed(digits === undefined ? 1 : digits) + (unit || '');
   }
 
+  // One place turns a phase into its display class, so TUTORIAL reads as its own loud state and is never
+  // mistaken for a running trial (the tutorial spawns gems and records the moment a sequence is picked).
+  var PHASE_CLASS = { Recording: 'rec', Ready: 'ready', Armed: 'armed', Tutorial: 'tut', Paused: 'paused' };
+  var PHASE_TEXT = { Tutorial: 'TUTORIAL (not a trial)', Armed: 'ARMED - awaiting participant' };
+
+  function condLabel(t) {
+    if (!t.pool) return '-';
+    return (t.timeOfDay || '?') + ' + ' + (t.wireframe ? 'Wireframe' : 'No wireframe');
+  }
+
+  function mmss(s) {
+    var m = Math.floor(s / 60), r = Math.floor(s % 60);
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
   function render(d) {
     var t = d.trial || {};
     var phase = t.phase || '-';
 
     var el = document.getElementById('phase');
-    el.textContent = phase === 'Recording' ? 'RECORDING' : phase.toUpperCase();
-    el.className = 'state v ' + (phase === 'Recording' ? 'rec' : phase === 'Ready' ? 'ready' : 'idle');
+    el.textContent = PHASE_TEXT[phase] || phase.toUpperCase();
+    el.className = 'state v ' + (PHASE_CLASS[phase] || 'idle');
 
+    txt('condition', condLabel(t));
     txt('sequence', t.sequence ? ('Sequence ' + t.sequence) : '(none picked)');
     txt('number', t.number ? (t.number + ' of ' + t.total) : '-');
     txt('pool', t.pool ? String(t.pool) : '-');
-    txt('wireframe', t.pool ? (t.wireframe ? 'ON' : 'off') : '-');
-    txt('tod', t.timeOfDay || '-');
 
     var lv = d.live || {};
     document.getElementById('recording').innerHTML =
       '<span class="dot ' + (lv.recording ? 'ok' : '') + '"></span>' + (lv.recording ? 'recording' : 'idle');
-    txt('trialTime', n(lv.trialTime, 1, ' s'));
+    txt('trialTime', n(lv.trialTime, 1, ' s') + (phase === 'Paused' ? ' (paused)' : ''));
     txt('remaining', lv.targetsRemaining === undefined ? '-' : String(lv.targetsRemaining));
     txt('destroyed', lv.destroyed === undefined ? '-' : String(lv.destroyed));
+
+    // Elapsed vs the soft limit, and the over-limit banner. Only judged while a numbered trial is up: the
+    // tutorial's clock also runs but the limit is a trial rule. Display only; nothing auto-ends.
+    var limit = t.limit || 0;
+    var inTrial = phase === 'Recording' || phase === 'Paused';
+    txt('limit', limit ? (inTrial ? (mmss(lv.trialTime || 0) + ' / ' + mmss(limit)) : mmss(limit)) : '-');
+    var over = inTrial && limit > 0 && (lv.trialTime || 0) > limit;
+    document.getElementById('limitBox').classList.toggle('hidden', !over);
+    if (over) { txt('limitElapsed', mmss(lv.trialTime)); txt('limitTotal', mmss(limit)); }
 
     // Sequence buttons lock once a sequence is picked (phase leaves Menu). Highlight the chosen one.
     var seqEnabled = phase === 'Menu';
@@ -287,12 +375,28 @@ function toggleWake() {
       seqEls[i].classList.toggle('sel', (t.sequence === i + 1));
     }
 
-    // Start only lights when a numbered trial is actually queued (Ready).
-    var startBtn = document.getElementById('startbtn');
-    startBtn.disabled = phase !== 'Ready';
-    startBtn.textContent = phase === 'Ready'
-      ? ('Start Trial ' + t.number + (t.pool ? ' (' + (t.timeOfDay || '?') + ' - Pool ' + t.pool + ')' : ''))
-      : 'Start trial';
+    // Arm only lights when a numbered trial is queued (Ready). While Armed it reads as the handoff to the
+    // participant rather than going quietly gray.
+    var armBtn = document.getElementById('armbtn');
+    armBtn.disabled = phase !== 'Ready';
+    armBtn.textContent =
+      phase === 'Ready' ? ('Arm Trial ' + t.number + (t.pool ? ' (' + condLabel(t) + ')' : ''))
+      : phase === 'Armed' ? ('Armed: the participant starts Trial ' + t.number + ' on the device')
+      : 'Arm trial';
+
+    document.getElementById('pausebtn').disabled = phase !== 'Recording';
+    document.getElementById('resumebtn').disabled = phase !== 'Paused';
+    document.getElementById('endbtn').disabled =
+      !(phase === 'Tutorial' || phase === 'Recording' || phase === 'Paused');
+    // The bridge decides WHICH trial a bad flag names; the button just needs a trial to have existed.
+    document.getElementById('badbtn').disabled =
+      !(inTrial || phase === 'Done' || ((phase === 'Ready' || phase === 'Armed') && t.number > 1));
+
+    // The session's bad-trial tally, rebuilt from the snapshot so it survives a page reload.
+    var bad = d.badTrials || [];
+    var badUl = document.getElementById('badlist');
+    badUl.classList.toggle('hidden', !bad.length);
+    badUl.innerHTML = bad.map(function (b) { return '<li>BAD: ' + esc(b) + '</li>'; }).join('');
 
     // The outcome of the last command, refusals included. Ages out after 20 s: a reason still sitting under a
     // button you pressed ten minutes ago reads as a fresh refusal of the one you just pressed.
@@ -303,9 +407,13 @@ function toggleWake() {
     if (showMsg) msg.textContent = m.text;
 
     var r = d.ready || {};
-    flag('r_eyeperm', r.eyePermission, 'granted', 'denied');
+    flag('r_eyeperm', r.eyePermission, 'granted', 'DENIED');
     flag('r_gaze', r.gazeManager, 'present', 'MISSING');
     flag('r_tracker', r.tracker, 'present', 'MISSING');
+
+    // Denied eye permission gets the screaming banner, not just the dot: without it dwell-destroy silently
+    // does nothing and the app otherwise looks healthy. Only judged once the gaze manager is up at all.
+    document.getElementById('eyeBox').classList.toggle('hidden', !(r.gazeManager && !r.eyePermission));
 
     var s = d.server || {};
     txt('conn', 'headset ' + (s.ip || '(usb tether)') + ':' + s.port + '  |  updated ' + new Date().toLocaleTimeString());
@@ -421,7 +529,7 @@ function toggleWake() {
   }
 
   // ---- Session files -------------------------------------------------------------------------------
-  // Listing recurses his persistent data directory ON THE HEADSET. Doing that twice a second is real disk
+  // Listing recurses the app's persistent data directory ON THE HEADSET. Doing that twice a second is real disk
   // work for a list that changes once per trial. Every 5 s, redrawn only when it changed, and only while DEV
   // is open (the list lives in the DEV panel).
 

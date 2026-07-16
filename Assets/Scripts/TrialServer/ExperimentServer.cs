@@ -17,7 +17,7 @@ namespace TrialServer
     ///
     /// This is a WRAPPER, not a replacement. SequenceManager stays the trial driver and EyeAndHeadTracker
     /// stays the single data source. The SequenceBridge (a separate component) turns the commands this server
-    /// accepts into clicks on his existing buttons. This class only owns the socket, the snapshot, and the
+    /// accepts into clicks on the study's existing buttons. This class only owns the socket, the snapshot, and the
     /// command queue.
     ///
     /// THE THREADING CONTRACT, which is the whole design:
@@ -31,7 +31,7 @@ namespace TrialServer
     ///     dashboard confirms by watching the status change, which is also what proves the trial machinery
     ///     really ran rather than just acknowledging.
     ///
-    /// The server is NOT on the data path. His JSON is written on the main thread by his tracker; this server
+    /// The server is NOT on the data path. The gaze JSON is written on the main thread by the study's tracker; this server
     /// is a read-only observer of it. If HTTP stalls for a second, the recording is untouched and the
     /// dashboard simply shows a stale number.
     ///
@@ -58,7 +58,7 @@ namespace TrialServer
         public int logBufferLines = 800;
 
         /// <summary>Fired on the MAIN thread when a control request arrives. The SequenceBridge subscribes
-        /// to this and turns the command into a click on his existing UI.</summary>
+        /// to this and turns the command into a click on the study's existing UI.</summary>
         public static event Action<string, string> OnCommand;
 
         /// <summary>The headset's IPv4 on whatever network it is currently on. Empty if it has none (a
@@ -73,7 +73,7 @@ namespace TrialServer
         volatile string _snapshot = "{}";
 
         // Cached on the main thread in Awake, because the listener thread may not ask Unity for them. This is
-        // his gaze session directory: EyeAndHeadTracker writes its summary JSON to Application.persistentDataPath,
+        // the gaze session directory: EyeAndHeadTracker writes its summary JSON to Application.persistentDataPath,
         // so pointing the file endpoints there lets the operator pull a session off the headset from a browser.
         string _filesDir = "";
         string _html = "";
@@ -91,7 +91,7 @@ namespace TrialServer
         {
             _filesDir = Application.persistentDataPath;
 
-            // Start capturing the log immediately, not in Start: the interesting lines (his tracker coming up,
+            // Start capturing the log immediately, not in Start: the interesting lines (the tracker coming up,
             // the eye-tracking permission dance, a missing GazeInputManager) all happen during startup, and a
             // ring that only begins recording once the socket is bound would miss exactly the failures you open
             // the dev log to diagnose.
@@ -101,7 +101,7 @@ namespace TrialServer
             // StreamingAssets lives inside the compressed APK and File.ReadAllText on it returns nothing: it
             // works perfectly in the Editor and serves a blank page on the device. A TextAsset is compiled in
             // and readable from memory on both.
-            // Unique resource name on purpose. His old flight dashboard is also a Resources TextAsset named
+            // Unique resource name on purpose. The flight project's dashboard is also a Resources TextAsset named
             // "dashboard_html", and Unity merges every Resources folder into one namespace, so loading that
             // name could hand back the wrong page. "trialserver_dashboard" cannot collide.
             var asset = Resources.Load<TextAsset>("trialserver_dashboard");
@@ -304,7 +304,7 @@ namespace TrialServer
         }
 
         // System.IO is plain .NET, safe off the main thread. _filesDir was cached in Awake precisely so we
-        // never have to ask Unity for persistentDataPath from here. Lists his gaze session summary/raw files.
+        // never have to ask Unity for persistentDataPath from here. Lists the gaze session summary/raw files.
         string ListFiles()
         {
             var sb = new StringBuilder("{\"dir\":\"");
