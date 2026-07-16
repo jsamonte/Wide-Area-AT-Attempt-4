@@ -56,16 +56,19 @@ public class CautionStairsAudio : MonoBehaviour
 
         if (useBoundsCheckInsteadOfRaycast)
         {
-            // Option A: Checks if the XR Rig is within the X/Z bounds of the colliders and above them in Y
+            // Option A: Checks if the XR Rig is within the X/Z bounds of the colliders.
+            // We use a more forgiving Y check in case the rig is at the bottom of the stairs or slightly above.
             Vector3 rigPos = xrRig.position;
             foreach (var plane in cautionPlanes)
             {
                 if (plane == null) continue;
 
                 Bounds bounds = plane.bounds;
+                
+                // Allow the rig to be anywhere from slightly below the minimum Y of the stairs to well above the maximum Y.
                 if (rigPos.x >= bounds.min.x && rigPos.x <= bounds.max.x &&
                     rigPos.z >= bounds.min.z && rigPos.z <= bounds.max.z &&
-                    rigPos.y >= bounds.max.y)
+                    rigPos.y >= bounds.min.y - 1.0f && rigPos.y <= bounds.max.y + 3.0f)
                 {
                     return true;
                 }
@@ -73,9 +76,10 @@ public class CautionStairsAudio : MonoBehaviour
         }
         else
         {
-            // Option B (Default): Raycast down from the XR rig to see if any caution plane is directly below
-            // Using RaycastAll ensures we don't get blocked by carpets, items, or other non-caution colliders
-            RaycastHit[] hits = Physics.RaycastAll(xrRig.position, Vector3.down, maxRaycastDistance);
+            // Option B (Default): Raycast down from slightly above the XR rig to see if any caution plane is directly below.
+            // Start slightly above to ensure we don't start the raycast inside the collider if the rig is at Y=0.
+            Vector3 rayStart = xrRig.position + Vector3.up * 0.5f;
+            RaycastHit[] hits = Physics.RaycastAll(rayStart, Vector3.down, maxRaycastDistance + 0.5f);
             foreach (var hit in hits)
             {
                 if (cautionPlanes.Contains(hit.collider))
