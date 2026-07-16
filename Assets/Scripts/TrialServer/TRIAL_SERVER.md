@@ -72,10 +72,10 @@ phases (tracked by the bridge, since it commands the flow):
    start by watching the tracker's trial clock reset.
 5. **Recording** - the trial is live. Targets remaining, targets destroyed, and trial time vs the time limit
    update live. **Pause / Resume** drive the tracker's own `PauseRecording` / `ResumeRecording`. The page's
-   trial clock FREEZES while paused and excludes paused time afterward. **OPEN DECISION**: the tracker's own
-   internal clock (the timestamps in the gaze JSON) does NOT exclude pauses, it measures from the trial's
-   start moment. So after a pause the page and the JSON disagree about elapsed time. Decide which clock the
-   trial rules (the 20-minute limit) should follow; the page's freezing behavior is a placeholder choice.
+   trial clock FREEZES while paused and excludes paused time afterward (device-verified). **OPEN DECISION**:
+   the tracker's own internal clock (the timestamps in the gaze JSON) does NOT exclude pauses, it measures
+   from the trial's start moment. So after a pause the page and the JSON disagree about elapsed time. Decide
+   which clock the trial rules (the 20-minute limit) should follow; the page currently excludes paused time.
    **End trial** ends the set early through the study's own end-of-trial path, after writing a `MANUAL_END:`
    marker into the gaze JSON.
 6. Back to **Ready** for the next trial, until all four are done, then **Done**.
