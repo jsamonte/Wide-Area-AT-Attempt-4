@@ -35,7 +35,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
     [SerializeField] [Tooltip("How often to silently save the JSON to disk to prevent data loss on crash (in seconds).")]
-    private float autoSaveIntervalSeconds = 15f;
+    private float autoSaveIntervalSeconds = 60f;
 
     [Header("Combined JSON (your requested format)")]
     [Tooltip("If true, generates a massive combined JSON array. Recommended to leave FALSE and rely on the highly efficient .ndjson file to prevent lag spikes.")]
@@ -626,7 +626,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         try
         {
-            // Finalize numbers
+            // Finalize numbers (MAIN THREAD)
             if (destructionEvents.Count > 0)
             {
                 performanceData.totalObjectsDestroyed = destructionEvents.Count;
@@ -635,36 +635,78 @@ public class EyeAndHeadTracker : MonoBehaviour
                     ? destructionEvents.Skip(1).Average(e => e.timeSincePreviousDestroy) : 0f;
             }
 
-            // Build proper serializable root object
-            var root = new SessionSummaryRoot
+            // Copy data for background thread to prevent race conditions
+            var metaCopy = new SessionMeta
             {
-                metadata = sessionMeta,
-                sessionData = performanceData,
-                destructionEvents = destructionEvents,
-                rawTrackingFileReference = useEfficientRawLogging 
-                    ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson" : null
+                sessionId = sessionMeta.sessionId,
+                participantId = sessionMeta.participantId,
+                condition = sessionMeta.condition,
+                device = sessionMeta.device,
+                environment = sessionMeta.environment,
+                samplingRateHz = sessionMeta.samplingRateHz
             };
 
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
-            string json = JsonUtility.ToJson(root, true);
-            WriteTextAtomically(summaryPath, json);
-
-            Debug.Log($"✅ Summary saved: {summaryPath}");
-
-            // Optional combined JSON with trackingData array (your requested format)
-            if (alsoExportCombinedJson && trackingFrames.Count > 0)
+            var perfCopy = new SessionPerformanceData
             {
-                var combined = new CombinedExportRoot
-                {
-                    sessionMeta = sessionMeta,
-                    trackingData = trackingFrames,
-                    destructionEvents = destructionEvents
-                };
+                timeToFirstDestroy = performanceData.timeToFirstDestroy,
+                totalTimeToComplete = performanceData.totalTimeToComplete,
+                totalObjectsDestroyed = performanceData.totalObjectsDestroyed,
+                meanInterDestroyInterval = performanceData.meanInterDestroyInterval,
+                dataQuality = performanceData.dataQuality
+            };
 
-                string combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
-                WriteTextAtomically(combinedPath, JsonUtility.ToJson(combined, true));
-                Debug.Log($"Combined tracking JSON saved: {combinedPath}");
+            var destructionCopy = new List<DestructionEvent>(destructionEvents);
+            var rawFileRef = useEfficientRawLogging 
+                ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson" : null;
+            
+            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
+            
+            bool shouldExportCombined = alsoExportCombinedJson && trackingFrames.Count > 0;
+            string combinedPath = null;
+            List<TrackingFrame> trackingCopy = null;
+
+            if (shouldExportCombined)
+            {
+                combinedPath = Path.Combine(persistentDataPath, $"combined_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
+                trackingCopy = new List<TrackingFrame>(trackingFrames);
             }
+
+            // Fire and forget background thread
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    // 1. Save Summary
+                    var root = new SessionSummaryRoot
+                    {
+                        metadata = metaCopy,
+                        sessionData = perfCopy,
+                        destructionEvents = destructionCopy,
+                        rawTrackingFileReference = rawFileRef
+                    };
+                    string json = JsonUtility.ToJson(root, true);
+                    WriteTextAtomically(summaryPath, json);
+                    Debug.Log($"✅ Summary saved in background: {summaryPath}");
+
+                    // 2. Save Combined JSON
+                    if (shouldExportCombined && trackingCopy != null)
+                    {
+                        var combined = new CombinedExportRoot
+                        {
+                            sessionMeta = metaCopy,
+                            trackingData = trackingCopy,
+                            destructionEvents = destructionCopy
+                        };
+                        string combinedJson = JsonUtility.ToJson(combined, true);
+                        WriteTextAtomically(combinedPath, combinedJson);
+                        Debug.Log($"Combined tracking JSON saved in background: {combinedPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Background save failed: {ex.Message}");
+                }
+            });
 
             if (rawNdjsonWriter != null)
             {
@@ -680,19 +722,24 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     public void ForceSaveNow() => SaveSessionData();
 
+    private static readonly object _fileLock = new object();
+
     private void WriteTextAtomically(string path, string content)
     {
-        string tempPath = path + ".tmp";
+        string tempPath = path + "_" + Guid.NewGuid().ToString() + ".tmp";
         
         // 1. Write the entire file to the temporary location safely
         File.WriteAllText(tempPath, content);
         
         // 2. Once fully written, swap it with the main file
-        if (File.Exists(path))
+        lock (_fileLock)
         {
-            File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+            File.Move(tempPath, path);
         }
-        File.Move(tempPath, path);
     }
 
     private void OnDestroy()
