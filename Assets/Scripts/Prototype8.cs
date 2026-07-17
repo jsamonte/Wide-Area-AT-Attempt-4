@@ -113,6 +113,7 @@ public class Prototype8 : MonoBehaviour
     private HashSet<ulong> _activatedPins = new HashSet<ulong>();
     private bool _buildingVisible = false;
     private bool _pinsReady = false;
+    private bool _alreadyDestroyed = false;
 
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
     private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
@@ -593,7 +594,16 @@ public class Prototype8 : MonoBehaviour
         lastSeenArucoID = INVALID_ARUCO_ID;
 
         if (alignmentInfoTextObj != null) alignmentInfoTextObj.SetActive(false);
-        if (markerFeature != null) markerFeature.DestroyAllMarkerDetectors();
+        if (markerFeature != null && !_alreadyDestroyed) 
+        {
+            markerFeature.DestroyAllMarkerDetectors();
+            _alreadyDestroyed = true;
+            Debug.Log("[MarkerDet] destroyed");
+        }
+        else if (_alreadyDestroyed)
+        {
+            Debug.Log("[MarkerDet] already destroyed – skip");
+        }
         hasInitializedDetector = false;
     }
 
