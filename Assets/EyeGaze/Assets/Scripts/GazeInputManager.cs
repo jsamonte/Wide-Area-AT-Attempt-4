@@ -10,6 +10,7 @@ using Logger = LearnXR.Core.Logger;
 public class GazeInputManager : Singleton<GazeInputManager>
 {
     private InputDevice eyeTrackingDevice;
+    private List<InputDevice> inputDeviceList = new List<InputDevice>();
     public bool EyeTrackingPermissionGranted { get; private set; }
     public Vector3 GazePosition { get; private set; }
     public Quaternion GazeRotation { get; private set; }
@@ -26,7 +27,6 @@ public class GazeInputManager : Singleton<GazeInputManager>
        
         if (!eyeTrackingDevice.isValid)
         {
-            List<InputDevice> inputDeviceList = new List<InputDevice>();
             InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.EyeTracking, inputDeviceList);
             if (inputDeviceList.Count > 0)
             {
@@ -35,7 +35,7 @@ public class GazeInputManager : Singleton<GazeInputManager>
 
             if (!eyeTrackingDevice.isValid)
             {
-                Logger.Instance.LogWarning($"Unable to get eye tracking information");
+                // Logger.Instance.LogWarning($"Unable to get eye tracking information");
                 return;
             }
         }

@@ -62,18 +62,23 @@ public class Prototype8 : MonoBehaviour
     [SerializeField] private float poseAverageSeconds = 0.25f;
     [SerializeField] private int minSamplesForRelocalize = 2;
     [SerializeField] private float freshLockSeconds = 0.20f;
-    [Tooltip("Total time the user must keep looking at a marker, head held still, before it locks in. See '=== Gaze + Stillness Requirement ===' below for the two conditions that must hold for this entire duration.")]
+    [Tooltip("Total time the user must keep looking at a marker, head held still, before it locks in.")]
     [SerializeField] private float requiredDwellSeconds = 2.0f;
 
     [Header("=== Gaze + Stillness Requirement ===")]
     [Tooltip("The camera used to test 'is the user looking at the marker'. Defaults to Camera.main if left empty.")]
     [SerializeField] private Camera headCamera;
-    [Tooltip("Max angle (degrees) between where the user is looking and the marker's direction for the marker to count as 'being looked at'.")]
-    [SerializeField] private float maxGazeAngleDegrees = 20f;
-    [Tooltip("Max head translation speed (meters/second) allowed while dwelling. Exceeding this resets the dwell timer -- the user must hold their head still, not just keep the marker in frame.")]
-    [SerializeField] private float maxHeadSpeedMetersPerSecond = 0.05f;
-    [Tooltip("Max head rotation speed (degrees/second) allowed while dwelling. Exceeding this resets the dwell timer.")]
-    [SerializeField] private float maxHeadTurnDegreesPerSecond = 8f;
+    [Tooltip("Max angle (degrees) between where the user is looking and the marker's direction.")]
+    [SerializeField] private float maxGazeAngleDegrees = 25f;
+
+    [Tooltip("If true, requires the user to look at the marker AND hold head still for the full dwell time. " +
+             "Set to FALSE (default) to get immediate Proto7-style behavior so alignment works right away.")]
+    [SerializeField] private bool requireGazeAndHeadStillForDwell = false;
+
+    [Tooltip("Max head translation speed (m/s) while dwelling (only used when requireGazeAndHeadStillForDwell = true).")]
+    [SerializeField] private float maxHeadSpeedMetersPerSecond = 0.20f;
+    [Tooltip("Max head rotation speed (deg/s) while dwelling (only used when requireGazeAndHeadStillForDwell = true).")]
+    [SerializeField] private float maxHeadTurnDegreesPerSecond = 20f;
 
     [Header("=== Controller Offset Adjustment ===")]
     [SerializeField] private bool enableControllerAdjustment = true;
@@ -90,7 +95,7 @@ public class Prototype8 : MonoBehaviour
     [SerializeField] private int textFontSize = 72;
 
     [Header("=== PLUME / Misc ===")]
-    [SerializeField] private GameObject emptyAnchorPrefab; // still available for Plume wrapper if needed
+    [SerializeField] private GameObject emptyAnchorPrefab;
 
     // ------------------------------------------------------------------
     // Runtime state
@@ -109,7 +114,6 @@ public class Prototype8 : MonoBehaviour
     private bool _buildingVisible = false;
     private bool _pinsReady = false;
 
-    // Stability + Smoothing (Re-integrated from Prototype 5)
     private Dictionary<ulong, Pose> lastDetectedMarkerPoses = new Dictionary<ulong, Pose>();
     private readonly Dictionary<ulong, Pose> _lockedMarkerPose = new Dictionary<ulong, Pose>();
     private readonly HashSet<ulong> _lockedThisAcquisition = new HashSet<ulong>();
@@ -120,16 +124,10 @@ public class Prototype8 : MonoBehaviour
     private readonly Dictionary<ulong, float> _lastSeen = new Dictionary<ulong, float>();
     private List<ulong> _evictBuf;
 
-    // Gaze + stillness dwell (NEW): time.time the marker most recently BECAME both
-    // "looked at" and "head held still", per marker id. Cleared the instant either
-    // condition breaks, so hasDwelt below only becomes true after that pair of
-    // conditions has held continuously for requiredDwellSeconds.
     private readonly Dictionary<ulong, float> _gazeStableSince = new Dictionary<ulong, float>();
     private Vector3 _lastHeadPos;
     private Quaternion _lastHeadRot;
     private bool _haveLastHead;
-    // Debug-only, surfaced in the HUD text so a failed dwell attempt is legible
-    // ("why isn't it locking?") instead of just silently not progressing.
     private bool _lastGazeOk;
     private bool _lastHeadStillOk;
 
@@ -161,18 +159,15 @@ public class Prototype8 : MonoBehaviour
         CreateMarkerDetector();
         InitializeAlignmentText();
 
-        // === Determine the building root (pre-placed preferred) ===
         if (preplacedBuildingRoot != null)
         {
             _sharedInstance = preplacedBuildingRoot;
-            Debug.Log("[WLT v2] Using PRE-PLACED building root from scene. Its current transform defines Modeling space.");
+            Debug.Log("[WLT v2] Using PRE-PLACED building root from scene.");
         }
         else if (sharedPrefab != null)
         {
             _sharedInstance = Instantiate(sharedPrefab);
-            // Do NOT force to origin or hide — respect the prefab's authored placement
-            // or let user control initial visibility via inspector.
-            Debug.Log("[WLT v2] Instantiated building from prefab (not forced to origin).");
+            Debug.Log("[WLT v2] Instantiated building from prefab.");
         }
         else
         {
@@ -183,52 +178,43 @@ public class Prototype8 : MonoBehaviour
 
         SetupGrabInteraction(_sharedInstance);
 
-        // Shared Orienter (can be anywhere; often placed under WorldLockingContext or building root)
         var orienterObj = new GameObject("ArUcoOrienter");
         _orienter = orienterObj.AddComponent<Orienter>();
 
-        // === Create / attach SpacePinOrientable to the mapped virtual pin GameObjects ===
         foreach (var mapping in arucoMappings)
         {
             GameObject pinGO = mapping.virtualPinGO;
 
             if (pinGO == null)
             {
-                // === Legacy fallback: compute virtual position from offsets (old behavior) ===
-                Debug.LogWarning($"[WLT v2] No virtualPinGO assigned for ArUco {mapping.arucoID}. Using legacy offset math fallback.");
+                Debug.LogWarning($"[WLT v2] No virtualPinGO for ArUco {mapping.arucoID}. Using legacy fallback.");
                 Quaternion rot = Quaternion.Euler(mapping.rotationOffset);
                 Vector3 virtualPos = -(rot * new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ));
 
-                if (emptyAnchorPrefab != null)
-                    pinGO = Instantiate(emptyAnchorPrefab, virtualPos, Quaternion.identity);
-                else
-                    pinGO = new GameObject($"LegacyPin_{mapping.arucoID}");
+                pinGO = emptyAnchorPrefab != null 
+                    ? Instantiate(emptyAnchorPrefab, virtualPos, Quaternion.identity)
+                    : new GameObject($"LegacyPin_{mapping.arucoID}");
 
                 pinGO.transform.position = virtualPos;
-                pinGO.transform.SetParent(_sharedInstance.transform, false); // keep under building if possible
+                pinGO.transform.SetParent(_sharedInstance.transform, false);
             }
 
             if (pinGO != null)
             {
-                // Ensure SpacePinOrientable exists and is wired
                 SpacePinOrientable pin = pinGO.GetComponent<SpacePinOrientable>();
-                if (pin == null)
-                    pin = pinGO.AddComponent<SpacePinOrientable>();
+                if (pin == null) pin = pinGO.AddComponent<SpacePinOrientable>();
 
                 pin.Orienter = _orienter;
                 _spacePins[mapping.arucoID] = pin;
                 _pinObjects[mapping.arucoID] = pinGO;
 
-                Debug.Log($"[WLT v2] Wired SpacePinOrientable for ArUco {mapping.arucoID} to GameObject '{pinGO.name}' " +
-                          $"(ModelingPose will be captured from its current transform).");
+                Debug.Log($"[WLT v2] Wired SpacePinOrientable for ArUco {mapping.arucoID} to '{pinGO.name}'.");
             }
         }
 
-        // Allow any newly-added SpacePinOrientable components to run their Start() → ResetModelingPose()
         yield return null;
-
         _pinsReady = true;
-        Debug.Log($"[WLT v2] Ready with {_spacePins.Count} pin(s). Prefab will align progressively as markers are dwelled.");
+        Debug.Log($"[WLT v2] Ready with {_spacePins.Count} pin(s).");
     }
 
     private bool AreSubsystemsLoaded()
@@ -259,7 +245,7 @@ public class Prototype8 : MonoBehaviour
     private void OnPermissionDenied(string permission) { }
 
     // ------------------------------------------------------------------
-    // Update — feed detections to the selected pin GameObjects
+    // Update
     // ------------------------------------------------------------------
 
     void Update()
@@ -292,11 +278,7 @@ public class Prototype8 : MonoBehaviour
         EvictStaleMarkers(now);
         RefreshSmoothedPoses(now);
 
-        // ---- Head stillness (once per frame, not per-marker) ----
-        // "Stay still" has to mean the user's HEAD isn't moving, not just that the
-        // marker stayed in view -- ML2's tracking space is room-fixed (SLAM), so a
-        // moving head does not by itself perturb the marker's reported pose. We
-        // therefore track the camera's own frame-to-frame speed independently.
+        // Head stillness (simple per-frame, only used when toggle is true)
         bool headStillThisFrame = true;
         if (headCamera != null && Time.deltaTime > 0f)
         {
@@ -314,7 +296,7 @@ public class Prototype8 : MonoBehaviour
         }
         _lastHeadStillOk = headStillThisFrame;
 
-        // Feed to the corresponding pin GameObject's SpacePin
+        // Feed to pins
         foreach (var kvp in lastDetectedMarkerPoses)
         {
             ulong id = kvp.Key;
@@ -325,42 +307,48 @@ public class Prototype8 : MonoBehaviour
             bool isFresh = SecondsSinceSeen(id) <= Mathf.Max(0.01f, freshLockSeconds);
             bool isStable = RecentSampleCount(id) >= Mathf.Max(1, minSamplesForRelocalize);
 
-            // "Looking at" the marker: angle between where the head is pointed and
-            // the direction to the marker's (approximate) world position.
-            bool gazeOk = true;
-            if (headCamera != null)
-            {
-                Pose markerWorldPose = ToApproxWorld(markerSpongyPose);
-                Vector3 toMarker = markerWorldPose.position - headCamera.transform.position;
-                gazeOk = toMarker.sqrMagnitude > 0.0001f &&
-                         Vector3.Angle(headCamera.transform.forward, toMarker) <= maxGazeAngleDegrees;
-            }
-            _lastGazeOk = gazeOk;
+            bool hasDwelt;
 
-            bool dwellConditionsHold = isFresh && isStable && gazeOk && headStillThisFrame;
-            if (dwellConditionsHold)
+            if (!requireGazeAndHeadStillForDwell)
             {
-                if (!_gazeStableSince.ContainsKey(id)) _gazeStableSince[id] = now;
+                // === DEFAULT: Proto7 behavior - simple time since first seen ===
+                hasDwelt = _firstSeen.TryGetValue(id, out float firstTime) &&
+                           (now - firstTime >= requiredDwellSeconds);
+                _lastGazeOk = true;
+                _lastHeadStillOk = true;
             }
             else
             {
-                // Either the user looked away or moved their head -- the dwell
-                // timer must restart from scratch, not just pause.
-                _gazeStableSince.Remove(id);
-            }
+                // === Advanced mode: gaze + head stillness required ===
+                bool gazeOk = true;
+                if (headCamera != null && _pinObjects.TryGetValue(id, out var pinGO) && pinGO != null)
+                {
+                    Vector3 toMarker = pinGO.transform.position - headCamera.transform.position;
+                    gazeOk = toMarker.sqrMagnitude > 0.0001f &&
+                             Vector3.Angle(headCamera.transform.forward, toMarker) <= maxGazeAngleDegrees;
+                }
+                _lastGazeOk = gazeOk;
 
-            bool hasDwelt = _gazeStableSince.TryGetValue(id, out float stableSince) &&
-                            (now - stableSince >= requiredDwellSeconds);
+                bool dwellConditionsHold = isFresh && isStable && gazeOk && headStillThisFrame;
+                if (dwellConditionsHold)
+                {
+                    if (!_gazeStableSince.ContainsKey(id)) _gazeStableSince[id] = now;
+                }
+                else
+                {
+                    _gazeStableSince.Remove(id);
+                }
+
+                hasDwelt = _gazeStableSince.TryGetValue(id, out float stableSince) &&
+                           (now - stableSince >= requiredDwellSeconds);
+            }
 
             if (!isFresh || !isStable || !hasDwelt) continue;
 
-            // --- PROTOTYPE 5 STABILITY LOGIC ADDED BACK HERE ---
-            // If we already locked onto this continuous sighting, ignore micro-jitters
             if (_lockedThisAcquisition.Contains(id)) continue;
 
             _lockedMarkerPose[id] = markerSpongyPose;
             _lockedThisAcquisition.Add(id);
-            // ---------------------------------------------------
 
             if (_spacePins.TryGetValue(id, out var pin))
             {
@@ -368,18 +356,15 @@ public class Prototype8 : MonoBehaviour
                 Pose poseToFeed = markerSpongyPose;
                 if (mapping != null && mapping.useYawOnlyRotation)
                 {
-                    // Ported from ArucoCalibrationManager.YawOnly: strip pitch/roll,
-                    // keep heading only. Optional per-marker -- see the tooltip on
-                    // ArucoMapping.useYawOnlyRotation.
                     poseToFeed = new Pose(markerSpongyPose.position, YawOnly(markerSpongyPose.rotation));
                 }
                 pin.SetSpongyPose(poseToFeed);
+
                 bool wasNew = _activatedPins.Add(id);
                 if (wasNew)
-                    Debug.Log($"[WLT v2] Fed ArUco {id} to its virtual pin GameObject. Active pins: {_activatedPins.Count}");
+                    Debug.Log($"[WLT v2] Fed ArUco {id} to its virtual pin GameObject.");
             }
 
-            // Optional: show building on first activation (if it was hidden)
             if (!_buildingVisible && _activatedPins.Count > 0)
             {
                 if (!_sharedInstance.activeSelf) _sharedInstance.SetActive(true);
@@ -394,7 +379,7 @@ public class Prototype8 : MonoBehaviour
     }
 
     // ------------------------------------------------------------------
-    // Grab, LateUpdate, Controller adjustment (unchanged)
+    // Grab / LateUpdate / Controller (unchanged)
     // ------------------------------------------------------------------
 
     void SetupGrabInteraction(GameObject instance)
@@ -508,7 +493,6 @@ public class Prototype8 : MonoBehaviour
             return;
         }
 
-        // Changed this to use _lockedMarkerPose if available, otherwise fallback to lastDetectedMarkerPoses
         Pose markerSpongyPose;
         if (!_lockedMarkerPose.TryGetValue(lastSeenArucoID, out markerSpongyPose))
         {
@@ -575,7 +559,6 @@ public class Prototype8 : MonoBehaviour
 
     public void DestroyAll()
     {
-        // Only destroy objects we instantiated ourselves
         if (_sharedInstance != null && preplacedBuildingRoot == null)
         {
             Destroy(_sharedInstance);
@@ -588,7 +571,6 @@ public class Prototype8 : MonoBehaviour
             _orienter = null;
         }
 
-        // Do not destroy pre-placed pin GameObjects or the building root
         _pinObjects.Clear();
         _spacePins.Clear();
         _activatedPins.Clear();
@@ -626,27 +608,6 @@ public class Prototype8 : MonoBehaviour
     private int RecentSampleCount(ulong markerId) => _samples.TryGetValue(markerId, out var q) ? q.Count : 0;
     private float SecondsSinceSeen(ulong markerId) => _lastSeen.TryGetValue(markerId, out var t) ? Time.time - t : float.PositiveInfinity;
 
-    /// <summary>
-    /// Convert a spongy (tracking-space) marker pose to an approximate Unity
-    /// world pose via WLT's current LockedFromSpongy transform, purely for the
-    /// gaze-angle check below (comparing against the camera, which lives in
-    /// world space). This is a read-only convenience conversion -- it does NOT
-    /// replace SetSpongyPose, which must still receive the raw spongy pose so
-    /// WLT can do its own frozen-world alignment math.
-    /// </summary>
-    private Pose ToApproxWorld(Pose spongyPose)
-    {
-        var wltMgr = WorldLockingManager.GetInstance();
-        if (wltMgr == null) return spongyPose;
-        return wltMgr.LockedFromSpongy.Multiply(spongyPose);
-    }
-
-    /// <summary>
-    /// Project a rotation to its yaw-only (heading-around-world-up) component,
-    /// discarding pitch/roll. Ported from ArucoCalibrationManager.YawOnly --
-    /// useful because ArUco's pitch/roll estimate on a small printed marker is
-    /// noisy, while its heading estimate is comparatively reliable.
-    /// </summary>
     private static Quaternion YawOnly(Quaternion r)
     {
         Vector3 fwd = r * Vector3.forward;

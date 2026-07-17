@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Android;
 using UnityEngine.Events;
@@ -172,6 +173,18 @@ public class EyeAndHeadTracker : MonoBehaviour
     private string persistentDataPath;
     private StreamWriter rawNdjsonWriter;
     private string startTimeString;
+
+    private StringBuilder ndjsonStringBuilder = new StringBuilder(512);
+    private TrackingFrame currentTrackingFrame = new TrackingFrame
+    {
+        headTransform = new HeadTransformData { position = new Vector3Data(), rotation = new QuaternionData() },
+        eyeTracking = new EyeTrackingData
+        {
+            leftEye = new EyeData { gazeOrigin = new Vector3Data(), gazeDirection = new Vector3Data() },
+            rightEye = new EyeData { gazeOrigin = new Vector3Data(), gazeDirection = new Vector3Data() },
+            combinedGaze = new CombinedGazeData { gazeDirection = new Vector3Data() }
+        }
+    };
 
     // ==================== LIFECYCLE ====================
 
@@ -369,38 +382,66 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         var head = Camera.main != null ? Camera.main.transform : transform;
 
-        var frame = new TrackingFrame
-        {
-            frameId = currentFrameId++,
-            timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            deltaTimeMs = dtMs,
-            headTransform = new HeadTransformData
-            {
-                position = new Vector3Data { x = head.position.x, y = head.position.y, z = head.position.z },
-                rotation = new QuaternionData { x = head.rotation.x, y = head.rotation.y, z = head.rotation.z, w = head.rotation.w }
-            },
-            eyeTracking = GetEyeTrackingData(),
-            eyeRaycastHitObject = currentHitObjectName
-        };
+        // 1. Update reusable object (Solution A)
+        currentTrackingFrame.frameId = currentFrameId++;
+        currentTrackingFrame.timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+        currentTrackingFrame.deltaTimeMs = dtMs;
+        
+        currentTrackingFrame.headTransform.position.x = head.position.x;
+        currentTrackingFrame.headTransform.position.y = head.position.y;
+        currentTrackingFrame.headTransform.position.z = head.position.z;
+        
+        currentTrackingFrame.headTransform.rotation.x = head.rotation.x;
+        currentTrackingFrame.headTransform.rotation.y = head.rotation.y;
+        currentTrackingFrame.headTransform.rotation.z = head.rotation.z;
+        currentTrackingFrame.headTransform.rotation.w = head.rotation.w;
+        
+        UpdateEyeTrackingData(currentTrackingFrame.eyeTracking);
+        currentTrackingFrame.eyeRaycastHitObject = currentHitObjectName;
 
         if (useEfficientRawLogging && rawNdjsonWriter != null)
-            rawNdjsonWriter.WriteLine(JsonUtility.ToJson(frame));
+        {
+            // 2. Zero-allocation string building (Solution B)
+            var f = currentTrackingFrame;
+            var h = f.headTransform;
+            var e = f.eyeTracking;
+
+            ndjsonStringBuilder.Clear();
+            ndjsonStringBuilder.Append("{\"frameId\":").Append(f.frameId)
+                .Append(",\"timestamp\":\"").Append(f.timestamp)
+                .Append("\",\"deltaTimeMs\":").Append(f.deltaTimeMs.ToString("F3"))
+                .Append(",\"headTransform\":{\"position\":{\"x\":").Append(h.position.x.ToString("F4")).Append(",\"y\":").Append(h.position.y.ToString("F4")).Append(",\"z\":").Append(h.position.z.ToString("F4"))
+                .Append("},\"rotation\":{\"x\":").Append(h.rotation.x.ToString("F4")).Append(",\"y\":").Append(h.rotation.y.ToString("F4")).Append(",\"z\":").Append(h.rotation.z.ToString("F4")).Append(",\"w\":").Append(h.rotation.w.ToString("F4"))
+                .Append("}},\"eyeTracking\":{\"leftEye\":{\"isValid\":").Append(e.leftEye.isValid ? "true" : "false")
+                .Append(",\"gazeOrigin\":{\"x\":").Append(e.leftEye.gazeOrigin.x.ToString("F4")).Append(",\"y\":").Append(e.leftEye.gazeOrigin.y.ToString("F4")).Append(",\"z\":").Append(e.leftEye.gazeOrigin.z.ToString("F4"))
+                .Append("},\"gazeDirection\":{\"x\":").Append(e.leftEye.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.leftEye.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.leftEye.gazeDirection.z.ToString("F4"))
+                .Append("},\"pupilDiameterMm\":").Append(e.leftEye.pupilDiameterMm.ToString("F2"))
+                .Append(",\"openness\":").Append(e.leftEye.openness.ToString("F2"))
+                .Append("},\"rightEye\":{\"isValid\":").Append(e.rightEye.isValid ? "true" : "false")
+                .Append(",\"gazeOrigin\":{\"x\":").Append(e.rightEye.gazeOrigin.x.ToString("F4")).Append(",\"y\":").Append(e.rightEye.gazeOrigin.y.ToString("F4")).Append(",\"z\":").Append(e.rightEye.gazeOrigin.z.ToString("F4"))
+                .Append("},\"gazeDirection\":{\"x\":").Append(e.rightEye.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.rightEye.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.rightEye.gazeDirection.z.ToString("F4"))
+                .Append("},\"pupilDiameterMm\":").Append(e.rightEye.pupilDiameterMm.ToString("F2"))
+                .Append(",\"openness\":").Append(e.rightEye.openness.ToString("F2"))
+                .Append("},\"combinedGaze\":{\"isValid\":").Append(e.combinedGaze.isValid ? "true" : "false")
+                .Append(",\"gazeDirection\":{\"x\":").Append(e.combinedGaze.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.combinedGaze.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.combinedGaze.gazeDirection.z.ToString("F4"))
+                .Append("}}},\"eyeRaycastHitObject\":\"").Append(f.eyeRaycastHitObject).Append("\"}");
+
+            rawNdjsonWriter.WriteLine(ndjsonStringBuilder.ToString());
+        }
         else if (!useEfficientRawLogging)
         {
-            Debug.LogWarning("EyeAndHeadTracker: useEfficientRawLogging is false, but in-memory logging has been removed. Please enable useEfficientRawLogging!");
+            // Debug.LogWarning("EyeAndHeadTracker: useEfficientRawLogging is false, but in-memory logging has been removed. Please enable useEfficientRawLogging!");
         }
     }
 
-    private EyeTrackingData GetEyeTrackingData()
+    private void UpdateEyeTrackingData(EyeTrackingData data)
     {
         if (GazeInputManager.Instance == null)
         {
-            return new EyeTrackingData
-            {
-                leftEye = new EyeData { isValid = false },
-                rightEye = new EyeData { isValid = false },
-                combinedGaze = new CombinedGazeData { isValid = false }
-            };
+            data.leftEye.isValid = false;
+            data.rightEye.isValid = false;
+            data.combinedGaze.isValid = false;
+            return;
         }
 
         var gazePos = GazeInputManager.Instance.GazePosition;
@@ -408,30 +449,30 @@ public class EyeAndHeadTracker : MonoBehaviour
         Vector3 gazeDir = gazeRot * Vector3.forward;
         bool isValid = GazeInputManager.Instance.EyeTrackingPermissionGranted;
 
-        return new EyeTrackingData
-        {
-            leftEye = new EyeData
-            {
-                isValid = isValid,
-                gazeOrigin = new Vector3Data { x = gazePos.x - 0.032f, y = gazePos.y, z = gazePos.z },
-                gazeDirection = new Vector3Data { x = gazeDir.x, y = gazeDir.y, z = gazeDir.z },
-                pupilDiameterMm = isValid ? 3.4f : 0f,
-                openness = isValid ? 0.95f : 0f
-            },
-            rightEye = new EyeData
-            {
-                isValid = isValid,
-                gazeOrigin = new Vector3Data { x = gazePos.x + 0.032f, y = gazePos.y, z = gazePos.z },
-                gazeDirection = new Vector3Data { x = gazeDir.x, y = gazeDir.y, z = gazeDir.z },
-                pupilDiameterMm = isValid ? 3.5f : 0f,
-                openness = isValid ? 0.96f : 0f
-            },
-            combinedGaze = new CombinedGazeData
-            {
-                isValid = isValid,
-                gazeDirection = new Vector3Data { x = gazeDir.x, y = gazeDir.y, z = gazeDir.z }
-            }
-        };
+        data.leftEye.isValid = isValid;
+        data.leftEye.gazeOrigin.x = gazePos.x - 0.032f;
+        data.leftEye.gazeOrigin.y = gazePos.y;
+        data.leftEye.gazeOrigin.z = gazePos.z;
+        data.leftEye.gazeDirection.x = gazeDir.x;
+        data.leftEye.gazeDirection.y = gazeDir.y;
+        data.leftEye.gazeDirection.z = gazeDir.z;
+        data.leftEye.pupilDiameterMm = isValid ? 3.4f : 0f;
+        data.leftEye.openness = isValid ? 0.95f : 0f;
+
+        data.rightEye.isValid = isValid;
+        data.rightEye.gazeOrigin.x = gazePos.x + 0.032f;
+        data.rightEye.gazeOrigin.y = gazePos.y;
+        data.rightEye.gazeOrigin.z = gazePos.z;
+        data.rightEye.gazeDirection.x = gazeDir.x;
+        data.rightEye.gazeDirection.y = gazeDir.y;
+        data.rightEye.gazeDirection.z = gazeDir.z;
+        data.rightEye.pupilDiameterMm = isValid ? 3.5f : 0f;
+        data.rightEye.openness = isValid ? 0.96f : 0f;
+
+        data.combinedGaze.isValid = isValid;
+        data.combinedGaze.gazeDirection.x = gazeDir.x;
+        data.combinedGaze.gazeDirection.y = gazeDir.y;
+        data.combinedGaze.gazeDirection.z = gazeDir.z;
     }
 
     // ==================== GAZE DESTRUCTION ====================
@@ -656,20 +697,21 @@ public class EyeAndHeadTracker : MonoBehaviour
             
             string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
 
+            // 1. Save Summary (Main Thread serialization)
+            var root = new SessionSummaryRoot
+            {
+                metadata = metaCopy,
+                sessionData = perfCopy,
+                destructionEvents = destructionCopy,
+                rawTrackingFileReference = rawFileRef
+            };
+            string json = JsonUtility.ToJson(root, true);
+
             // Fire and forget background thread
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    // 1. Save Summary
-                    var root = new SessionSummaryRoot
-                    {
-                        metadata = metaCopy,
-                        sessionData = perfCopy,
-                        destructionEvents = destructionCopy,
-                        rawTrackingFileReference = rawFileRef
-                    };
-                    string json = JsonUtility.ToJson(root, true);
                     WriteTextAtomically(summaryPath, json);
                     Debug.Log($"✅ Summary saved in background: {summaryPath}");
                 }
