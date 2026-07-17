@@ -153,6 +153,10 @@ public class Prototype8 : MonoBehaviour
             yield break;
         }
 
+        // Register with the shared per-frame pump so UpdateMarkerDetectors() is
+        // called exactly once per frame (at end-of-frame) across all scripts.
+        MarkerDetectorPump.Instance.Register(markerFeature);
+
         if (headCamera == null) headCamera = Camera.main;
 
         Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
@@ -253,7 +257,8 @@ public class Prototype8 : MonoBehaviour
         if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0) return;
         if (!_pinsReady || _sharedInstance == null) return;
 
-        markerFeature.UpdateMarkerDetectors();
+        // UpdateMarkerDetectors() is handled once per frame by MarkerDetectorPump
+        // (WaitForEndOfFrame coroutine) — do not call it here.
         float now = Time.time;
 
         // Collect detections

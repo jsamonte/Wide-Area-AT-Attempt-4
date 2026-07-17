@@ -73,6 +73,10 @@ namespace MagicLeap.Examples
                 return;
             }
 
+            // Register with the shared per-frame pump so UpdateMarkerDetectors() is
+            // called exactly once per frame (at end-of-frame) across all scripts.
+            MarkerDetectorPump.Instance.Register(markerFeature);
+
             // Request permissions exactly like Prototype3
             Permissions.RequestPermission(Permissions.SpaceImportExport, OnPermissionGranted, OnPermissionDenied);
 
@@ -116,9 +120,7 @@ namespace MagicLeap.Examples
             if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
                 return;
 
-            // 1. Update the OpenXR data directly every frame
-            markerFeature.UpdateMarkerDetectors();
-
+            // UpdateMarkerDetectors() is handled once per frame by MarkerDetectorPump.
             markerVisible = false;
 
             // 2. Loop through tracking data
@@ -200,10 +202,11 @@ namespace MagicLeap.Examples
                 currentCustomInstance = null;
             }
 
-            if (markerFeature != null)
-            {
-                markerFeature.DestroyAllMarkerDetectors();
-            }
+            // NOTE: Do NOT call DestroyAllMarkerDetectors() here.
+            // Prototype8.cs registers its own detectors on the same feature singleton.
+            // Calling DestroyAllMarkerDetectors() from MapTracking would silently
+            // destroy Prototype8's detectors. Prototype8.DestroyAll() handles
+            // cleanup of all detectors when it is destroyed.
         }
     }
 }
