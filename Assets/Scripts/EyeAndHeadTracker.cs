@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Android;
 using UnityEngine.Events;
@@ -174,6 +176,10 @@ public class EyeAndHeadTracker : MonoBehaviour
     private StreamWriter rawNdjsonWriter;
     private string startTimeString;
 
+    private ConcurrentQueue<string> rawLogQueue = new ConcurrentQueue<string>();
+    private bool isRawLoggingThreadRunning = false;
+    private object rawWriterLock = new object();
+
     private StringBuilder ndjsonStringBuilder = new StringBuilder(512);
     private TrackingFrame currentTrackingFrame = new TrackingFrame
     {
@@ -228,8 +234,16 @@ public class EyeAndHeadTracker : MonoBehaviour
             if (useEfficientRawLogging)
             {
                 string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.ndjson");
-                // Use true to append, though it is fresh on first run
-                rawNdjsonWriter = new StreamWriter(rawPath, true);
+                lock (rawWriterLock)
+                {
+                    rawNdjsonWriter = new StreamWriter(rawPath, true);
+                }
+                
+                if (!isRawLoggingThreadRunning)
+                {
+                    isRawLoggingThreadRunning = true;
+                    System.Threading.Tasks.Task.Run(RawLoggingThreadLoop);
+                }
             }
             hasInitializedRecording = true;
         }
@@ -280,15 +294,27 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (rawNdjsonWriter != null)
         {
-            rawNdjsonWriter.Flush();
-            rawNdjsonWriter.Close();
-            rawNdjsonWriter = null;
+            lock (rawWriterLock)
+            {
+                rawNdjsonWriter.Flush();
+                rawNdjsonWriter.Close();
+                rawNdjsonWriter = null;
+            }
         }
 
         if (useEfficientRawLogging)
         {
             string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson");
-            rawNdjsonWriter = new StreamWriter(rawPath, true);
+            lock (rawWriterLock)
+            {
+                rawNdjsonWriter = new StreamWriter(rawPath, true);
+            }
+            
+            if (!isRawLoggingThreadRunning)
+            {
+                isRawLoggingThreadRunning = true;
+                System.Threading.Tasks.Task.Run(RawLoggingThreadLoop);
+            }
         }
 
         hasInitializedRecording = true;
@@ -425,8 +451,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                 .Append("},\"combinedGaze\":{\"isValid\":").Append(e.combinedGaze.isValid ? "true" : "false")
                 .Append(",\"gazeDirection\":{\"x\":").Append(e.combinedGaze.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.combinedGaze.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.combinedGaze.gazeDirection.z.ToString("F4"))
                 .Append("}}},\"eyeRaycastHitObject\":\"").Append(f.eyeRaycastHitObject).Append("\"}");
-
-            rawNdjsonWriter.WriteLine(ndjsonStringBuilder.ToString());
+            rawLogQueue.Enqueue(ndjsonStringBuilder.ToString());
         }
         else if (!useEfficientRawLogging)
         {
@@ -723,7 +748,10 @@ public class EyeAndHeadTracker : MonoBehaviour
 
             if (rawNdjsonWriter != null)
             {
-                rawNdjsonWriter.Flush();
+                lock (rawWriterLock)
+                {
+                    rawNdjsonWriter.Flush();
+                }
             }
         }
         catch (Exception ex)
@@ -759,10 +787,49 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         SaveSessionData();
         
+        isRawLoggingThreadRunning = false;
+        
         if (rawNdjsonWriter != null)
         {
-            rawNdjsonWriter.Flush();
-            rawNdjsonWriter.Close();
+            lock (rawWriterLock)
+            {
+                rawNdjsonWriter.Flush();
+                rawNdjsonWriter.Close();
+                rawNdjsonWriter = null;
+            }
+        }
+    }
+
+    private void RawLoggingThreadLoop()
+    {
+        while (isRawLoggingThreadRunning)
+        {
+            if (rawLogQueue.TryDequeue(out string logLine))
+            {
+                lock (rawWriterLock)
+                {
+                    if (rawNdjsonWriter != null)
+                    {
+                        rawNdjsonWriter.WriteLine(logLine);
+                    }
+                }
+            }
+            else
+            {
+                Thread.Sleep(5); // Prevent 100% CPU usage
+            }
+        }
+        
+        // Drain the queue before exiting
+        while (rawLogQueue.TryDequeue(out string logLine))
+        {
+            lock (rawWriterLock)
+            {
+                if (rawNdjsonWriter != null)
+                {
+                    rawNdjsonWriter.WriteLine(logLine);
+                }
+            }
         }
     }
 }

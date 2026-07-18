@@ -96,6 +96,12 @@ public class TrialManager : MonoBehaviour
 
         Debug.Log($"TrialManager: Starting Trial {currentTrialIndex + 1}");
 
+        // Disable ArUco tracking to save performance and prevent thermal shutdown
+        if (ArucoMarkerManager.Instance != null)
+        {
+            ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+        }
+
         // 1. Hide the HUD
         gameObject.SetActive(false);
 

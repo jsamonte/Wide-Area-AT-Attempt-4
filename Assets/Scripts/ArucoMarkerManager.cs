@@ -228,6 +228,17 @@ public class ArucoMarkerManager : MonoBehaviour
         }
     }
 
+    public void DestroyMarkerTrackers()
+    {
+        if (markerFeature != null && !_alreadyDestroyed) 
+        {
+            markerFeature.DestroyAllMarkerDetectors();
+            _alreadyDestroyed = true;
+            hasInitializedDetector = false;
+            Debug.Log("[ArucoMarkerManager] Marker Detectors manually destroyed to save performance.");
+        }
+    }
+
     private void OnDestroy()
     {
         if (markerFeature != null && !_alreadyDestroyed) 

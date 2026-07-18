@@ -20,6 +20,9 @@ public class ArucoPinDriver : MonoBehaviour
     [Tooltip("If true, mathematically locks the perceived height of the marker so World Locking Tools will NEVER tilt the floor when multiple markers are detected.")]
     public bool lockTilt = true;
 
+    [Tooltip("CHECK THIS if the marker is flat on the floor! If true, it forces the Z-axis of the marker to point perfectly up at the ceiling, eliminating tilt without putting the prefab on its side.")]
+    public bool isFloorMarker = true;
+
     [Header("=== Smoothing & Dwell ===")]
     [SerializeField] private float poseAverageSeconds = 0.25f;
     [SerializeField] private float requiredDwellSeconds = 2.0f;
@@ -210,7 +213,7 @@ public class ArucoPinDriver : MonoBehaviour
 
             if (useYawOnlyRotation || lockTilt)
             {
-                poseToFeed.rotation = YawOnly(spongyPose.rotation);
+                poseToFeed.rotation = isFloorMarker ? FloorMarkerYawOnly(spongyPose.rotation) : YawOnly(spongyPose.rotation);
             }
             
             _spacePin.SetSpongyPose(poseToFeed);
@@ -275,6 +278,26 @@ public class ArucoPinDriver : MonoBehaviour
             fwd = Vector3.Cross(Vector3.up, right.normalized);
         }
         return Quaternion.LookRotation(fwd.normalized, Vector3.up);
+    }
+
+    private static Quaternion FloorMarkerYawOnly(Quaternion r)
+    {
+        // For a floor marker, the printed "top" of the marker (its Y axis) points along the floor.
+        // Its normal (Z axis) points straight up into the ceiling.
+        Vector3 markerTop = r * Vector3.up;
+        markerTop.y = 0f; // Flatten to floor
+
+        if (markerTop.sqrMagnitude < 1e-6f)
+        {
+            // If it was pointing straight up/down, fallback to its X axis (right)
+            Vector3 markerRight = r * Vector3.right;
+            markerRight.y = 0f;
+            if (markerRight.sqrMagnitude < 1e-6f) return Quaternion.identity;
+            markerTop = Vector3.Cross(markerRight.normalized, Vector3.up);
+        }
+
+        // We want a rotation where Forward (Z) is World UP, and Up (Y) is the markerTop vector.
+        return Quaternion.LookRotation(Vector3.up, markerTop.normalized);
     }
 
     // --- Debug Text ---
