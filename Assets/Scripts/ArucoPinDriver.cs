@@ -14,6 +14,12 @@ public class ArucoPinDriver : MonoBehaviour
              "Helpful if you trust the single marker's yaw but not its pitch/roll (e.g. wall marker).")]
     public bool useYawOnlyRotation = false;
 
+    [Tooltip("If true, mathematically locks the perceived height of the marker so World Locking Tools will NEVER elevate or lower the floor.")]
+    public bool lockElevation = true;
+
+    [Tooltip("If true, mathematically locks the perceived height of the marker so World Locking Tools will NEVER tilt the floor when multiple markers are detected.")]
+    public bool lockTilt = true;
+
     [Header("=== Smoothing & Dwell ===")]
     [SerializeField] private float poseAverageSeconds = 0.25f;
     [SerializeField] private float requiredDwellSeconds = 2.0f;
@@ -45,6 +51,7 @@ public class ArucoPinDriver : MonoBehaviour
     private float _firstSeenTime = -1f;
     private float _gazeStableSince = -1f;
     private Pose _smoothedPose;
+    private bool _hasLockedThisSession = false;
 
     // Head state
     private Vector3 _lastHeadPos;
@@ -68,6 +75,10 @@ public class ArucoPinDriver : MonoBehaviour
 
         if (ArucoMarkerManager.Instance != null)
         {
+            if (ArucoMarkerManager.Instance.SharedOrienter != null)
+            {
+                _spacePin.Orienter = ArucoMarkerManager.Instance.SharedOrienter;
+            }
             ArucoMarkerManager.Instance.RegisterDriver(arucoID, this);
         }
         else
@@ -103,6 +114,7 @@ public class ArucoPinDriver : MonoBehaviour
             _samples.Clear();
             _firstSeenTime = -1f;
             _gazeStableSince = -1f;
+            _hasLockedThisSession = false;
         }
 
         // 2. Head stillness check
@@ -175,28 +187,39 @@ public class ArucoPinDriver : MonoBehaviour
 
     private void UpdateSpacePin(Pose spongyPose, float now)
     {
-        // Only update if it's been a while, or the pose has drifted significantly.
-        // This prevents frame-to-frame micro-jitter on the SpacePinOrientable.
-        float distToLastLock = Vector3.Distance(_lastLockedPose.position, spongyPose.position);
-        float angleToLastLock = Quaternion.Angle(_lastLockedPose.rotation, spongyPose.rotation);
-        
-        bool isSignificantChange = distToLastLock > 0.01f || angleToLastLock > 1.0f; // 1cm or 1 degree
-        bool isFirstLockOrTimeout = (now - _lastLockTime) > 1.0f; // Allows refinement every 1s of holding gaze
-
-        if (isSignificantChange || isFirstLockOrTimeout)
+        // Only update once per continuous visual acquisition to avoid 
+        // destroying and recreating WLT spatial anchors continuously, 
+        // which crashes the Magic Leap OpenXR runtime backend.
+        if (!_hasLockedThisSession)
         {
             Pose poseToFeed = spongyPose;
-            if (useYawOnlyRotation)
+            
+            if (lockElevation || lockTilt)
             {
-                poseToFeed = new Pose(spongyPose.position, YawOnly(spongyPose.rotation));
+                var mgr = WorldLockingManager.GetInstance();
+                // Find where the marker is EXPECTED to be in tracking space if the building is exactly at its current height/rotation
+                Pose expectedSpongyPose = mgr.SpongyFromLocked.Multiply(_spacePin.ModelingPoseGlobal);
+
+                // By feeding WLT exactly the Y coordinate it expects, we tell WLT "there is zero height error".
+                // This guarantees WLT will not try to elevate the building, and also ensures multiple pins won't tilt the building.
+                if (lockElevation || lockTilt)
+                {
+                    poseToFeed.position.y = expectedSpongyPose.position.y;
+                }
+            }
+
+            if (useYawOnlyRotation || lockTilt)
+            {
+                poseToFeed.rotation = YawOnly(spongyPose.rotation);
             }
             
             _spacePin.SetSpongyPose(poseToFeed);
             
             _lastLockedPose = spongyPose;
             _lastLockTime = now;
+            _hasLockedThisSession = true;
 
-            Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Distance diff: {distToLastLock:F3}m");
+            Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}, Tilt Locked: {lockTilt}");
         }
     }
 

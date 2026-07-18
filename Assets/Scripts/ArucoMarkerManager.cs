@@ -8,7 +8,7 @@ using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.Android;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
-
+using Microsoft.MixedReality.WorldLocking.Core;
 public class ArucoMarkerManager : MonoBehaviour
 {
     public static ArucoMarkerManager Instance { get; private set; }
@@ -39,21 +39,32 @@ public class ArucoMarkerManager : MonoBehaviour
     private List<InputDevice> rightHandDevices = new List<InputDevice>();
     private List<InputDevice> leftHandDevices = new List<InputDevice>();
 
+    public Orienter SharedOrienter { get; private set; }
+
     private void Awake()
     {
-        if (Instance == null) Instance = this;
+        if (Instance == null) 
+        {
+            Instance = this;
+            var orienterObj = new GameObject("ArUcoOrienter");
+            SharedOrienter = orienterObj.AddComponent<Orienter>();
+        }
         else Destroy(gameObject);
     }
 
     public void RegisterDriver(ulong arucoID, ArucoPinDriver driver)
     {
         _pinDrivers[arucoID] = driver;
+        Debug.Log($"[ArucoMarkerManager] Registered driver for ArUco ID {arucoID}");
     }
 
     public void UnregisterDriver(ulong arucoID)
     {
         if (_pinDrivers.ContainsKey(arucoID))
+        {
             _pinDrivers.Remove(arucoID);
+            Debug.Log($"[ArucoMarkerManager] Unregistered driver for ArUco ID {arucoID}");
+        }
     }
 
     private IEnumerator Start()
@@ -126,6 +137,11 @@ public class ArucoMarkerManager : MonoBehaviour
                 if (_pinDrivers.TryGetValue(id, out var driver))
                 {
                     driver.ReceiveMarkerPose(trackingPose, now);
+                }
+                else
+                {
+                    if (Time.frameCount % 60 == 0) // Log once per second roughly
+                        Debug.LogWarning($"[ArucoMarkerManager] Detected ArUco {id} but no driver is registered for it.");
                 }
             }
         }
@@ -218,6 +234,12 @@ public class ArucoMarkerManager : MonoBehaviour
         {
             markerFeature.DestroyAllMarkerDetectors();
             _alreadyDestroyed = true;
+            Debug.Log("[MarkerDet] destroyed");
         }
+        else if (_alreadyDestroyed)
+        {
+            Debug.Log("[MarkerDet] already destroyed – skip");
+        }
+        hasInitializedDetector = false;
     }
 }
