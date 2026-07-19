@@ -36,9 +36,11 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
     private MagicLeapMarkerUnderstandingFeature markerFeature;
     private MagicLeapSpatialAnchorsFeature spatialAnchorsFeature;
     private MagicLeapSpatialAnchorsStorageFeature storageFeature;
+    private MagicLeapLocalizationMapFeature localizationMapFeature;
     private MLXrAnchorSubsystem activeSubsystem;
 
     private Dictionary<ulong, ARAnchor> createdAnchorsByArucoID = new Dictionary<ulong, ARAnchor>();
+    private Dictionary<ulong, GameObject> spawnedPrefabsByArucoID = new Dictionary<ulong, GameObject>();
     private List<ARAnchor> localAnchors = new List<ARAnchor>();
     private List<ARAnchor> storedAnchors = new List<ARAnchor>();
 
@@ -72,8 +74,9 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         markerFeature = OpenXRSettings.Instance.GetFeature<MagicLeapMarkerUnderstandingFeature>();
         spatialAnchorsFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsFeature>();
         storageFeature = OpenXRSettings.Instance.GetFeature<MagicLeapSpatialAnchorsStorageFeature>();
+        localizationMapFeature = OpenXRSettings.Instance.GetFeature<MagicLeapLocalizationMapFeature>();
 
-        if (markerFeature == null || spatialAnchorsFeature == null || storageFeature == null)
+        if (markerFeature == null || spatialAnchorsFeature == null || storageFeature == null || localizationMapFeature == null)
         {
             Debug.LogError("❌ Required Magic Leap features missing. Enable them in OpenXR settings.");
             enabled = false;
@@ -83,12 +86,10 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         if (xrOrigin == null)
             xrOrigin = FindAnyObjectByType<XROrigin>();
 
-        Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
+        Permissions.RequestPermissions(new string[] { Permissions.SpaceImportExport, "com.magicleap.permission.SPATIAL_ANCHOR" }, OnPermissionsGranted, OnPermissionsDenied);
 
         if (storageFeature != null)
             storageFeature.OnQueryComplete += OnQueryComplete;
-
-        CreateMarkerDetector();
     }
 
     private bool AreSubsystemsLoaded()
@@ -119,21 +120,36 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         Debug.Log($"✅ ArUco detector ready");
     }
 
-    private void OnSpacePermissionGranted(string permission)
+    private void OnPermissionsGranted(string permission)
     {
         permissionGranted = true;
+        
+        localizationMapFeature.EnableLocalizationEvents(true);
+        CreateMarkerDetector();
+
         // 🚨 BUG FIX: Commenting out QueryStoredSpatialAnchors to prevent Magic Leap OS crash (too many SQL variables) when map is empty or corrupted.
         // if (storageFeature != null && xrOrigin != null)
-        //    storageFeature.QueryStoredSpatialAnchors(xrOrigin.transform.position, 15f);
+        //    QueryExistingAnchors();
     }
 
-    private void OnPermissionDenied(string permission)
+    private void OnPermissionsDenied(string permission)
     {
         permissionGranted = false;
     }
 
+    private bool IsLocalized()
+    {
+        if (localizationMapFeature == null) return false;
+        localizationMapFeature.GetLatestLocalizationMapData(out LocalizationEventData mapData);
+        return mapData.State == LocalizationMapState.Localized;
+    }
+
     void Update()
     {
+        if (!permissionGranted) return;
+
+        CheckAndSavePrefabOffsets();
+
         if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0) return;
 
         markerFeature.UpdateMarkerDetectors();
@@ -154,19 +170,62 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
                 var mapping = arucoMappings.FirstOrDefault(m => m.arucoID == id);
                 if (mapping == null || mapping.prefab == null) continue;
 
-                // If we already created an anchor for this ID, just update the visual to current pose
                 if (createdAnchorsByArucoID.TryGetValue(id, out ARAnchor existingAnchor) && existingAnchor != null)
                 {
-                    UpdateInstanceTransform(existingAnchor.gameObject, mapping, pose);
+                    // Move the root anchor object
+                    UpdateAnchorTransform(existingAnchor.gameObject, pose);
                     continue;
                 }
 
-                // First time → create prefab + spatial anchor at current pose
                 CreateAndPublishAnchorFromMarker(id, mapping, pose);
             }
         }
 
         UpdateStoredAnchorTransforms();
+    }
+
+    private void CheckAndSavePrefabOffsets()
+    {
+        foreach (var kvp in spawnedPrefabsByArucoID)
+        {
+            if (kvp.Value != null && kvp.Value.transform.hasChanged)
+            {
+                SaveCustomOffset(kvp.Key, kvp.Value.transform);
+                kvp.Value.transform.hasChanged = false;
+            }
+        }
+    }
+
+    private void SaveCustomOffset(ulong arucoID, Transform prefabTransform)
+    {
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_PosX", prefabTransform.localPosition.x);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_PosY", prefabTransform.localPosition.y);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_PosZ", prefabTransform.localPosition.z);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_RotX", prefabTransform.localRotation.x);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_RotY", prefabTransform.localRotation.y);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_RotZ", prefabTransform.localRotation.z);
+        PlayerPrefs.SetFloat($"Aruco_{arucoID}_RotW", prefabTransform.localRotation.w);
+        PlayerPrefs.SetInt($"Aruco_{arucoID}_HasCustomOffset", 1);
+        PlayerPrefs.Save();
+    }
+
+    private bool LoadCustomOffset(ulong arucoID, Transform prefabTransform)
+    {
+        if (PlayerPrefs.GetInt($"Aruco_{arucoID}_HasCustomOffset", 0) == 1)
+        {
+            float px = PlayerPrefs.GetFloat($"Aruco_{arucoID}_PosX");
+            float py = PlayerPrefs.GetFloat($"Aruco_{arucoID}_PosY");
+            float pz = PlayerPrefs.GetFloat($"Aruco_{arucoID}_PosZ");
+            float rx = PlayerPrefs.GetFloat($"Aruco_{arucoID}_RotX");
+            float ry = PlayerPrefs.GetFloat($"Aruco_{arucoID}_RotY");
+            float rz = PlayerPrefs.GetFloat($"Aruco_{arucoID}_RotZ");
+            float rw = PlayerPrefs.GetFloat($"Aruco_{arucoID}_RotW");
+            prefabTransform.localPosition = new Vector3(px, py, pz);
+            prefabTransform.localRotation = new Quaternion(rx, ry, rz, rw);
+            prefabTransform.hasChanged = false;
+            return true;
+        }
+        return false;
     }
 
     private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerRelativePose)
@@ -178,49 +237,50 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
         Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
 
-        GameObject instance = Instantiate(mapping.prefab, markerWorldPos, markerWorldRot);
-        instance.SetActive(true);
-
-        ARAnchor arAnchor = instance.AddComponent<ARAnchor>();
-        var rend = instance.GetComponent<MeshRenderer>();
-        if (rend != null) rend.material.color = Color.grey;
-
+        GameObject anchorObj = new GameObject($"Anchor_Aruco_{arucoID}");
+        anchorObj.transform.SetPositionAndRotation(markerWorldPos, markerWorldRot);
+        
+        ARAnchor arAnchor = anchorObj.AddComponent<ARAnchor>();
         createdAnchorsByArucoID[arucoID] = arAnchor;
         localAnchors.Add(arAnchor);
 
-        // Apply per-ArUco settings
-        UpdateInstanceTransform(instance, mapping, markerRelativePose);
+        GameObject instance = Instantiate(mapping.prefab, anchorObj.transform);
+        instance.SetActive(true);
+        spawnedPrefabsByArucoID[arucoID] = instance;
 
-        Debug.Log($"✅ Created + published spatial anchor for ArUco {arucoID} at last known position");
+        ApplyInitialOrSavedOffset(arucoID, instance, mapping);
 
+        Debug.Log($"✅ Created + published spatial anchor for ArUco {arucoID}");
         PublishSingleAnchor(arAnchor);
     }
 
-    private void UpdateInstanceTransform(GameObject instance, ArucoPrefabMapping mapping, Pose markerRelativePose)
+    private void ApplyInitialOrSavedOffset(ulong arucoID, GameObject instance, ArucoPrefabMapping mapping)
     {
-        if (instance == null) return;
+        if (!LoadCustomOffset(arucoID, instance.transform))
+        {
+            instance.transform.localPosition = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
+            instance.transform.localRotation = Quaternion.Euler(mapping.rotationOffset);
+            instance.transform.hasChanged = false;
+        }
+        instance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
+    }
 
+    private void UpdateAnchorTransform(GameObject anchorObj, Pose markerRelativePose)
+    {
+        if (anchorObj == null) return;
         Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
-            ? xrOrigin.CameraFloorOffsetObject.transform
-            : null;
+            ? xrOrigin.CameraFloorOffsetObject.transform : null;
 
         Vector3 markerWorldPos = originT != null ? originT.TransformPoint(markerRelativePose.position) : markerRelativePose.position;
         Quaternion markerWorldRot = originT != null ? originT.rotation * markerRelativePose.rotation : markerRelativePose.rotation;
 
-        Vector3 localOffset = new Vector3(mapping.offsetX, mapping.offsetY, mapping.offsetZ);
-        Vector3 worldOffset = markerWorldRot * localOffset;
-        Vector3 finalPos = markerWorldPos + worldOffset;
-
-        Quaternion rotOffsetQuat = Quaternion.Euler(mapping.rotationOffset);
-        Quaternion finalRot = markerWorldRot * rotOffsetQuat;
-
-        instance.transform.SetPositionAndRotation(finalPos, finalRot);
-        instance.transform.localScale = Vector3.one * arucoPhysicalLengthMeters * mapping.scaleMultiplier;
+        anchorObj.transform.SetPositionAndRotation(markerWorldPos, markerWorldRot);
     }
 
     private void PublishSingleAnchor(ARAnchor anchor)
     {
         if (!permissionGranted || storageFeature == null || anchor?.trackingState != TrackingState.Tracking) return;
+        if (!IsLocalized()) return;
         storageFeature.PublishSpatialAnchorsToStorage(new List<ARAnchor> { anchor }, 0);
     }
 
@@ -237,7 +297,10 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
             }
         }
         var newOnes = anchorMapPositionIds.Except(tracked);
-        if (newOnes.Any()) storageFeature.CreateSpatialAnchorsFromStorage(newOnes.ToList());
+        if (newOnes.Any() && IsLocalized()) 
+        {
+            storageFeature.CreateSpatialAnchorsFromStorage(newOnes.ToList());
+        }
     }
 
     private void UpdateStoredAnchorTransforms()
@@ -259,8 +322,6 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         foreach (var a in args.updated)
             if (activeSubsystem != null && activeSubsystem.IsStoredAnchor(a) && localAnchors.Contains(a))
             {
-                var rend = a.GetComponent<MeshRenderer>();
-                if (rend != null) rend.material.color = Color.white;
                 storedAnchors.Add(a);
                 localAnchors.Remove(a);
             }
@@ -270,7 +331,7 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
 
     public void QueryExistingAnchors()
     {
-        if (storageFeature != null && xrOrigin != null)
+        if (storageFeature != null && xrOrigin != null && IsLocalized())
             storageFeature.QueryStoredSpatialAnchors(xrOrigin.transform.position, 20f);
     }
 
@@ -281,12 +342,14 @@ public class ArucoTriggeredSpatialAnchor : MonoBehaviour
         localAnchors.Clear();
         storedAnchors.Clear();
         createdAnchorsByArucoID.Clear();
+        spawnedPrefabsByArucoID.Clear();
         if (markerFeature != null) markerFeature.DestroyAllMarkerDetectors();
         hasInitializedDetector = false;
     }
 
     private void OnDestroy()
     {
+        if (localizationMapFeature != null) localizationMapFeature.EnableLocalizationEvents(false);
         if (storageFeature != null) storageFeature.OnQueryComplete -= OnQueryComplete;
         DestroyAll();
     }
