@@ -81,7 +81,7 @@ EditorBuildSettings:
     path: Assets/EyeGaze/Assets/Scenes/Trial 2.unity
     guid: 95421af7c97d2724996a3bdb8fccc2ba
   - enabled: 1
-    path: Assets/EyeGaze/Assets/Scenes/Trial 3.unity
+    path: Assets/EyeGaze/Assets/Scenes/Application.unity
     guid: d2007bfded29ef74595b8ed15b1e0896
   m_configObjects:
     com.unity.xr.arfoundation.simulation_settings: {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78,
