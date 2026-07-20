@@ -25,6 +25,8 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private LayerMask layersToIncludeWithRay;
     [SerializeField] [Range(1.0f, 10.0f)] private float minDwellTimeOverTarget = 4.0f;
     [SerializeField] private bool enableDwellDestroyFeature = true;
+    [Tooltip("If true, casts an extra unmasked ray each frame to log exactly what the eye hits (name + layer). Off by default to save per-frame CPU/heat on Magic Leap.")]
+    [SerializeField] private bool logUnmaskedEyeHit = false;
 
     [Header("Logging")]
     [Tooltip("If true, starts recording immediately. If false, wait until ResumeRecording() is called.")]
@@ -37,8 +39,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
-    [SerializeField] [Tooltip("How often to silently save the JSON to disk to prevent data loss on crash (in seconds).")]
-    private float autoSaveIntervalSeconds = 60f;
+    [SerializeField] [Tooltip("How often to silently save the JSON summary to disk to prevent data loss on crash (in seconds). Kept short because a hard platform reboot fires neither OnApplicationQuit nor OnApplicationPause.")]
+    private float autoSaveIntervalSeconds = 5f;
 
     [Header("Optional Objects Tracking")]
     [SerializeField] private GameObject blueWireframeObject;
@@ -197,6 +199,11 @@ public class EyeAndHeadTracker : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+
+        // Cap the framerate to 60fps to reduce heat generation on Magic Leap.
+        // Set here as well as TrialManager so it can't be missed if this tracker
+        // runs in a scene without TrialManager.
+        Application.targetFrameRate = 60;
 
         persistentDataPath = Application.persistentDataPath;
         Directory.CreateDirectory(persistentDataPath);
@@ -517,8 +524,11 @@ public class EyeAndHeadTracker : MonoBehaviour
             gazeRotation = trackingOrigin.rotation * gazeRotationTrackingSpace;
         }
 
-        // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log
-        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, Mathf.Infinity))
+        // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log.
+        // Gated off by default: this extra unmasked, infinite-distance raycast runs every
+        // frame against ALL colliders and needlessly adds CPU/heat on Magic Leap.
+        if (logUnmaskedEyeHit &&
+            Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, Mathf.Infinity))
         {
             currentHitObjectName = debugHit.collider.name + " (Layer: " + LayerMask.LayerToName(debugHit.collider.gameObject.layer) + ")";
         }
@@ -739,20 +749,20 @@ public class EyeAndHeadTracker : MonoBehaviour
                 {
                     WriteTextAtomically(summaryPath, json);
                     Debug.Log($"✅ Summary saved in background: {summaryPath}");
+
+                    if (rawNdjsonWriter != null)
+                    {
+                        lock (rawWriterLock)
+                        {
+                            rawNdjsonWriter.Flush();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError($"Background save failed: {ex.Message}");
                 }
             });
-
-            if (rawNdjsonWriter != null)
-            {
-                lock (rawWriterLock)
-                {
-                    rawNdjsonWriter.Flush();
-                }
-            }
         }
         catch (Exception ex)
         {
@@ -767,19 +777,9 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void WriteTextAtomically(string path, string content)
     {
-        string tempPath = path + "_" + Guid.NewGuid().ToString() + ".tmp";
-        
-        // 1. Write the entire file to the temporary location safely
-        File.WriteAllText(tempPath, content);
-        
-        // 2. Once fully written, swap it with the main file
         lock (_fileLock)
         {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-            File.Move(tempPath, path);
+            File.WriteAllText(path, content);
         }
     }
 

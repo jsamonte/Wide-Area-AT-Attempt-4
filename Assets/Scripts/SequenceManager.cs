@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
 
 public class SequenceManager : MonoBehaviour
@@ -7,6 +8,8 @@ public class SequenceManager : MonoBehaviour
     [Header("Script References")]
     public RandomSpawner spawner;
     public EyeAndHeadTracker tracker;
+    [Tooltip("Drag the MapTracking object here. Its detector is started at trial start and stopped when all targets are destroyed, so the map only runs (and draws power/heat) during a trial.")]
+    public MagicLeap.Examples.MapTracking mapTracking;
     [Tooltip("Drag the Gem prefab here to spawn during the Tutorial Phase")]
     public GameObject tutorialTargetPrefab;
 
@@ -32,11 +35,20 @@ public class SequenceManager : MonoBehaviour
     public GameObject pool3_9Baseline;
     public GameObject pool4_9Baseline;
 
+    [Header("Thermal / Frame Rate")]
+    [Tooltip("Frame rate during active gameplay (tutorial + trials).")]
+    [SerializeField] private int trialFrameRate = 60;
+    [Tooltip("Frame rate while a menu / wait screen is showing. Lower = less heat while idle between trials.")]
+    [SerializeField] private int menuFrameRate = 30;
+    [Tooltip("Minimum forced cooldown (seconds) before the Start button becomes clickable between trials, letting the compute pack shed heat. Set 0 to disable.")]
+    [SerializeField] private float minCooldownBetweenTrialsSeconds = 20f;
+
     // Internal State
     private int currentSequenceIndex = -1;
     private int currentTrialIndex = 0;
     private bool sequenceComplete = false;
     private bool isTutorialPhase = false;
+    private Coroutine _cooldownRoutine;
 
     // Hardcoded Sequences based on your prompt
     // True = Wireframe ON. False = Wireframe OFF.
@@ -60,6 +72,9 @@ public class SequenceManager : MonoBehaviour
         if (spawner != null) spawner.spawnOnAwake = false;
         if (tracker != null) tracker.recordOnAwake = false;
         if (tracker != null) tracker.OnAllTargetsDestroyed.AddListener(OnTrialFinished);
+
+        // Fallback so the map still works if the Inspector reference wasn't wired.
+        if (mapTracking == null) mapTracking = FindObjectOfType<MagicLeap.Examples.MapTracking>();
 
         // Set up the unified button clicks in code and initialize their names
         for (int i = 0; i < sequenceButtons.Length; i++)
@@ -99,7 +114,14 @@ public class SequenceManager : MonoBehaviour
             startButton.SetActive(false); // Hide until needed
         }
 
+        SetFrameRate(menuFrameRate); // idle menu: run cool
         ShowMenu("Please scan all ArUco Markers and Select a Sequence to start.");
+    }
+
+    /// <summary>Central place to change the render cap. Lower on menus, higher during gameplay.</summary>
+    private void SetFrameRate(int fps)
+    {
+        Application.targetFrameRate = fps;
     }
 
     private void OnUnifiedButtonClicked(int buttonIndex)
@@ -151,7 +173,10 @@ public class SequenceManager : MonoBehaviour
     {
         isTutorialPhase = true;
         gameObject.SetActive(false); // Hide HUD during tutorial
+        SetFrameRate(trialFrameRate); // active gameplay
 
+        // Space pins have served their purpose (building is locked) — tear down the
+        // space-pin detector now so it isn't running during the tutorial or trials.
         if (ArucoMarkerManager.Instance != null)
             ArucoMarkerManager.Instance.DestroyMarkerTrackers();
 
@@ -206,6 +231,7 @@ public class SequenceManager : MonoBehaviour
     private void UpdateMenuForNextTrial()
     {
         gameObject.SetActive(true); // Show HUD
+        SetFrameRate(menuFrameRate); // idle menu: run cool and let the device cool down
 
         if (currentTrialIndex >= 4)
         {
@@ -232,8 +258,35 @@ public class SequenceManager : MonoBehaviour
         {
             startButton.SetActive(true);
             SetButtonTextSingle(startButtonText, startButton, $"Start Trial {currentTrialIndex + 1}");
-            SetButtonInteractable(startButton, true);
+
+            // Enforce a minimum cooldown so the compute pack can shed heat before the
+            // next trial. The button stays greyed out with a countdown, then enables.
+            if (_cooldownRoutine != null) StopCoroutine(_cooldownRoutine);
+            if (minCooldownBetweenTrialsSeconds > 0f)
+                _cooldownRoutine = StartCoroutine(CooldownThenEnableStart(currentTrialIndex + 1));
+            else
+                SetButtonInteractable(startButton, true);
         }
+    }
+
+    /// <summary>
+    /// Keep the Start button disabled for <see cref="minCooldownBetweenTrialsSeconds"/>,
+    /// showing a countdown, then re-enable it. Gives the device guaranteed cool-down time
+    /// between trials on top of the researcher-paced approval.
+    /// </summary>
+    private IEnumerator CooldownThenEnableStart(int trialNumberForLabel)
+    {
+        SetButtonInteractable(startButton, false);
+        float remaining = minCooldownBetweenTrialsSeconds;
+        while (remaining > 0f)
+        {
+            SetButtonTextSingle(startButtonText, startButton, $"Cooldown… {Mathf.CeilToInt(remaining)}s");
+            yield return new WaitForSeconds(1f);
+            remaining -= 1f;
+        }
+        SetButtonTextSingle(startButtonText, startButton, $"Start Trial {trialNumberForLabel}");
+        SetButtonInteractable(startButton, true);
+        _cooldownRoutine = null;
     }
 
     private void OnStartButtonClicked()
@@ -241,7 +294,12 @@ public class SequenceManager : MonoBehaviour
         if (sequenceComplete || currentSequenceIndex == -1) return;
         if (!gameObject.activeSelf) return; // Anti-double-fire guard!
 
+        // If the cooldown is still counting down the button is non-interactive, so
+        // clicks can't reach here. Stop any stray cooldown coroutine just in case.
+        if (_cooldownRoutine != null) { StopCoroutine(_cooldownRoutine); _cooldownRoutine = null; }
+
         gameObject.SetActive(false); // Hide HUD
+        SetFrameRate(trialFrameRate); // active gameplay
 
         int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
         bool useWireframe = sequenceWireframes[currentSequenceIndex, currentTrialIndex];
@@ -266,7 +324,14 @@ public class SequenceManager : MonoBehaviour
         if (poolNum == 3) SetWireframeActive(pool3_9Baseline, useWireframe);
         if (poolNum == 4) SetWireframeActive(pool4_9Baseline, useWireframe);
 
-        // 3. Start JSON Tracker and log marker
+        // 3. Guarantee the space-pin detector is gone, THEN start the map detector.
+        // This ensures we never run two ArUco detectors at once (the biggest CV/heat
+        // win). DestroyMarkerTrackers() is idempotent, so this is a safe belt-and-braces
+        // call even though the tutorial already tore it down.
+        if (ArucoMarkerManager.Instance != null) ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+        if (mapTracking != null) mapTracking.StartTracking();
+
+        // 4. Start JSON Tracker and log marker
         if (tracker != null)
         {
             tracker.RefreshTargetList();
@@ -290,6 +355,9 @@ public class SequenceManager : MonoBehaviour
             tracker.LogMarker($"Trial {currentTrialIndex + 1} Ended.");
             tracker.PauseRecording();
         }
+
+        // All targets destroyed -> stop the map detector to drop camera/CV load and heat.
+        if (mapTracking != null) mapTracking.StopTracking();
 
         if (spawner != null) spawner.DestroyAllSpawnedObjects();
 

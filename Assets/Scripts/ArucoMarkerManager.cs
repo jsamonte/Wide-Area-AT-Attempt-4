@@ -31,6 +31,11 @@ public class ArucoMarkerManager : MonoBehaviour
 
     // Runtime state
     private MagicLeapMarkerUnderstandingFeature markerFeature;
+    // The single detector THIS manager owns (drives the building's SpacePins).
+    // Tracked so we can tear down ONLY the space-pin detector without touching
+    // other detectors on the shared feature singleton (e.g. MapTracking's ID-88
+    // detector), which must keep running after the space pins are disabled.
+    private MarkerDetector _spacePinDetector;
     private bool hasInitializedDetector = false;
     private bool _alreadyDestroyed = false;
 
@@ -109,7 +114,7 @@ public class ArucoMarkerManager : MonoBehaviour
                 EstimateArucoLength = estimateArucoLength
             }
         };
-        markerFeature.CreateMarkerDetector(settings);
+        _spacePinDetector = markerFeature.CreateMarkerDetector(settings);
         hasInitializedDetector = true;
     }
 
@@ -122,11 +127,13 @@ public class ArucoMarkerManager : MonoBehaviour
 
         float now = Time.time;
 
-        // Collect detections and dispatch
-        foreach (var detector in markerFeature.MarkerDetectors)
+        // Collect detections and dispatch. Only read from OUR detector so that
+        // other detectors on the shared feature (e.g. MapTracking's) are never
+        // touched here -- and so that once _spacePinDetector is destroyed, the
+        // space pins go silent while the map keeps tracking.
+        if (_spacePinDetector != null)
         {
-            if (detector.Settings.MarkerType != MarkerType.Aruco) continue;
-            foreach (var data in detector.Data)
+            foreach (var data in _spacePinDetector.Data)
             {
                 if (data.MarkerPose == null || !data.MarkerNumber.HasValue) continue;
                 ulong id = data.MarkerNumber.Value;
@@ -230,22 +237,28 @@ public class ArucoMarkerManager : MonoBehaviour
 
     public void DestroyMarkerTrackers()
     {
-        if (markerFeature != null && !_alreadyDestroyed) 
+        // Destroy ONLY the space-pin detector. Previously this called
+        // DestroyAllMarkerDetectors(), which also tore down MapTracking's detector
+        // on the shared feature singleton -- killing the map. Destroying just our
+        // own detector leaves any other detector (the map) running.
+        if (markerFeature != null && _spacePinDetector != null && !_alreadyDestroyed)
         {
-            markerFeature.DestroyAllMarkerDetectors();
+            markerFeature.DestroyMarkerDetector(_spacePinDetector);
+            _spacePinDetector = null;
             _alreadyDestroyed = true;
             hasInitializedDetector = false;
-            Debug.Log("[ArucoMarkerManager] Marker Detectors manually destroyed to save performance.");
+            Debug.Log("[ArucoMarkerManager] Space-pin marker detector destroyed to save performance (map detector left intact).");
         }
     }
 
     private void OnDestroy()
     {
-        if (markerFeature != null && !_alreadyDestroyed) 
+        if (markerFeature != null && _spacePinDetector != null && !_alreadyDestroyed)
         {
-            markerFeature.DestroyAllMarkerDetectors();
+            markerFeature.DestroyMarkerDetector(_spacePinDetector);
+            _spacePinDetector = null;
             _alreadyDestroyed = true;
-            Debug.Log("[MarkerDet] destroyed");
+            Debug.Log("[MarkerDet] space-pin detector destroyed");
         }
         else if (_alreadyDestroyed)
         {

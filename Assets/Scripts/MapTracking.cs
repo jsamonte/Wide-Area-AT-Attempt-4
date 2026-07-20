@@ -32,6 +32,20 @@ namespace MagicLeap.Examples
         [Tooltip("Leave unchecked to prevent tracking issues on ML2 with small markers")]
         [SerializeField] private bool estimateArucoLength = false;
 
+        [Header("Low-Power Detection (reduces heat)")]
+        [Tooltip("If true, ignore the Profile above and build a lightweight Custom profile (lower FPS / less frequent full analysis) to cut camera+CV load and heat. Recommended for the map, which only needs to locate one marker.")]
+        [SerializeField] private bool useLowPowerProfile = true;
+        [Tooltip("Frames per second the detector analyzes. Low is plenty for a map that follows via smoothing.")]
+        [SerializeField] private MarkerDetectorFPS lowPowerFps = MarkerDetectorFPS.Low;
+        [Tooltip("How often the detector does a full (expensive) analysis pass. Medium keeps re-acquisition quick without running every frame.")]
+        [SerializeField] private MarkerDetectorFullAnalysisInterval lowPowerAnalysisInterval = MarkerDetectorFullAnalysisInterval.Medium;
+        [Tooltip("Resolution hint. Low reduces load (mainly affects QR/UPC/EAN, harmless for ArUco).")]
+        [SerializeField] private MarkerDetectorResolution lowPowerResolution = MarkerDetectorResolution.Low;
+
+        [Header("Detector Lifecycle")]
+        [Tooltip("If false, no detector is created until StartTracking() is called (e.g. by SequenceManager when a trial starts). Keeps the camera/CV pipeline off — and heat down — while it isn't needed.")]
+        [SerializeField] private bool startTrackingOnStart = false;
+
         [Header("XR Configuration")]
         [SerializeField, Tooltip("Required to convert Tracking Space to World Space. Will auto-find if left empty.")]
         private XROrigin xrOrigin;
@@ -45,6 +59,10 @@ namespace MagicLeap.Examples
         private float followSpeed = 12f;
 
         private MagicLeapMarkerUnderstandingFeature markerFeature;
+        // The single detector THIS component owns. Tracked so StopTracking() can
+        // destroy ONLY the map detector via DestroyMarkerDetector(), never the
+        // space-pin or other detectors that share the feature singleton.
+        private MarkerDetector _detector;
         private GameObject currentCustomInstance;
         private bool markerVisible = false;
         
@@ -80,7 +98,11 @@ namespace MagicLeap.Examples
             // Request permissions exactly like Prototype3
             Permissions.RequestPermission(Permissions.SpaceImportExport, OnPermissionGranted, OnPermissionDenied);
 
-            CreateMarkerDetector();
+            // Do NOT create the detector here by default. It is created on demand
+            // via StartTracking() (e.g. when a trial begins) so the camera/CV
+            // pipeline -- and its heat -- stays off until the map is actually needed.
+            if (startTrackingOnStart)
+                StartTracking();
         }
 
         private void OnPermissionGranted(string permission)
@@ -93,13 +115,19 @@ namespace MagicLeap.Examples
             Debug.LogError($"[MapTracking] Permission denied: {permission}");
         }
 
-        private void CreateMarkerDetector()
+        /// <summary>
+        /// Create the map's marker detector if it isn't already running. Idempotent.
+        /// Call this when the map is actually needed (e.g. at trial start) so the
+        /// camera/CV pipeline only runs during that window.
+        /// </summary>
+        public void StartTracking()
         {
             if (markerFeature == null) return;
+            if (_detector != null) return; // already tracking
 
             var settings = new MarkerDetectorSettings
             {
-                MarkerDetectorProfile = profile,
+                MarkerDetectorProfile = useLowPowerProfile ? MarkerDetectorProfile.Custom : profile,
                 MarkerType = MarkerType.Aruco,
                 ArucoSettings = new ArucoSettings
                 {
@@ -109,56 +137,86 @@ namespace MagicLeap.Examples
                 }
             };
 
-            markerFeature.CreateMarkerDetector(settings);
+            if (useLowPowerProfile)
+            {
+                settings.CustomProfileSettings = new CustomProfileSettings
+                {
+                    FPSHint = lowPowerFps,
+                    ResolutionHint = lowPowerResolution,
+                    CameraHint = MarkerDetectorCamera.RGB,             // single camera = less load than multi-cam World
+                    CornerRefinement = MarkerDetectorCornerRefineMethod.None, // fastest; map placement doesn't need sub-pixel corners
+                    AnalysisInterval = lowPowerAnalysisInterval,
+                    UseEdgeRefinement = false
+                };
+            }
 
-            Debug.Log($"✅ MapTracking ready — tracking ArUco ID {targetArucoID} " +
-                      $"(Dictionary: {arucoType}, Size: {arucoLengthMeters * 1000f} mm)");
+            _detector = markerFeature.CreateMarkerDetector(settings);
+
+            Debug.Log($"✅ MapTracking started — tracking ArUco ID {targetArucoID} " +
+                      $"(Dictionary: {arucoType}, Size: {arucoLengthMeters * 1000f} mm, " +
+                      $"Profile: {(useLowPowerProfile ? "Custom/LowPower" : profile.ToString())})");
+        }
+
+        /// <summary>
+        /// Destroy ONLY this component's detector (leaving other detectors on the
+        /// shared feature untouched) and hide the spawned map. Call when the map is
+        /// no longer needed (e.g. once all trial targets are destroyed) to drop the
+        /// camera/CV load and reduce heat.
+        /// </summary>
+        public void StopTracking()
+        {
+            if (markerFeature != null && _detector != null)
+            {
+                markerFeature.DestroyMarkerDetector(_detector);
+                Debug.Log("[MapTracking] Map detector destroyed to save power (other detectors left intact).");
+            }
+            _detector = null;
+
+            if (currentCustomInstance != null)
+                currentCustomInstance.SetActive(false);
+            markerVisible = false;
         }
 
         void Update()
         {
-            if (markerFeature == null || markerFeature.MarkerDetectors.Count == 0)
+            // Only read from OUR detector. If it hasn't been started (or has been
+            // stopped), there's nothing to do -- and we never touch other detectors.
+            if (_detector == null)
                 return;
 
             // UpdateMarkerDetectors() is handled once per frame by MarkerDetectorPump.
             markerVisible = false;
 
-            // 2. Loop through tracking data
-            foreach (var markerDetector in markerFeature.MarkerDetectors)
+            // 2. Loop through this detector's tracking data
+            for (int i = 0; i < _detector.Data.Count; i++)
             {
-                if (markerDetector.Settings.MarkerType != MarkerType.Aruco)
+                var data = _detector.Data[i];
+
+                if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
                     continue;
 
-                for (int i = 0; i < markerDetector.Data.Count; i++)
+                markerVisible = true;
+
+                // Convert the raw pose from ML Tracking Space to Unity World Space!
+                Pose worldPose = ToWorld(data.MarkerPose.Value);
+
+                // 3. Spawn once, then just move it — never re-instantiate every frame
+                if (currentCustomInstance == null && customMarkerPrefab != null)
                 {
-                    var data = markerDetector.Data[i];
+                    currentCustomInstance = Instantiate(customMarkerPrefab);
+                    currentCustomInstance.SetActive(true);
+                }
 
-                    if (data.MarkerPose == null || data.MarkerNumber != targetArucoID)
-                        continue;
+                if (currentCustomInstance != null)
+                {
+                    Quaternion offsetRot = Quaternion.Euler(rotationOffset);
+                    targetPosition = worldPose.position;
+                    targetRotation = worldPose.rotation * offsetRot;
 
-                    markerVisible = true;
-
-                    // Convert the raw pose from ML Tracking Space to Unity World Space!
-                    Pose worldPose = ToWorld(data.MarkerPose.Value);
-
-                    // 3. Spawn once, then just move it — never re-instantiate every frame
-                    if (currentCustomInstance == null && customMarkerPrefab != null)
+                    if (!hasInitialPose)
                     {
-                        currentCustomInstance = Instantiate(customMarkerPrefab);
-                        currentCustomInstance.SetActive(true);
-                    }
-
-                    if (currentCustomInstance != null)
-                    {
-                        Quaternion offsetRot = Quaternion.Euler(rotationOffset);
-                        targetPosition = worldPose.position;
-                        targetRotation = worldPose.rotation * offsetRot;
-
-                        if (!hasInitialPose)
-                        {
-                            currentCustomInstance.transform.SetPositionAndRotation(targetPosition, targetRotation);
-                            hasInitialPose = true;
-                        }
+                        currentCustomInstance.transform.SetPositionAndRotation(targetPosition, targetRotation);
+                        hasInitialPose = true;
                     }
                 }
             }
@@ -202,11 +260,14 @@ namespace MagicLeap.Examples
                 currentCustomInstance = null;
             }
 
-            // NOTE: Do NOT call DestroyAllMarkerDetectors() here.
-            // Prototype8.cs registers its own detectors on the same feature singleton.
-            // Calling DestroyAllMarkerDetectors() from MapTracking would silently
-            // destroy Prototype8's detectors. Prototype8.DestroyAll() handles
-            // cleanup of all detectors when it is destroyed.
+            // Destroy ONLY our own detector. Never call DestroyAllMarkerDetectors()
+            // here: other components (space pins, Prototype8, etc.) register their
+            // own detectors on the same feature singleton and must not be torn down.
+            if (markerFeature != null && _detector != null)
+            {
+                markerFeature.DestroyMarkerDetector(_detector);
+                _detector = null;
+            }
         }
     }
 }
