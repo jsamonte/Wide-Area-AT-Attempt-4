@@ -152,6 +152,9 @@ public class SequenceManager : MonoBehaviour
         isTutorialPhase = true;
         gameObject.SetActive(false); // Hide HUD during tutorial
 
+        if (ArucoMarkerManager.Instance != null)
+            ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+
         if (tutorialTargetPrefab != null)
         {
             Transform userTransform = Camera.main != null ? Camera.main.transform : transform;
