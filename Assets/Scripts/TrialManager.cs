@@ -33,8 +33,8 @@ public class TrialManager : MonoBehaviour
 
     private void Start()
     {
-        // Cap the framerate to 60fps to drastically reduce heat generation on Magic Leap
-        Application.targetFrameRate = 60;
+        // Cap the framerate to 30fps to drastically reduce heat generation on Magic Leap
+        Application.targetFrameRate = 30;
 
         // Safety checks to ensure other scripts don't start automatically
         if (spawner != null) spawner.spawnOnAwake = false;

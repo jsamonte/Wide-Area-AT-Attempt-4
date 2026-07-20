@@ -39,8 +39,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     [SerializeField] private bool useEfficientRawLogging = false;
     [SerializeField] private bool autoSaveWhenAllTargetsDestroyed = true;
-    [SerializeField] [Tooltip("How often to silently save the JSON summary to disk to prevent data loss on crash (in seconds). Kept short because a hard platform reboot fires neither OnApplicationQuit nor OnApplicationPause.")]
-    private float autoSaveIntervalSeconds = 5f;
+    [SerializeField] [Tooltip("How often to silently save the JSON summary and flush the raw NDJSON buffer to disk (seconds). Balances crash-safety against IO frequency: a hard platform reboot fires neither OnApplicationQuit nor OnApplicationPause, but each target-destruction event is saved immediately anyway, so this only bounds raw per-frame pose loss.")]
+    private float autoSaveIntervalSeconds = 10f;
 
     [Header("Optional Objects Tracking")]
     [SerializeField] private GameObject blueWireframeObject;
@@ -200,10 +200,10 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         Instance = this;
 
-        // Cap the framerate to 60fps to reduce heat generation on Magic Leap.
-        // Set here as well as TrialManager so it can't be missed if this tracker
-        // runs in a scene without TrialManager.
-        Application.targetFrameRate = 60;
+        // Cap the framerate to 30fps to reduce heat generation on Magic Leap.
+        // Set here as well as TrialManager/SequenceManager so it can't be missed if
+        // this tracker runs in a scene without them.
+        Application.targetFrameRate = 30;
 
         persistentDataPath = Application.persistentDataPath;
         Directory.CreateDirectory(persistentDataPath);
@@ -369,7 +369,11 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         currentHitObjectName = "None";
 
-        if (enableDwellDestroyFeature &&
+        // Gated on isRecording so this doesn't keep raycasting/querying the eye-tracking
+        // hardware every frame during cooldown/menu screens between trials, when
+        // SequenceManager has paused recording specifically to let the device cool down.
+        if (isRecording &&
+            enableDwellDestroyFeature &&
             GazeInputManager.Instance != null &&
             GazeInputManager.Instance.EyeTrackingPermissionGranted)
         {
@@ -409,6 +413,11 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void CaptureTrackingFrame()
     {
+        // Everything computed here (UTC timestamp string, head sampling, eye sampling)
+        // feeds ONLY the raw NDJSON stream. When raw logging is off there is no consumer,
+        // so skip the whole per-frame body to save CPU/GC — and therefore heat — on ML2.
+        if (!useEfficientRawLogging) return;
+
         float now = Time.realtimeSinceStartup;
         float dtMs = (lastFrameTimestamp == 0f) ? 0f : (now - lastFrameTimestamp) * 1000f;
         lastFrameTimestamp = now;

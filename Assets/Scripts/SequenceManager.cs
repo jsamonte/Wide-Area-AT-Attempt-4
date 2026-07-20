@@ -36,8 +36,8 @@ public class SequenceManager : MonoBehaviour
     public GameObject pool4_9Baseline;
 
     [Header("Thermal / Frame Rate")]
-    [Tooltip("Frame rate during active gameplay (tutorial + trials).")]
-    [SerializeField] private int trialFrameRate = 60;
+    [Tooltip("Frame rate during active gameplay (tutorial + trials). Capped at 30 to reduce heat on Magic Leap.")]
+    [SerializeField] private int trialFrameRate = 30;
     [Tooltip("Frame rate while a menu / wait screen is showing. Lower = less heat while idle between trials.")]
     [SerializeField] private int menuFrameRate = 30;
     [Tooltip("Minimum forced cooldown (seconds) before the Start button becomes clickable between trials, letting the compute pack shed heat. Set 0 to disable.")]
@@ -118,10 +118,12 @@ public class SequenceManager : MonoBehaviour
         ShowMenu("Please scan all ArUco Markers and Select a Sequence to start.");
     }
 
-    /// <summary>Central place to change the render cap. Lower on menus, higher during gameplay.</summary>
+    /// <summary>Central place to change the render cap. Hard-capped at 30 fps to keep
+    /// heat down on Magic Leap regardless of any higher value serialized in the Inspector.</summary>
+    private const int MaxFrameRate = 30;
     private void SetFrameRate(int fps)
     {
-        Application.targetFrameRate = fps;
+        Application.targetFrameRate = Mathf.Min(fps, MaxFrameRate);
     }
 
     private void OnUnifiedButtonClicked(int buttonIndex)
