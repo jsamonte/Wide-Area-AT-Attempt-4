@@ -28,6 +28,20 @@ Shader "SemanticMesh/SemanticGrid"
         // 0 = square (sharp), 1 = rounded (softer), 2 = criss-cross (diagonal).
         // Set per-category by the palette; see roadmap 9.1.
         _Grid_Style ("Grid Style (0 sq / 1 round / 2 cross)", Float) = 1.0
+        // 0 = grid from mesh UV (traced surfaces, the default). 1 = grid projected
+        // top-down from world X/Z, so an imported ground mesh with any/no UVs still
+        // gets a seamless grid. No triplanar needed: the ground is horizontal.
+        _Projection_Mode ("Projection (0 UV / 1 world XZ)", Float) = 0.0
+        // 1 = discard near-vertical faces, which drops the shrinkwrap's sky spikes
+        // and building walls on an imported ground so only the terrain grid shows.
+        // 0 = draw every face (the default, for traced surfaces).
+        _Spike_Discard ("Discard Vertical Faces (0/1)", Float) = 0.0
+        // Keep a face only if |world normal.y| is at least this (1 = flat up,
+        // 0 = vertical). 0.5 keeps within ~60 degrees of horizontal.
+        _Up_Threshold ("Vertical Discard Threshold", Range(0.0, 1.0)) = 0.5
+        // 1 = distance LOD on (far cells grow sparse, lines thin). 0 = a uniform
+        // grid at the near cell size everywhere, handy for an even overview.
+        _Lod_Enable ("Distance LOD (0 off / 1 on)", Float) = 1.0
     }
 
     SubShader
@@ -59,6 +73,7 @@ Shader "SemanticMesh/SemanticGrid"
             struct Attributes
             {
                 float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
                 float2 uv : TEXCOORD0;
             };
 
@@ -67,6 +82,7 @@ Shader "SemanticMesh/SemanticGrid"
                 float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
+                float3 normalWS : TEXCOORD2;
             };
 
             CBUFFER_START(UnityPerMaterial)
@@ -79,14 +95,20 @@ Shader "SemanticMesh/SemanticGrid"
                 float _Lod_Coarsen;
                 float _Line_Softness;
                 float _Grid_Style;
+                float _Projection_Mode;
+                float _Spike_Discard;
+                float _Up_Threshold;
+                float _Lod_Enable;
             CBUFFER_END
 
             Varyings vert(Attributes input)
             {
                 Varyings output;
                 VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
+                VertexNormalInputs normals = GetVertexNormalInputs(input.normalOS);
                 output.positionHCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
+                output.normalWS = normals.normalWS;
                 output.uv = input.uv;
                 return output;
             }
@@ -109,14 +131,37 @@ Shader "SemanticMesh/SemanticGrid"
 
             half4 frag(Varyings input) : SV_Target
             {
+                // Spike/wall cull (imported ground). Drop any face that leans more
+                // than the threshold off horizontal, so the shrinkwrap's vertical
+                // sky spikes and building walls vanish and only the terrain grid
+                // remains. Off by default (traced surfaces draw every face).
+                if (_Spike_Discard > 0.5)
+                {
+                    float up = abs(normalize(input.normalWS).y);
+                    if (up < _Up_Threshold)
+                    {
+                        discard;
+                    }
+                }
+
                 float dist = distance(input.positionWS, _WorldSpaceCameraPos);
-                float lod_t = saturate((dist - _Lod_Start) / max(0.001, _Lod_End - _Lod_Start));
+                // LOD off (_Lod_Enable 0) pins lod_t to 0: uniform near-size grid,
+                // no coarsening or line thinning with distance.
+                float lod_t = _Lod_Enable > 0.5
+                    ? saturate((dist - _Lod_Start) / max(0.001, _Lod_End - _Lod_Start))
+                    : 0.0;
 
                 // Farther = bigger cells (sparser) and thinner lines.
                 float cell = max(0.001, _Cell_Size) * lerp(1.0, _Lod_Coarsen, lod_t);
                 float line_width = _Grid_Thickness * lerp(1.0, 0.35, lod_t);
 
-                float2 uv_cells = input.uv / cell;
+                // World-XZ projection (mode 1) drives the grid from world position,
+                // so an imported ground mesh needs no meter-scaled UVs and lines
+                // stay seamless across topology. Mode 0 keeps the per-surface UV
+                // path used by traced surfaces. World mode assumes the ground sits
+                // at real-world scale; under a scaled twin the cells scale with it.
+                float2 plane_uv = _Projection_Mode > 0.5 ? input.positionWS.xz : input.uv;
+                float2 uv_cells = plane_uv / cell;
 
                 // Per-category style (roadmap 9.1). The style is uniform across a
                 // surface (one value via the property block), so this branch is

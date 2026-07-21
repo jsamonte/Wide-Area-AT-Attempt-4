@@ -80,7 +80,16 @@ Under `Assets/SemanticMesh/`:
 
 `SurfaceType` (the categories) is an enum with STABLE integer values so serialized
 data never re-maps if the list grows: Walkable=0, Stairs=1, Grass=2, Building=3,
-Hazard=4, Obstacle=5.
+Hazard=4, Obstacle=5, Generic=6.
+
+**Generic (the "just get it done" category).** `Generic=6` is a catch-all for when
+the colleague has no time to sort the space by meaning. Pick `Generic` in the tracer
+and trace everything with it: no deciding walkable vs grass vs hazard, one type for
+the whole space. It draws a plain blue square grid (palette row 6: blue,
+`grid_style` Square). It carries no per-zone meaning by design; it is the fast
+fallback INSIDE the tool (still a real traced, draped, occluded surface), as opposed
+to the shrinkwrap or edge-detection fallbacks which drop the tool entirely. To change
+its look, edit palette row 6 like any other category.
 
 ---
 

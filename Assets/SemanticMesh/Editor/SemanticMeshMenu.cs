@@ -16,6 +16,16 @@ namespace SemanticMesh.EditorTools
         private const string twin_prefab_path = "Assets/Prefab/Digital Twin.prefab";
         private const string scan_mesh_path = "Assets/Prefab/1st Building 3.obj";
 
+        // The shrinkwrap ground FBX and the world-XZ / spike-cull material that
+        // drapes a grid on it. Both ship under the tool folder.
+        private const string ground_fbx_path = "Assets/SemanticMesh/Test/TerrainShrinkwrap.fbx";
+        private const string ground_material_path = "Assets/SemanticMesh/Material/M_GroundGrid.mat";
+        private const string ground_scene_path = "Assets/SemanticMesh/Test/GroundGridTest.unity";
+        // The original scan the shrinkwrap was draped from. Dropped in at identity
+        // as an alignment reference: if the shrinkwrap kept its origin, the two
+        // overlay. Delete it once you trust the placement.
+        private const string baseline_fbx_path = "Assets/Prefab/BaselineGray2.fbx";
+
         [MenuItem("Tools/Semantic Mesh/Create Test Scene")]
         public static void CreateTestScene()
         {
@@ -125,6 +135,108 @@ namespace SemanticMesh.EditorTools
                 "In the Surface Tracer window, drag \"Digital Twin\" into the Surface Root\n" +
                 "field. Then uncheck the scan's Mesh Renderer (one checkbox, top of its\n" +
                 "Inspector) so you see the splat, and trace. Save the scene when happy.",
+                "OK");
+        }
+
+        // One click: drape the grid on the shrinkwrap ground so Thomas can eyeball
+        // it. Loads the ground FBX, applies M_GroundGrid (world-XZ projection +
+        // vertical-face discard) to every renderer on it, frames it, and SAVES the
+        // scene so it can be reopened. The material's spike discard hides the sky
+        // spikes and building walls; only the terrain grid should remain. Blender
+        // cleanup of the raw spikes (if wanted) stays a separate, manual job.
+        [MenuItem("Tools/Semantic Mesh/Build Ground Grid Test Scene")]
+        public static void BuildGroundGridTestScene()
+        {
+            var ground_fbx = AssetDatabase.LoadAssetAtPath<GameObject>(ground_fbx_path);
+            if (ground_fbx == null)
+            {
+                EditorUtility.DisplayDialog("Semantic Mesh",
+                    $"Could not find the ground FBX at {ground_fbx_path}.\n\n" +
+                    "If Unity has not imported it yet, focus the Editor once so it " +
+                    "imports, then run this again.", "OK");
+                return;
+            }
+
+            var ground_material = AssetDatabase.LoadAssetAtPath<Material>(ground_material_path);
+            if (ground_material == null)
+            {
+                EditorUtility.DisplayDialog("Semantic Mesh",
+                    $"Could not find the ground material at {ground_material_path}.", "OK");
+                return;
+            }
+
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            add_camera_and_light();
+
+            var ground = (GameObject)PrefabUtility.InstantiatePrefab(ground_fbx);
+            ground.name = "Shrinkwrap Ground";
+            ground.transform.SetParent(null, false);
+
+            // Paint every renderer under the FBX with the ground grid material.
+            int painted = 0;
+            foreach (var renderer in ground.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = new Material[renderer.sharedMaterials.Length == 0 ? 1 : renderer.sharedMaterials.Length];
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    mats[i] = ground_material;
+                }
+                renderer.sharedMaterials = mats;
+                painted++;
+            }
+
+            // Alignment reference: drop the original scan at identity so its overlay
+            // with the shrinkwrap answers "did the origin survive the wrap?". Skipped
+            // silently if the FBX is not present.
+            var baseline_fbx = AssetDatabase.LoadAssetAtPath<GameObject>(baseline_fbx_path);
+            bool has_baseline = baseline_fbx != null;
+            if (has_baseline)
+            {
+                var baseline = (GameObject)PrefabUtility.InstantiatePrefab(baseline_fbx);
+                baseline.name = "BaselineGray2 (alignment reference - delete when happy)";
+                baseline.transform.SetParent(null, false);
+                baseline.transform.localPosition = Vector3.zero;
+                baseline.transform.localRotation = Quaternion.identity;
+                baseline.transform.localScale = Vector3.one;
+            }
+
+            SceneManager.SetActiveScene(scene);
+            EditorSceneManager.MarkSceneDirty(scene);
+
+            Selection.activeGameObject = ground;
+            if (SceneView.lastActiveSceneView != null)
+            {
+                SceneView.lastActiveSceneView.FrameSelected();
+            }
+
+            EditorSceneManager.SaveScene(scene, ground_scene_path);
+
+            EditorUtility.DisplayDialog(
+                "Semantic Mesh - Ground Grid Test Scene",
+                "Built and saved the ground grid scene:\n\n" +
+                $"- \"Shrinkwrap Ground\" is the terrain FBX with M_GroundGrid on {painted} renderer(s).\n" +
+                "- The material projects the grid top-down from world X/Z and discards\n" +
+                "  near-vertical faces, so the sky spikes and building walls should be\n" +
+                "  culled and only the terrain grid remains.\n" +
+                (has_baseline
+                    ? "- \"BaselineGray2 (alignment reference)\" is the original scan at identity.\n"
+                    : "- (BaselineGray2.fbx not found, so no alignment reference was added.)\n") +
+                $"\nSaved to {ground_scene_path} (reopen it any time).\n\n" +
+                "WHAT TO CHECK:\n" +
+                "- Blue square grid draped over the terrain, spikes gone.\n" +
+                (has_baseline
+                    ? "- ALIGNMENT: does the grid sit ON the BaselineGray2 scan? If yes, the\n" +
+                      "  shrinkwrap kept its origin and drops into any scene the same way.\n" +
+                      "  Delete the reference object once you trust it.\n"
+                    : "") +
+                "- If the terrain imported ON ITS SIDE, rotate \"Shrinkwrap Ground\" so it\n" +
+                "  lies flat (world normals drive the spike cull, so it must sit Y-up).\n\n" +
+                "TUNE on M_GroundGrid (all live):\n" +
+                "- Hard to see: _Grid_Thickness up, _Grid_Color brighter, _Base_Color\n" +
+                "  alpha up (zero it again for device).\n" +
+                "- _Lod_Enable 0 = uniform grid everywhere (no distance sparsening).\n" +
+                "- _Up_Threshold up = cull more aggressively. _Cell_Size = density.\n" +
+                "- Holes in the scan stay as gaps: that is the Blender fill job.",
                 "OK");
         }
 

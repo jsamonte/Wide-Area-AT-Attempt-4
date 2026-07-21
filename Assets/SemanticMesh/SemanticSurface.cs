@@ -12,6 +12,10 @@ namespace SemanticMesh
         Building = 3,
         Hazard = 4,
         Obstacle = 5,
+        // Catch-all "just label the space" category. Use it when there is no time
+        // to sort regions by meaning: trace everything as Generic and ship. Draws
+        // a plain blue square grid (see SurfacePalette.asset).
+        Generic = 6,
     }
 
     // How a category's grid draws. Stable ints so serialized palette data never
@@ -36,7 +40,7 @@ namespace SemanticMesh
     [RequireComponent(typeof(MeshRenderer))]
     public class SemanticSurface : MonoBehaviour
     {
-        public SurfaceType surface_type = SurfaceType.Walkable;
+        public SurfaceType surface_type = SurfaceType.Generic;
 
         // Optional. Left null uses the shared default palette in Resources so a
         // build (the colleague's runtime) resolves colors with no wiring.
@@ -99,7 +103,11 @@ namespace SemanticMesh
 
             var palette = palette_override != null ? palette_override : SurfacePalette.default_palette;
 
-            bool has_entry = palette != null && palette.try_get(surface_type, out var entry);
+            // entry is initialized so definite-assignment holds: storing the &&
+            // result in a local loses the "assigned when true" flow the compiler
+            // needs (CS0170), and try_get overwrites it whenever it is called.
+            SurfaceEntry entry = default;
+            bool has_entry = palette != null && palette.try_get(surface_type, out entry);
 
             if (mpb == null)
             {

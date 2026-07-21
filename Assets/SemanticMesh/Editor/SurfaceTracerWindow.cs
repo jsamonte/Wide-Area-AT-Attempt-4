@@ -42,7 +42,9 @@ namespace SemanticMesh.EditorTools
         // any world scale. Null = legacy world-space authoring (fallback).
         [SerializeField] private Transform surface_root;
 
-        private SurfaceType surface_type = SurfaceType.Walkable;
+        // Defaults to Generic: the fast "trace the whole messy space as one type"
+        // path. Change it in the dropdown for a careful, per-meaning pass.
+        private SurfaceType surface_type = SurfaceType.Generic;
 
         // Dense interior drape (roadmap 9.7). Off, a surface has vertices only at
         // the click corners, so interiors interpolate corner-to-corner (a ramp).
