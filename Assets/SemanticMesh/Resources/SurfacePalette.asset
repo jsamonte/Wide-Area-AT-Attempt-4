@@ -15,19 +15,43 @@ MonoBehaviour:
   entries:
   - surface_type: 0
     grid_color: {r: 0.2, g: 1, b: 0.45, a: 1}
+    grid_style: 1
     cell_size: 0.25
+    far_cell_size: 1.5
+    lod_start: 4
+    lod_end: 25
   - surface_type: 1
     grid_color: {r: 1, g: 0.8, b: 0.15, a: 1}
+    grid_style: 0
     cell_size: 0.12
+    far_cell_size: 0.4
+    lod_start: 3
+    lod_end: 18
   - surface_type: 2
     grid_color: {r: 0.35, g: 0.85, b: 0.3, a: 1}
+    grid_style: 2
     cell_size: 0.5
+    far_cell_size: 3
+    lod_start: 5
+    lod_end: 30
   - surface_type: 3
     grid_color: {r: 0.4, g: 0.6, b: 1, a: 1}
+    grid_style: 0
     cell_size: 1
+    far_cell_size: 6
+    lod_start: 6
+    lod_end: 40
   - surface_type: 4
     grid_color: {r: 1, g: 0.25, b: 0.2, a: 1}
+    grid_style: 1
     cell_size: 0.2
+    far_cell_size: 0.8
+    lod_start: 3
+    lod_end: 20
   - surface_type: 5
     grid_color: {r: 1, g: 0.5, b: 0.9, a: 1}
+    grid_style: 1
     cell_size: 0.25
+    far_cell_size: 1.5
+    lod_start: 4
+    lod_end: 25

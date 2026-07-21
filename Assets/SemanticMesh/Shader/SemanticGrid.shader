@@ -25,6 +25,9 @@ Shader "SemanticMesh/SemanticGrid"
         _Lod_End ("LOD End Distance (m)", Float) = 25.0
         _Lod_Coarsen ("LOD Coarsen Multiplier", Range(1, 16)) = 6.0
         _Line_Softness ("Line Softness", Range(0.5, 3.0)) = 1.5
+        // 0 = square (sharp), 1 = rounded (softer), 2 = criss-cross (diagonal).
+        // Set per-category by the palette; see roadmap 9.1.
+        _Grid_Style ("Grid Style (0 sq / 1 round / 2 cross)", Float) = 1.0
     }
 
     SubShader
@@ -75,6 +78,7 @@ Shader "SemanticMesh/SemanticGrid"
                 float _Lod_End;
                 float _Lod_Coarsen;
                 float _Line_Softness;
+                float _Grid_Style;
             CBUFFER_END
 
             Varyings vert(Attributes input)
@@ -113,7 +117,20 @@ Shader "SemanticMesh/SemanticGrid"
                 float line_width = _Grid_Thickness * lerp(1.0, 0.35, lod_t);
 
                 float2 uv_cells = input.uv / cell;
-                float coverage = grid_coverage(uv_cells, line_width, _Line_Softness);
+
+                // Per-category style (roadmap 9.1). The style is uniform across a
+                // surface (one value via the property block), so this branch is
+                // coherent, not per-pixel divergent. Criss-cross rotates the cell
+                // coordinates 45 degrees; square sharpens softness and thins the
+                // line; rounded keeps the material defaults.
+                bool is_cross = _Grid_Style > 1.5;
+                bool is_square = _Grid_Style < 0.5;
+                float2 style_cells = is_cross
+                    ? float2(uv_cells.x + uv_cells.y, uv_cells.x - uv_cells.y)
+                    : uv_cells;
+                float style_softness = is_square ? max(0.5, _Line_Softness * 0.5) : _Line_Softness;
+                float style_width = is_square ? line_width * 0.7 : line_width;
+                float coverage = grid_coverage(style_cells, style_width, style_softness);
 
                 half4 col = lerp(_Base_Color, _Grid_Color, coverage);
                 if (col.a <= 0.001)

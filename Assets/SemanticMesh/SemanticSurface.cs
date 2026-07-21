@@ -14,10 +14,24 @@ namespace SemanticMesh
         Obstacle = 5,
     }
 
+    // How a category's grid draws. Stable ints so serialized palette data never
+    // re-maps. Pushed to the shader's _Grid_Style through the property block, the
+    // same one-source-of-truth path as color and cell size (roadmap 9.1).
+    //   Square    - axis-aligned, sharp (low softness/thickness).
+    //   Rounded   - axis-aligned, softer/thicker (the original default look).
+    //   CrissCross- 45-degree diagonal lines.
+    public enum GridStyle
+    {
+        Square = 0,
+        Rounded = 1,
+        CrissCross = 2,
+    }
+
     // Attached to every generated low-poly plane. Holds only the category; the
-    // look (grid color + cell size) is pulled from the one SurfacePalette so a
-    // value never lives in two places. Runs in edit mode so authored surfaces
-    // show their real color in the Scene view without entering Play.
+    // look (grid color, cell size, style, LOD distances) is pulled from the one
+    // SurfacePalette so a value never lives in two places. Runs in edit mode so
+    // authored surfaces show their real look in the Scene view without entering
+    // Play, and re-applies live when the palette changes (roadmap 9.6).
     [ExecuteAlways]
     [RequireComponent(typeof(MeshRenderer))]
     public class SemanticSurface : MonoBehaviour
@@ -30,12 +44,31 @@ namespace SemanticMesh
 
         private static readonly int grid_color_id = Shader.PropertyToID("_Grid_Color");
         private static readonly int cell_size_id = Shader.PropertyToID("_Cell_Size");
+        private static readonly int grid_style_id = Shader.PropertyToID("_Grid_Style");
+        private static readonly int lod_start_id = Shader.PropertyToID("_Lod_Start");
+        private static readonly int lod_end_id = Shader.PropertyToID("_Lod_End");
+        private static readonly int lod_coarsen_id = Shader.PropertyToID("_Lod_Coarsen");
 
         private MaterialPropertyBlock mpb;
 
-        private void OnEnable()
+        // apply_visual runs from Awake AND OnEnable so a freshly instantiated or
+        // loaded surface (a dropped prefab, a runtime build) paints its grid even
+        // before anything selects or validates it. The property block is instance
+        // state, not serialized, so it must be re-pushed on load (roadmap 9.2).
+        private void Awake()
         {
             apply_visual();
+        }
+
+        private void OnEnable()
+        {
+            SurfacePalette.changed += apply_visual;
+            apply_visual();
+        }
+
+        private void OnDisable()
+        {
+            SurfacePalette.changed -= apply_visual;
         }
 
 #if UNITY_EDITOR
@@ -49,9 +82,13 @@ namespace SemanticMesh
         }
 #endif
 
-        // Push this surface's category color and grid density onto the shared
-        // material via a property block, so every surface can differ without a
-        // per-surface material instance (no leaks, batching preserved).
+        // Push this surface's category look onto the shared material via a property
+        // block, so every surface can differ without a per-surface material
+        // instance (no leaks, batching preserved). Color and cell size are always
+        // set; when the palette carries the full entry, the grid style and the LOD
+        // distance/coarsen are pushed too, so those knobs are per-category and live
+        // from one place (roadmap 9.1 / 9.6). Categories with no palette row fall
+        // back to the material's own style/LOD defaults.
         public void apply_visual()
         {
             var mesh_renderer = GetComponent<MeshRenderer>();
@@ -62,13 +99,7 @@ namespace SemanticMesh
 
             var palette = palette_override != null ? palette_override : SurfacePalette.default_palette;
 
-            var grid_color = Color.white;
-            var cell_size = 0.25f;
-            if (palette != null && palette.try_get(surface_type, out var entry))
-            {
-                grid_color = entry.grid_color;
-                cell_size = entry.cell_size;
-            }
+            bool has_entry = palette != null && palette.try_get(surface_type, out var entry);
 
             if (mpb == null)
             {
@@ -76,8 +107,30 @@ namespace SemanticMesh
             }
 
             mesh_renderer.GetPropertyBlock(mpb);
-            mpb.SetColor(grid_color_id, grid_color);
-            mpb.SetFloat(cell_size_id, cell_size);
+
+            if (has_entry)
+            {
+                mpb.SetColor(grid_color_id, entry.grid_color);
+                mpb.SetFloat(cell_size_id, Mathf.Max(0.001f, entry.cell_size));
+                mpb.SetFloat(grid_style_id, (int)entry.grid_style);
+                mpb.SetFloat(lod_start_id, entry.lod_start);
+                mpb.SetFloat(lod_end_id, entry.lod_end);
+                // Coarsen is derived, not stored: far cell / near cell. Keeping it
+                // derived means "near size" and "far size" are the only two cell
+                // knobs anyone edits, and they cannot drift out of sync.
+                float coarsen = entry.cell_size > 0.0001f
+                    ? Mathf.Max(1f, entry.far_cell_size / entry.cell_size)
+                    : 1f;
+                mpb.SetFloat(lod_coarsen_id, coarsen);
+            }
+            else
+            {
+                // No palette row: fall back to a neutral color/cell and leave the
+                // material's own style/LOD defaults in place.
+                mpb.SetColor(grid_color_id, Color.white);
+                mpb.SetFloat(cell_size_id, 0.25f);
+            }
+
             mesh_renderer.SetPropertyBlock(mpb);
         }
     }

@@ -19,13 +19,14 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties:
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
     - _Cell_Size: 0.25
+    - _Grid_Style: 1
     - _Grid_Thickness: 0.03
     - _Line_Softness: 1.5
     - _Lod_Coarsen: 6
@@ -33,5 +34,6 @@ Material:
     - _Lod_Start: 4
     m_Colors:
     - _Base_Color: {r: 0, g: 0, b: 0, a: 0}
+    - _Color: {r: 1, g: 0, b: 0.14076424, a: 1}
     - _Grid_Color: {r: 0.2, g: 1, b: 0.4, a: 1}
   m_BuildTextureStacks: []
