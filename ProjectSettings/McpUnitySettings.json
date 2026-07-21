@@ -1,8 +1,8 @@
 {
-    "Port": 8090,
+    "Port": 8008,
     "RequestTimeoutSeconds": 10,
     "AutoStartServer": true,
     "EnableInfoLogs": true,
-    "NpmExecutablePath": "",
+    "NpmExecutablePath": "C:\\Program Files\\nodejs\\npm.cmd",
     "AllowRemoteConnections": false
 }
