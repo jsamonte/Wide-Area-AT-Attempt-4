@@ -185,6 +185,20 @@ namespace SemanticMesh.EditorTools
                 painted++;
             }
 
+            // Colliders, so the tracers can actually raycast this scene. Without
+            // them every click misses and silently falls through to the tracer's
+            // working plane, which reads as "clicking goes through the ground".
+            // BuildAlignmentTestScene has always done this; this scene did not.
+            int colliders = 0;
+            foreach (var filter in ground.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (filter.sharedMesh != null && filter.GetComponent<MeshCollider>() == null)
+                {
+                    filter.gameObject.AddComponent<MeshCollider>();
+                    colliders++;
+                }
+            }
+
             // Alignment reference: drop the original scan at identity so its overlay
             // with the shrinkwrap answers "did the origin survive the wrap?". Skipped
             // silently if the FBX is not present.
@@ -215,6 +229,7 @@ namespace SemanticMesh.EditorTools
                 "Semantic Mesh - Ground Grid Test Scene",
                 "Built and saved the ground grid scene:\n\n" +
                 $"- \"Shrinkwrap Ground\" is the terrain FBX with M_GroundGrid on {painted} renderer(s).\n" +
+                $"- {colliders} MeshCollider(s) added so the Surface / Line tracers can click it.\n" +
                 "- The material projects the grid top-down from world X/Z and discards\n" +
                 "  near-vertical faces, so the sky spikes and building walls should be\n" +
                 "  culled and only the terrain grid remains.\n" +
