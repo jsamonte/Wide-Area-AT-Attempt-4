@@ -1,122 +1,178 @@
 # Semantic Mesh Tool: ML2 + Handoff Queue
 
-Self-contained work queue for the next chat. The tracing tool and grid shader are
-BUILT and compile clean (zero errors, confirmed in Editor 2026-07-20) on branch
-`semantic-mesh-tool`. This doc is the plan for getting it onto the ML2 and into the
-colleague's ArUco scene, in a form he will actually use.
+> **Use-facing guide: `SEMANTIC_MESH_GUIDE.md`** (how to author + exactly what the
+> colleague does). This file is the build plan / acceptance record; the guide is the
+> manual. Items 1-6 built 2026-07-20.
+
+Self-contained work plan for a fresh chat. The tracing tool and grid shader are
+BUILT and compile clean (Editor 2026-07-20) on branch `semantic-mesh-tool`
+(1 commit). This doc is the single entry point: point the next chat at it. Do NOT
+commit without Thomas asking.
 
 ## Where things stand
 
-- Package lives entirely under `Assets/SemanticMesh/` (nothing of the colleague's
-  was touched). Scripts, 2 shaders, 2 materials, `Resources/SurfacePalette.asset`.
+- Package under `Assets/SemanticMesh/` (nothing of the colleague's touched):
+  scripts, 2 shaders, 2 materials, `Resources/SurfacePalette.asset`.
 - `Tools > Semantic Mesh > Surface Tracer` and `> Create Test Scene` work.
-- Editor-verified: compiles, tool traces, planes generate. NOT device-verified,
-  and NOT yet solved for scale alignment or terrain height (see below).
+- Editor-verified: compiles, traces, generates planes. NOT device-verified. Two
+  known gaps (scale alignment, terrain height) plus authoring ergonomics (holes,
+  visibility) are specced below.
 
-## Scene reality (investigated 2026-07-20) - read this before anything
+## Scene reality (investigated 2026-07-20) - read before touching anything
 
-The colleague's environment is NOT an FBX. It is a **Gaussian Splat "Digital Twin"**
-(`Assets/Prefab/Digital Twin.prefab`, GsplatAsset) placed at:
+- Colleague's environment is a **Gaussian Splat "Digital Twin"**
+  (`Assets/Prefab/Digital Twin.prefab`, GsplatAsset) at **scale 0.01** and
+  **rotation 180 deg** (LocalRotation 0,-1,0,0; euler hint 180,0,180), anchored via
+  **WorldLocking + XR Rig + ArUco** in `Assets/EyeGaze/Assets/Scenes/Application.unity`.
+- Traceable FBX/OBJ/PLY scans import at **scale 1**. So there is a **100x scale gap
+  and a 180 deg flip** between what the tracer can raycast (an FBX collider) and what
+  the colleague renders (the splat). This is the scaling pain.
+- You cannot put a MeshCollider on a Gaussian splat, so tracing must use an FBX/PLY.
 
-- **scale 0.01** (1/100),
-- **rotation 180 deg** (LocalRotation 0,-1,0,0; euler hint 180,0,180),
-- anchored via **WorldLocking Tools + XR Rig + ArUco** in
-  `Assets/EyeGaze/Assets/Scenes/Application.unity`.
+## Color / texture finding (why it is hard to see what you trace)
 
-The traceable FBX scans (BaselineGray*, Scan*) import at **scale 1**. So there is a
-**100x scale gap and a 180 deg flip** between what the tracer can raycast (an FBX
-collider) and what the colleague renders (the splat). This mismatch is almost
-certainly the "took a long time to figure out" scaling pain.
+The scan meshes carry **NO color and NO texture**: `1st Building 3.obj` verts are bare
+XYZ, and the LCC `.ply` meshes have only x/y/z + faces, no color properties. There is
+nothing to "put a texture back on"; the meshes never had one. The photoreal color that
+distinguishes grass from concrete exists **only in the Gaussian Splat**. So visibility
+while tracing depends on rendering the splat as a visual reference over the (invisible,
+collider-only) trace mesh. See the Alignment + Visibility section.
 
-You cannot put a MeshCollider on a Gaussian splat, so tracing must happen against an
-FBX. Alignment therefore depends entirely on expressing surfaces in the twin's
-coordinate frame, not world space.
+The scan mesh also has **large holes** in places (missing geometry). Raycasts miss over
+holes, so authoring needs a way to place points across a gap. See item 3.
 
-## The handoff model (scale-proof, replaces the old "trace at identity" advice)
+## Handoff model (scale-proof)
 
-Deliverable to the colleague: ONE prefab plus the `Assets/SemanticMesh/` folder.
-His integration: parent the prefab under his twin/anchor root at local identity, add
-the occluder material to his wall mesh. Done. No scale tuning.
+Deliverable: ONE prefab + the `Assets/SemanticMesh/` folder. Colleague parents the
+prefab under his twin/anchor root at local identity and adds the occluder to his wall
+mesh. No scale tuning. This works only if surfaces are authored in the twin's LOCAL
+frame (item 1), so parenting under the twin reproduces alignment at any world scale.
 
-The rule that makes this work: **surfaces are authored in the LOCAL space of a chosen
-"Surface Root", not in world space.** If the root is the twin's transform, surfaces
-are stored in twin-local coordinates, so parenting the prefab under the colleague's
-twin root (which carries the 0.01 scale + flip) reproduces the exact alignment at any
-world scale. Scale and rotation are inherited, never re-tuned.
+## Queue: buildable NOW (all independent of the open questions)
 
-This requires the tool change in item 1 below. Until that lands, surfaces are
-world-space and will fight the 0.01/flip twin.
+Everything here can be built and edit-mode tested without resolving co-registration.
+Do not commit; Thomas tests in the Editor between/after.
 
-## Queue (ordered, highest-value first)
+> **STATUS 2026-07-20: items 1-6 BUILT (edit-mode, NOT device-verified).** All six
+> land in `Editor/SurfaceTracerWindow.cs`; nothing else changed. Compiles in my head
+> only. Edit-mode acceptance checks Thomas should walk:
+> - **1 Surface Root:** assign the twin transform to the new "Surface Root" field,
+>   trace on a mesh parented under it, then scale/rotate the root: grids move with it,
+>   zero drift. Empty field = old world-space behavior.
+> - **2 Drape:** trace an undulating path; every vertex hugs the surface, no floating
+>   flat plane. (Was: flattened onto best-fit plane.)
+> - **3 Hole bridging:** trace across a hole; ray-miss points drop onto a working plane
+>   and draw ORANGE (on-mesh points are yellow). Region closes across the gap.
+> - **4 Draggable points:** during tracing, drag any placed point; it re-snaps to the
+>   mesh (or the working plane over a hole). Grabbing a handle never drops a stray point.
+> - **5 Save prefab:** two buttons. "Save Surfaces as ONE Prefab" writes the whole container
+>   to `Assets/SemanticMesh/Semantic_Environment.prefab`. "Save a Prefab PER Surface Type"
+>   writes one prefab per type (`Semantic_Walkable.prefab`, `Semantic_Grass.prefab`, ...) by
+>   cloning, leaving the working scene untouched. Drag either into an empty scene: grids sit
+>   in the root-local frame.
+> - **6 Occluder subtree:** the occluder button already walks the whole selected subtree
+>   (now includes inactive renderers). This one's real acceptance is DEVICE-ONLY (grids
+>   behind a wall stop rendering).
+>
+> **Device-only vs edit-mode:** items 1-5 are fully edit-mode testable. Item 6's occlusion
+> effect is device-only (depth-write look). The alignment free-path overlay (below) is an
+> Editor VISUAL check only Thomas can run: I can't render Unity or see the splat here.
 
-### 1. Author surfaces in a Surface Root's local space (THE scale fix)
-- Add a `Transform surface_root` field to `SurfaceTracerWindow`. Default null =
-  current world-space behavior.
-- When set, convert each raycast hit with `surface_root.InverseTransformPoint`, and
-  parent the generated surface (and the "Semantic Surfaces" container) under
-  `surface_root` at local identity. Store the mesh in that local frame.
-- Thomas's flow: place an FBX scan as a child of / exactly overlapping the twin root,
-  set Surface Root = twin root, trace. Surfaces come out in twin-local coords.
-- Acceptance (edit-mode testable): with the FBX overlapping the twin, traced grids
-  sit ON the twin. Re-scale/rotate the root and grids follow with zero drift.
-- Device-test note: none for this item itself; alignment is visible in the Editor.
+### 1. Author surfaces in a Surface Root's local space (scale fix)
+- Add `[SerializeField] Transform surface_root;` to `SurfaceTracerWindow`, exposed as
+  an ObjectField in `OnGUI`. Null = current world-space behavior (keep as fallback).
+- In `build_surface`, when `surface_root` is set: transform each world raycast hit by
+  `surface_root.InverseTransformPoint` FIRST, then do all centroid / Newell-normal /
+  projection math in root-local space. Create the surface GameObject and the
+  "Semantic Surfaces" container as children of `surface_root` with localRotation
+  identity and localScale one; localPosition = local centroid. Mesh vertices are
+  local to that centroid.
+- Acceptance (edit-mode): with the trace mesh sitting under the twin root, traced grids
+  land ON the mesh; scaling/rotating the root moves grids with zero drift.
 
-### 2. Drape: keep real click heights instead of flattening (THE height fix)
-- In `build_surface`, stop projecting vertices onto the best-fit plane. Use the
-  best-fit plane ONLY for the 2D projection that feeds triangulation + UVs; build the
-  mesh vertices from the ORIGINAL raycast hit points (in root-local space per item 1).
-- Result: each vertex sits exactly on the mesh; the low-poly plane drapes over
-  terrain height. Ramps/stairs keep their real slope; more clicks = tighter fit.
-- Keep normals recalculated from the draped triangles (`RecalculateNormals`).
-- Acceptance: trace an undulating path; the grid hugs the surface, no floating.
+### 2. Drape: keep real click heights instead of flattening (height fix)
+- In `build_surface`, use the best-fit plane ONLY to get axis_u/axis_v for the 2D
+  projection that feeds triangulation + UVs. Build mesh vertices from the ORIGINAL
+  root-local hit points (minus local centroid), NOT the projected-flat points.
+- `mesh.RecalculateNormals()` after setting triangles so draped normals are correct.
+- Result: every vertex sits on the mesh; the plane drapes over terrain. Ramps/stairs
+  keep real slope; more clicks = tighter fit.
+- Acceptance: trace an undulating path; grid hugs the surface, no floating.
 
-### 3. "Save Surfaces as Prefab" button
-- Button on `SurfaceTracerWindow` that saves the "Semantic Surfaces" container as a
-  prefab (e.g. `Assets/SemanticMesh/Semantic_Environment.prefab`).
-- Acceptance: dragging that prefab into an empty scene shows all traced grids in
-  place, in the root-local frame from item 1.
+### 3. Hole bridging (place points over gaps)
+- In `OnSceneGui`, when the raycast MISSES and at least one point exists, intersect the
+  mouse ray with a "working plane" and use that as the hover/placed point:
+  - working plane = best-fit plane of already-placed points if >= 3, else a horizontal
+    plane through the last placed point.
+- Tag inferred (off-mesh) points so drape (item 2) uses the plane height for them and
+  the real mesh height for on-mesh points. Draw inferred points in a distinct color.
+- Acceptance: can bridge a hole and close a clean region across it.
 
-### 4. "Add Occluder to whole environment" convenience
-- Extend the existing per-selection occluder button with a "whole subtree under a
-  chosen root" option, so the colleague adds it in one click, not by multi-select.
-- Device-test note: on ML2, grids (and gems) behind a wall should not render.
+### 4. Draggable point editing during tracing
+- Give each placed point a `Handles.FreeMoveHandle`/position handle while tracing. On
+  drag, re-raycast to snap to the mesh; if it misses, fall back to the working plane
+  (item 3). Update the preview live.
+- (Stretch, note only) post-finalize editing that regenerates the mesh: skip for now.
+- Acceptance: nudge a mis-placed point before closing; shape follows.
 
-### 5. Thomas self-test build (the gate, before any handoff)
-- Minimal scene: twin (or the overlapping FBX) + surfaces prefab + occluder on the
-  wall. Thomas builds and deploys (per guardrail, build/deploy is his).
-- Verify on device: grid renders per surface; category colors correct; LOD sparser
-  on far/building, denser on near/stairs; between-lines transparent; occlusion works.
-- Do not hand off until this passes.
-- Device-only risk: transparent sorting and the ML2 compositor's handling of the
-  overlay are unverifiable off-device. Treat as high risk.
+### 5. Save Surfaces as Prefab
+- Button in `SurfaceTracerWindow` calling `PrefabUtility.SaveAsPrefabAsset` on the
+  "Semantic Surfaces" container to e.g. `Assets/SemanticMesh/Semantic_Environment.prefab`.
+- Acceptance: dragging the prefab into an empty scene shows all grids in place, in the
+  root-local frame from item 1.
 
-### 6. Tune LOD + palette on the real space scale
-- On device, set `_Lod_Start` / `_Lod_End` / `_Lod_Coarsen` on `M_SemanticGrid` and
-  per-category `cell_size` on `SurfacePalette`. Note: because surfaces live in
-  twin-local space (0.01), `cell_size` and LOD distances are interpreted in that
-  local scale unless the shader uses world position. The shader computes LOD from
-  world distance (correct) but grid cells from local UV meters. Confirm cell density
-  reads right at the twin's 0.01 scale; if cells look 100x off, that is the knob.
+### 6. Occluder to a whole subtree
+- Extend the occluder button with a "root" mode: add `M_DepthOccluder` to every
+  MeshRenderer under a chosen root in one click.
+- Acceptance (device): grids and gems behind a wall stop rendering.
 
-### 7. Colleague handoff doc
-- Short doc: import `Assets/SemanticMesh/`, parent `Semantic_Environment.prefab`
-  under the twin/anchor root at local identity, add occluder to the wall mesh. Explain
-  the twin-local coordinate rule so he trusts why it aligns.
+## Alignment + Visibility (do the free path first, escalate only if needed)
+
+Goal: trace against the invisible FBX collider while SEEING the photoreal splat, so
+grass vs concrete is obvious, and so surfaces come out in the twin frame.
+
+> **ONE-CLICK SETUP (2026-07-20):** `Tools > Semantic Mesh > Build Alignment Test Scene`
+> builds the whole free-path scene: instantiates `Digital Twin`, parents `1st Building 3.obj`
+> under it at local identity (inherits the 0.01 scale + flip), adds MeshCollider(s) to the
+> scan, frames the twin, and opens the tracer. A dialog walks the overlay check and the
+> two-step trace. Scan renderers are left ON so the overlay can be eyeballed; uncheck the
+> scan's Mesh Renderer to trace against the invisible collider while seeing the splat.
+> If they do NOT overlay, nudge the scan's Transform (fallback 2 below). Save the scene when set.
+
+1. **Free path (try first):** the FBX/OBJ/PLY scan and the splat likely share the LCC
+   pipeline's coordinate frame. Parent the trace mesh under the twin root at local
+   identity (inherits 0.01 + flip), disable the trace mesh's MeshRenderer (keep its
+   MeshCollider), keep the splat visible. If they came from the same scan they overlay
+   for free, no math. Verify in the Editor.
+2. **Manual nudge (fallback):** if they do not overlay, adjust the trace mesh's
+   Transform (position / rotation / uniform scale) with a standard gizmo while the splat
+   is visible, eyeballed with orbit. Always works, ~2 minutes.
+3. **3-point solver (optional stretch):** a correspondence solver is nice but the
+   splat-side points are hard to pick (no collider to raycast, so depth must be dragged
+   by hand with orbit parallax). Only build if 1 and 2 prove insufficient.
+
+Interim if the splat cannot be shown at all: shade the bare trace mesh by slope/height
+so stairs/ramps/flat read differently (does NOT show grass vs concrete).
+
+## Blocked until Thomas/colleague answers (content, not tool)
+
+- The FINAL authoring pass: click the real regions on the aligned twin and hand over the
+  exact `Semantic_Environment.prefab`. This is inherently Thomas's (or a joint) step and
+  only needs the tool above plus the alignment sorted.
 
 ## Open questions for Thomas / colleague
 
-1. **Is there a scene where an FBX scan is already co-registered (overlapping) with the
-   Gsplat twin?** If yes, trace there. If no, Thomas must align an FBX onto the twin
-   once (the painful step). This gates item 1's usefulness.
-2. One surfaces prefab for the whole space, or several by region so they can toggle?
-   Recommend several small regions (matches the per-patch tracing workflow) grouped
-   under one container prefab.
-3. Confirm the twin's transform is the anchor the colleague parents content under, so
-   Surface Root = that transform is correct.
+1. Do the scan mesh and the splat share a coordinate frame (same LCC scan)? If yes,
+   alignment is the free path above. Editor test settles it.
+2. One prefab for the whole space, or several regions grouped under one container so
+   they can toggle? Recommend several small regions under one container prefab.
+3. Confirm the twin's transform is the anchor root the colleague parents content under
+   (so Surface Root = that transform is correct).
 
-## Note on cell_size units after item 1
+## cell_size units caveat (revisit during device tuning)
 
-Once surfaces are twin-local (0.01 scale), a `cell_size` of 0.25 in local units is
-0.0025 m in the real world. Either interpret `cell_size` in world meters in the shader
-(divide UV by the object's world scale) or document that palette cell sizes are in
-local units. Decide this during item 6 with the real twin in front of you.
+Once surfaces are twin-local (0.01 scale), a `cell_size` of 0.25 local units is 0.0025 m
+in the real world. The shader computes LOD distance from WORLD position (correct) but
+grid cells from local UV meters. Either divide UV by the object's world scale in the
+shader to keep cells in world meters, or document that palette cell sizes are local
+units. Decide with the real twin in front of you.
