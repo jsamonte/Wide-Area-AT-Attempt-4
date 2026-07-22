@@ -49,7 +49,7 @@ public class SequenceManager : MonoBehaviour
     [SerializeField] private float minCooldownBetweenTrialsSeconds = 20f;
 
     [Header("Heartbeat / Diagnostics")]
-    [Tooltip("While a trial (or the tutorial) is running, a marker is logged at this interval so the JSON session log has a timeline to correlate against device logs (e.g. adb logcat) if the headset reboots or hangs mid-session.")]
+    [Tooltip("While a trial (or the tutorial) is running, a heartbeat line is written to the device log (logcat) at this interval. It is deliberately NOT written to the trial JSON: logcat survives a mid-trial reboot (the JSON copy would be buffered in RAM and lost on the very reboot we're trying to diagnose), and it keeps the experimental data clean. Pull it with 'adb logcat' or a bugreport and grep for [HEARTBEAT]. Set 0 to disable.")]
     [SerializeField] private float heartbeatIntervalSeconds = 30f;
 
     // Internal State
@@ -397,17 +397,18 @@ public class SequenceManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts (or restarts) periodic heartbeat markers in the JSON session log while
-    /// a trial/tutorial is active. Each entry is timestamped (via LogMarker's
-    /// Time.realtimeSinceStartup) and also hits Debug.Log, which lands in the device's
-    /// logcat with a wall-clock timestamp -- so if the headset reboots or hangs, this
-    /// gives a timeline to correlate against system-level logs (e.g. an adb bugreport)
-    /// to see which trial/state was active when it happened.
+    /// Starts (or restarts) a periodic heartbeat while a trial/tutorial is active.
+    /// Each tick is written to the device log (logcat) via Debug.Log -- NOT to the
+    /// trial JSON. logcat is streamed to the OS in real time, so the last heartbeat
+    /// before a reboot/hang survives (an adb bugreport or 'adb logcat' shows it with a
+    /// wall-clock timestamp), whereas the JSON summary is only flushed at trial end and
+    /// would be lost on a mid-trial crash. Keeping it out of the JSON also stops it
+    /// polluting the experimental destructionEvents data.
     /// </summary>
     private void StartHeartbeat(string label)
     {
         StopHeartbeat();
-        if (tracker != null && heartbeatIntervalSeconds > 0f)
+        if (heartbeatIntervalSeconds > 0f)
             _heartbeatRoutine = StartCoroutine(HeartbeatLoop(label));
     }
 
@@ -427,8 +428,9 @@ public class SequenceManager : MonoBehaviour
         {
             yield return new WaitForSeconds(heartbeatIntervalSeconds);
             elapsed += heartbeatIntervalSeconds;
-            if (tracker != null)
-                tracker.LogMarker($"Heartbeat: {label} still running, elapsed {elapsed:F0}s");
+            // logcat only. Grep for [HEARTBEAT] in an adb logcat / bugreport to find
+            // the last one before a reboot and thus which trial/state was active.
+            Debug.Log($"[HEARTBEAT] {label} still running, elapsed {elapsed:F0}s");
         }
     }
 
