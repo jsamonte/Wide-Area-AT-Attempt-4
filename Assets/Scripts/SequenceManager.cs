@@ -35,6 +35,11 @@ public class SequenceManager : MonoBehaviour
     public GameObject pool3_9Baseline;
     public GameObject pool4_9Baseline;
 
+    [Header("Blue Wireframe (12Baseline)")]
+    [Tooltip("Drag the blue wireframe GameObject (12Baseline) here. It is enabled/disabled " +
+             "each trial depending on whether that trial should show the wireframe.")]
+    public GameObject blueWireframe12Baseline;
+
     [Header("Thermal / Frame Rate")]
     [Tooltip("Frame rate during active gameplay (tutorial + trials). Capped at 30 to reduce heat on Magic Leap.")]
     [SerializeField] private int trialFrameRate = 30;
@@ -43,12 +48,17 @@ public class SequenceManager : MonoBehaviour
     [Tooltip("Minimum forced cooldown (seconds) before the Start button becomes clickable between trials, letting the compute pack shed heat. Set 0 to disable.")]
     [SerializeField] private float minCooldownBetweenTrialsSeconds = 20f;
 
+    [Header("Heartbeat / Diagnostics")]
+    [Tooltip("While a trial (or the tutorial) is running, a marker is logged at this interval so the JSON session log has a timeline to correlate against device logs (e.g. adb logcat) if the headset reboots or hangs mid-session.")]
+    [SerializeField] private float heartbeatIntervalSeconds = 30f;
+
     // Internal State
     private int currentSequenceIndex = -1;
     private int currentTrialIndex = 0;
     private bool sequenceComplete = false;
     private bool isTutorialPhase = false;
     private Coroutine _cooldownRoutine;
+    private Coroutine _heartbeatRoutine;
 
     // Hardcoded Sequences based on your prompt
     // True = Wireframe ON. False = Wireframe OFF.
@@ -179,8 +189,13 @@ public class SequenceManager : MonoBehaviour
 
         // Space pins have served their purpose (building is locked) — tear down the
         // space-pin detector now so it isn't running during the tutorial or trials.
+        // Also defensively stop map tracking: the tutorial never uses it, so if a
+        // prior trial's cleanup somehow failed to stop it, this guarantees neither
+        // CV detector is running during the tutorial.
         if (ArucoMarkerManager.Instance != null)
             ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+        if (mapTracking != null)
+            mapTracking.StopTracking();
 
         if (tutorialTargetPrefab != null)
         {
@@ -228,6 +243,8 @@ public class SequenceManager : MonoBehaviour
             tracker.RefreshTargetList();
             tracker.StartNewTrialRecording("Tutorial");
         }
+
+        StartHeartbeat("Tutorial");
     }
 
     private void UpdateMenuForNextTrial()
@@ -303,19 +320,30 @@ public class SequenceManager : MonoBehaviour
         gameObject.SetActive(false); // Hide HUD
         SetFrameRate(trialFrameRate); // active gameplay
 
+        // 1. Force detector state to a known-good baseline BEFORE anything else runs,
+        // so that if spawner/wireframe logic below throws partway through, the CV
+        // pipeline is never left with two detectors running at once (the biggest
+        // CV/heat win, and a likely contributor to CVIP watchdog reboots under
+        // sustained load). Stop map tracking first, then destroy the space-pin
+        // detector, then start map tracking -- all three calls are idempotent, so
+        // this is safe no matter what state we entered this method in.
+        if (mapTracking != null) mapTracking.StopTracking();
+        if (ArucoMarkerManager.Instance != null) ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+        if (mapTracking != null) mapTracking.StartTracking();
+
         int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
         bool useWireframe = sequenceWireframes[currentSequenceIndex, currentTrialIndex];
         string timeOfDay = (currentTrialIndex < 2) ? "Dusk" : "Night";
 
-        // 1. Clear old objects and spawn new ones
+        // 2. Clear old objects and spawn new ones
         if (spawner != null)
         {
             spawner.DestroyAllSpawnedObjects();
-            spawner.selectedPool = (RandomSpawner.PoolSelection)(poolNum - 1); 
+            spawner.selectedPool = (RandomSpawner.PoolSelection)(poolNum - 1);
             spawner.SpawnObjects();
         }
 
-        // 2. Set Wireframes
+        // 3. Set Wireframes
         SetWireframeActive(pool1_9Baseline, false);
         SetWireframeActive(pool2_9Baseline, false);
         SetWireframeActive(pool3_9Baseline, false);
@@ -326,12 +354,9 @@ public class SequenceManager : MonoBehaviour
         if (poolNum == 3) SetWireframeActive(pool3_9Baseline, useWireframe);
         if (poolNum == 4) SetWireframeActive(pool4_9Baseline, useWireframe);
 
-        // 3. Guarantee the space-pin detector is gone, THEN start the map detector.
-        // This ensures we never run two ArUco detectors at once (the biggest CV/heat
-        // win). DestroyMarkerTrackers() is idempotent, so this is a safe belt-and-braces
-        // call even though the tutorial already tore it down.
-        if (ArucoMarkerManager.Instance != null) ArucoMarkerManager.Instance.DestroyMarkerTrackers();
-        if (mapTracking != null) mapTracking.StartTracking();
+        // Blue wireframe (12Baseline): enable/disable the whole GameObject to match
+        // whether this trial should show the wireframe.
+        if (blueWireframe12Baseline != null) blueWireframe12Baseline.SetActive(useWireframe);
 
         // 4. Start JSON Tracker and log marker
         if (tracker != null)
@@ -341,10 +366,14 @@ public class SequenceManager : MonoBehaviour
             string wireframeText = useWireframe ? "Wireframe" : "Zero Wireframe";
             tracker.LogMarker($"Trial {currentTrialIndex + 1} ({timeOfDay}): Pool {poolNum} + {wireframeText}");
         }
+
+        StartHeartbeat($"Trial_{currentTrialIndex + 1}");
     }
 
     private void OnTrialFinished()
     {
+        StopHeartbeat();
+
         if (isTutorialPhase)
         {
             isTutorialPhase = false;
@@ -365,6 +394,42 @@ public class SequenceManager : MonoBehaviour
 
         currentTrialIndex++;
         UpdateMenuForNextTrial();
+    }
+
+    /// <summary>
+    /// Starts (or restarts) periodic heartbeat markers in the JSON session log while
+    /// a trial/tutorial is active. Each entry is timestamped (via LogMarker's
+    /// Time.realtimeSinceStartup) and also hits Debug.Log, which lands in the device's
+    /// logcat with a wall-clock timestamp -- so if the headset reboots or hangs, this
+    /// gives a timeline to correlate against system-level logs (e.g. an adb bugreport)
+    /// to see which trial/state was active when it happened.
+    /// </summary>
+    private void StartHeartbeat(string label)
+    {
+        StopHeartbeat();
+        if (tracker != null && heartbeatIntervalSeconds > 0f)
+            _heartbeatRoutine = StartCoroutine(HeartbeatLoop(label));
+    }
+
+    private void StopHeartbeat()
+    {
+        if (_heartbeatRoutine != null)
+        {
+            StopCoroutine(_heartbeatRoutine);
+            _heartbeatRoutine = null;
+        }
+    }
+
+    private IEnumerator HeartbeatLoop(string label)
+    {
+        float elapsed = 0f;
+        while (true)
+        {
+            yield return new WaitForSeconds(heartbeatIntervalSeconds);
+            elapsed += heartbeatIntervalSeconds;
+            if (tracker != null)
+                tracker.LogMarker($"Heartbeat: {label} still running, elapsed {elapsed:F0}s");
+        }
     }
 
     private void SetWireframeActive(GameObject baselineObj, bool active)

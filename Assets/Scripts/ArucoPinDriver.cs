@@ -56,10 +56,15 @@ public class ArucoPinDriver : MonoBehaviour
     private Pose _smoothedPose;
     private bool _hasLockedThisSession = false;
 
-    // Head state
-    private Vector3 _lastHeadPos;
-    private Quaternion _lastHeadRot;
-    private bool _haveLastHead;
+    // Head state. The camera delta is identical for every driver, so it is sampled
+    // once per frame into these statics and each driver then compares it against its
+    // own thresholds. Previously all 18 drivers recomputed the same delta separately.
+    private static int _headSampleFrame = -1;
+    private static float _headSpeed;
+    private static float _headTurnRate;
+    private static Vector3 _prevHeadPos;
+    private static Quaternion _prevHeadRot;
+    private static bool _havePrevHead;
 
     // Debug text
     private GameObject _alignmentInfoTextObj;
@@ -102,6 +107,28 @@ public class ArucoPinDriver : MonoBehaviour
 
     public void ReceiveMarkerPose(Pose rawPose, float timestamp)
     {
+        // This is a direct call from ArucoMarkerManager, not a Unity callback, so it
+        // still runs while this component is sleeping (see UpdateSpacePin).
+        if (!enabled)
+        {
+            // Marker has stayed continuously visible since we locked. The pin is
+            // already pushed to WLT and nothing would change, so stay asleep.
+            if (_lastSeenTime >= 0f && timestamp - _lastSeenTime <= visibleHoldSeconds)
+            {
+                _lastSeenTime = timestamp;
+                return;
+            }
+
+            // The marker dropped out for longer than visibleHoldSeconds, so this is a
+            // fresh acquisition. Clear the session state that Update() would normally
+            // have evicted and resume per-frame processing so dwell can re-run.
+            _samples.Clear();
+            _firstSeenTime = -1f;
+            _gazeStableSince = -1f;
+            _hasLockedThisSession = false;
+            enabled = true;
+        }
+
         PushSample(rawPose, timestamp);
         _lastSeenTime = timestamp;
         if (_firstSeenTime < 0) _firstSeenTime = timestamp;
@@ -120,22 +147,11 @@ public class ArucoPinDriver : MonoBehaviour
             _hasLockedThisSession = false;
         }
 
-        // 2. Head stillness check
-        bool headStillThisFrame = true;
-        if (headCamera != null && Time.deltaTime > 0f)
-        {
-            Vector3 headPos = headCamera.transform.position;
-            Quaternion headRot = headCamera.transform.rotation;
-            if (_haveLastHead)
-            {
-                float speed = Vector3.Distance(headPos, _lastHeadPos) / Time.deltaTime;
-                float turnRate = Quaternion.Angle(_lastHeadRot, headRot) / Time.deltaTime;
-                headStillThisFrame = speed <= maxHeadSpeedMetersPerSecond && turnRate <= maxHeadTurnDegreesPerSecond;
-            }
-            _lastHeadPos = headPos;
-            _lastHeadRot = headRot;
-            _haveLastHead = true;
-        }
+        // 2. Head stillness check. Delta is sampled once per frame for all drivers;
+        // the thresholds stay per-driver.
+        SampleHeadMotion(headCamera);
+        bool headStillThisFrame = _headSpeed <= maxHeadSpeedMetersPerSecond
+                               && _headTurnRate <= maxHeadTurnDegreesPerSecond;
         _lastHeadStillOk = headStillThisFrame;
 
         // 3. Process if we have samples
@@ -223,7 +239,63 @@ public class ArucoPinDriver : MonoBehaviour
             _hasLockedThisSession = true;
 
             Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}, Tilt Locked: {lockTilt}");
+
+            // The pose is now pushed into WLT's AlignmentManager. SpacePin/
+            // SpacePinOrientable/Orienter have no per-frame callbacks, so the pin holds
+            // its alignment with no further work from us -- sleeping this component
+            // removes it from Unity's Update list entirely until re-acquisition.
+            // Skipped when the debug text is on, because that text needs per-frame
+            // billboarding and a "Lost" state that only Update() can drive.
+            if (!showAlignmentInfoText)
+            {
+                enabled = false;
+            }
         }
+    }
+
+    // --- Shared Head Motion ---
+
+    // Statics survive scene loads (and survive Play Mode entry when domain reload is
+    // disabled), so clear them before the first scene runs.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetHeadMotionStatics()
+    {
+        _headSampleFrame = -1;
+        _headSpeed = 0f;
+        _headTurnRate = 0f;
+        _havePrevHead = false;
+    }
+
+    private static void SampleHeadMotion(Camera cam)
+    {
+        if (_headSampleFrame == Time.frameCount) return;
+        _headSampleFrame = Time.frameCount;
+
+        if (cam == null || Time.deltaTime <= 0f)
+        {
+            _headSpeed = 0f;
+            _headTurnRate = 0f;
+            return;
+        }
+
+        Vector3 headPos = cam.transform.position;
+        Quaternion headRot = cam.transform.rotation;
+
+        if (_havePrevHead)
+        {
+            _headSpeed = Vector3.Distance(headPos, _prevHeadPos) / Time.deltaTime;
+            _headTurnRate = Quaternion.Angle(_prevHeadRot, headRot) / Time.deltaTime;
+        }
+        else
+        {
+            // First frame: no delta yet, so report "still" as before.
+            _headSpeed = 0f;
+            _headTurnRate = 0f;
+        }
+
+        _prevHeadPos = headPos;
+        _prevHeadRot = headRot;
+        _havePrevHead = true;
     }
 
     // --- Smoothing Helpers ---
@@ -245,7 +317,10 @@ public class ArucoPinDriver : MonoBehaviour
         }
     }
 
-    private static Pose AveragePose(IEnumerable<MarkerSample> samples)
+    // Takes the concrete Queue rather than IEnumerable so foreach binds to the
+    // struct enumerator. Via IEnumerable the enumerator was boxed onto the heap
+    // every frame, per driver -- pure GC churn for zero benefit.
+    private static Pose AveragePose(Queue<MarkerSample> samples)
     {
         Vector3 sumPos = Vector3.zero;
         Vector4 sumQ = Vector4.zero;
