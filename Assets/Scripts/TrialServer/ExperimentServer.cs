@@ -57,6 +57,12 @@ namespace TrialServer
         [Tooltip("Lines held in the in-memory dev log ring. Takes effect on the next launch.")]
         public int logBufferLines = 800;
 
+        [Tooltip("Write the whole run to a .log file on the headset (persistentDataPath/logs/run_<time>.log), " +
+                 "flushed per line. ON by default so an outdoor, no-network run is still captured for review " +
+                 "later (pull with adb, or from the files list once back on a network). Independent of the web " +
+                 "server: the file is written even with the server off.")]
+        public bool logToFile = true;
+
         /// <summary>Fired on the MAIN thread when a control request arrives. The SequenceBridge subscribes
         /// to this and turns the command into a click on the study's existing UI.</summary>
         public static event Action<string, string> OnCommand;
@@ -71,6 +77,11 @@ namespace TrialServer
         Thread _thread;
         volatile bool _running;
         volatile string _snapshot = "{}";
+
+        // The performance monitor's on/off is toggled from the dashboard's DEV panel, but PerfMonitor touches
+        // Unity, so the request is stashed here by the listener thread and APPLIED on the main thread in
+        // Update, exactly like a trial command. 0 = nothing pending, 1 = turn on, 2 = turn off.
+        volatile int _perfRequest;
 
         // Cached on the main thread in Awake, because the listener thread may not ask Unity for them. This is
         // the gaze session directory: EyeAndHeadTracker writes its summary JSON to Application.persistentDataPath,
@@ -96,6 +107,14 @@ namespace TrialServer
             // ring that only begins recording once the socket is bound would miss exactly the failures you open
             // the dev log to diagnose.
             LogRing.Install(logBufferLines);
+
+            // Start the on-disk run log immediately (not in Start, and not gated on the web server): the whole
+            // point is the outdoor run with no phone attached, and the startup lines are the ones worth having.
+            if (logToFile)
+            {
+                LogRing.StartFileLog(_filesDir);
+                if (!string.IsNullOrEmpty(LogRing.FilePath)) Debug.Log($"{Tag} Run log -> {LogRing.FilePath}");
+            }
 
             // The dashboard ships as a TextAsset in Resources, NOT in StreamingAssets. On Android,
             // StreamingAssets lives inside the compressed APK and File.ReadAllText on it returns nothing: it
@@ -132,6 +151,14 @@ namespace TrialServer
                 _snapshot = StatusSnapshot.Build(LocalIp, port);
             }
 
+            // Apply a pending performance-monitor toggle on the MAIN thread (PerfMonitor touches Unity).
+            int perf = _perfRequest;
+            if (perf != 0)
+            {
+                _perfRequest = 0;
+                PerfMonitor.SetEnabled(perf == 1, "dashboard");
+            }
+
             // Drain commands on the main thread. This is the ONLY place a request touches Unity.
             while (_commands.TryDequeue(out Command cmd))
             {
@@ -144,10 +171,15 @@ namespace TrialServer
         void OnDestroy()
         {
             LogRing.Uninstall();
+            LogRing.StopFileLog();
             StopServer();
         }
 
-        void OnApplicationQuit() => StopServer();
+        void OnApplicationQuit()
+        {
+            LogRing.StopFileLog();   // flush the tail before the process goes away
+            StopServer();
+        }
 
         // ---- Lifecycle ---------------------------------------------------------------------------------
 
@@ -265,15 +297,42 @@ namespace TrialServer
                     Send(ctx, 204, "image/x-icon", Array.Empty<byte>());
                     return;
 
-                // ---- DEV endpoint (read-only) -----------------------------------------------------------
-                // /api/logs?since=<cursor>&tag=<TAG>&max=<n>
-                // LogRing is plain .NET behind a lock, so it is safe to serve straight from this thread.
+                // ---- DEV endpoints (read-only, except the perf TOGGLE which is a control, not a value edit) --
+                // /api/logs?since=<cursor>&tag=<TAG>&level=<MIN>&max=<n>
+                // LogRing is plain .NET behind a lock, so it is safe to serve straight from this thread. The
+                // level floor ("WARN" shows WARN, ERROR and CRIT) is filtered server-side, exactly like the tag,
+                // so the client cursor and the Download button agree with what is on screen.
                 case "/api/logs":
                 {
                     long since = ParseLong(ctx.Request.QueryString["since"], 0);
                     string tag = ctx.Request.QueryString["tag"];
+                    string level = ctx.Request.QueryString["level"];
                     int max = (int)ParseLong(ctx.Request.QueryString["max"], 300);
-                    SendJson(ctx, LogRing.ToJson(since, tag, Mathf.Clamp(max, 1, 2000)));
+                    SendJson(ctx, LogRing.ToJson(since, tag, Mathf.Clamp(max, 1, 2000), level));
+                    return;
+                }
+
+                // /api/logs/download?tag=<TAG>&level=<MIN> - the whole log ring as a .txt, so a run-day log can
+                // be pulled to a file the same way a gaze session is, with no adb / terminal.
+                case "/api/logs/download":
+                {
+                    string tag = ctx.Request.QueryString["tag"];
+                    string level = ctx.Request.QueryString["level"];
+                    string text = LogRing.ToText(tag, level);
+                    string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                    ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"trialserver_log_{stamp}.txt\"");
+                    Send(ctx, 200, "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(text));
+                    return;
+                }
+
+                // /api/dev/perf?on=1 - turn the performance monitor on/off. The ONLY write this DEV panel makes,
+                // and it is a control (start/stop sampling), not a value edit. Stashed here and applied on the
+                // main thread in Update, because PerfMonitor touches Unity and this runs on the listener thread.
+                case "/api/dev/perf":
+                {
+                    bool on = ctx.Request.QueryString["on"] == "1";
+                    _perfRequest = on ? 1 : 2;
+                    SendJson(ctx, "{\"accepted\":true,\"on\":" + (on ? "true" : "false") + "}", 202);
                     return;
                 }
             }
@@ -313,7 +372,13 @@ namespace TrialServer
             {
                 if (Directory.Exists(_filesDir))
                 {
-                    var files = Directory.GetFiles(_filesDir, "*.json", SearchOption.AllDirectories);
+                    // Gaze session JSON plus the run .log files, so a run captured with no network can be pulled
+                    // from the same list once back on one. Two patterns, not a wildcard, so nothing stray is served.
+                    var json = Directory.GetFiles(_filesDir, "*.json", SearchOption.AllDirectories);
+                    var logs = Directory.GetFiles(_filesDir, "*.log", SearchOption.AllDirectories);
+                    var files = new string[json.Length + logs.Length];
+                    json.CopyTo(files, 0);
+                    logs.CopyTo(files, json.Length);
                     Array.Sort(files);
                     bool first = true;
                     foreach (var f in files)
@@ -351,8 +416,9 @@ namespace TrialServer
             }
 
             byte[] bytes = File.ReadAllBytes(full);
+            string mime = full.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ? "text/plain; charset=utf-8" : "application/json";
             ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(full)}\"");
-            Send(ctx, 200, "application/json", bytes);
+            Send(ctx, 200, mime, bytes);
         }
 
         // Every gaze session JSON under the files tree, zipped in memory.

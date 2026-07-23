@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using UnityEngine;
 
@@ -21,6 +22,17 @@ namespace TrialServer
     /// which is what makes a logcat filter work. We parse that prefix once, on the way in, so the dashboard
     /// can offer the same filter as a set of buttons: one view per subsystem, no regex, no terminal.
     ///
+    /// SEVERITY RIDES THE SAME PREFIX. A line may name its own level as "[SERVER:CRIT] ...", parsed here into
+    /// tag "SERVER" + level CRIT. Everything without an explicit level derives one from Unity's LogType, so
+    /// every existing "[SERVER] ..." line keeps working untouched and no call site had to be rewritten. This
+    /// is deliberately NOT a Log.Critical() wrapper: a second logging path beside Debug.Log is a second home
+    /// for the same thing, and the two would drift. There is one path, and the prefix carries the metadata.
+    ///
+    /// CRIT is reserved for "this session's data is compromised" (e.g. eye-tracking permission denied so the
+    /// gaze log is worthless, storage about to run out so the file will stop mid-write), NOT for "an exception
+    /// happened" (that is ERROR). The distinction is the whole point: a level that fires on every exception is
+    /// one you learn to ignore.
+    ///
     /// The cursor (Seq) is monotonic, so the dashboard polls "everything since N" and never re-fetches or
     /// misses a line. When the ring wraps, the client's next poll simply resumes from the oldest line still
     /// held, and the response says so, rather than silently skipping.
@@ -31,9 +43,26 @@ namespace TrialServer
         {
             public long Seq;         // monotonic; the dashboard's cursor
             public string Tag;       // "SERVER", "BRIDGE", ... or "" when the line has no [TAG] prefix
-            public string Type;      // "log" | "warn" | "error"
+            public string Level;     // "INFO" | "WARN" | "ERROR" | "CRIT"
             public float Time;       // seconds since startup, sampled on the main thread (see Pump)
             public string Message;
+        }
+
+        // The severity axis. ONE axis, not two: an earlier version carried both a LogType-derived "type" and
+        // a semantic level, which is the same fact stored twice and free to disagree. Rank orders them so a
+        // filter can say "this and worse" rather than needing a checkbox per level.
+        public const string LevelInfo = "INFO";
+        public const string LevelWarn = "WARN";
+        public const string LevelError = "ERROR";
+        public const string LevelCrit = "CRIT";
+
+        /// <summary>Severity order, low to high. An unknown string reads as INFO.</summary>
+        public static int Rank(string level)
+        {
+            if (string.Equals(level, LevelCrit, StringComparison.OrdinalIgnoreCase)) return 3;
+            if (string.Equals(level, LevelError, StringComparison.OrdinalIgnoreCase)) return 2;
+            if (string.Equals(level, LevelWarn, StringComparison.OrdinalIgnoreCase)) return 1;
+            return 0;
         }
 
         // Capacity is set ONCE, on the main thread, by Install. The buffer is a plain array: resizing it
@@ -45,6 +74,21 @@ namespace TrialServer
         static int _head;            // next write index
         static long _seq;            // total lines ever accepted
         static bool _installed;
+
+        // ---- Optional file sink -------------------------------------------------------------------------
+        //
+        // The download endpoint serves the in-memory ring, which needs a network and holds only the last N
+        // lines. For an OUTDOOR run with no phone attached, that is nothing. This sink writes every captured
+        // line to a file on the headset instead, flushed per line so a crash keeps the tail, so the whole run
+        // is on disk to pull with adb (or from the dashboard's files list once back on a network). It is the
+        // SAME single log path: the file gets exactly what the ring gets, so the two cannot drift.
+        static readonly object FileGate = new object();
+        static volatile StreamWriter _file;
+        static string _filePath = "";
+
+        /// <summary>The run log file currently being written, or "" if the file sink is off. Logged once at
+        /// startup so the operator (or an AI reading the run afterward) knows where the run was captured.</summary>
+        public static string FilePath { get { lock (FileGate) return _filePath; } }
 
         // Sampled on the main thread each frame and read by the logging threads, because Time.realtimeSinceStartup
         // is a Unity API and a line can be logged from a worker thread.
@@ -79,6 +123,75 @@ namespace TrialServer
             Application.logMessageReceivedThreaded -= OnLog;
         }
 
+        /// <summary>Start mirroring every captured line to a file at <paramref name="dir"/>/logs/run_&lt;stamp&gt;.log.
+        /// Called once by ExperimentServer on the main thread when logToFile is on. Independent of the web
+        /// server: a no-network outdoor run still lands a full log on disk. No-ops if already writing.</summary>
+        public static void StartFileLog(string dir)
+        {
+            lock (FileGate)
+            {
+                if (_file != null) return;
+                try
+                {
+                    string logDir = Path.Combine(dir, "logs");
+                    Directory.CreateDirectory(logDir);
+                    string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                    _filePath = Path.Combine(logDir, "run_" + stamp + ".log");
+                    _file = new StreamWriter(_filePath, false, new UTF8Encoding(false)) { AutoFlush = true };
+                    _file.WriteLine("# Trial server run log started " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    _file.WriteLine("# One line per Debug.Log, from every thread. CRIT means the session's data is compromised.");
+                    _file.WriteLine();
+                }
+                catch (Exception e)
+                {
+                    _file = null;
+                    _filePath = "";
+                    Debug.LogWarning("[SERVER] Run log file could not be opened (" + e.Message + "). Logging to the ring only.");
+                }
+            }
+        }
+
+        /// <summary>Flush and close the run log file, so the last lines survive and the handle is released.
+        /// Called on teardown / application quit.</summary>
+        public static void StopFileLog()
+        {
+            lock (FileGate)
+            {
+                if (_file == null) return;
+                try { _file.Flush(); _file.Dispose(); } catch { /* closing a broken writer is not worth a throw */ }
+                _file = null;
+                _filePath = "";
+            }
+        }
+
+        // Append one already-parsed line to the file sink, if open. Same format as ToText, so a line in the
+        // file reads identically to a line in the downloaded log. Its OWN lock, not the ring's: file I/O must
+        // not stall the logging threads. A write failure disables the sink rather than throwing into whatever
+        // thread happened to log, and stays silent (logging from inside the log callback could recurse).
+        static void WriteFileLine(string level, float time, string message)
+        {
+            if (_file == null) return;
+            lock (FileGate)
+            {
+                if (_file == null) return;
+                try
+                {
+                    _file.Write('[');
+                    _file.Write(time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8));
+                    _file.Write("] ");
+                    _file.Write((level ?? LevelInfo).PadRight(5));
+                    _file.Write("  ");
+                    _file.WriteLine(message);
+                }
+                catch
+                {
+                    try { _file.Dispose(); } catch { }
+                    _file = null;
+                    _filePath = "";
+                }
+            }
+        }
+
         /// <summary>Main-thread tick: samples the clock the logging threads stamp their lines with.</summary>
         public static void Pump(float realtimeSinceStartup) => _now = realtimeSinceStartup;
 
@@ -86,13 +199,16 @@ namespace TrialServer
         {
             if (string.IsNullOrEmpty(message)) return;
 
-            string tag = ParseTag(message);
-            string kind = type == LogType.Warning ? "warn"
-                        : (type == LogType.Log ? "log" : "error");   // Error, Assert and Exception all read as error
+            // The line's own declared level wins; otherwise Unity's LogType supplies it. Note that an
+            // exception maps to ERROR, never CRIT: CRIT is a claim about the SESSION DATA, and only a call
+            // site that knows the data is compromised can make that claim.
+            ParsePrefix(message, out string tag, out string declared);
+            string kind = declared ?? (type == LogType.Warning ? LevelWarn
+                                     : (type == LogType.Log ? LevelInfo : LevelError));
 
             // An exception's message alone is often useless ("Object reference not set..."), so keep the first
             // stack frame with it. Only for the error kinds: a stack trace on every Debug.Log would bury the ring.
-            if (kind == "error" && !string.IsNullOrEmpty(stackTrace))
+            if (Rank(kind) >= 2 && !string.IsNullOrEmpty(stackTrace))
             {
                 string first = FirstLine(stackTrace);
                 if (!string.IsNullOrEmpty(first)) message = message + "  |  " + first;
@@ -105,23 +221,67 @@ namespace TrialServer
                 {
                     Seq = ++_seq,
                     Tag = tag,
-                    Type = kind,
+                    Level = kind,
                     Time = _now,
                     Message = message
                 };
                 _head = (_head + 1) % _ring.Length;
                 if (_count < _ring.Length) _count++;
             }
+
+            // Mirror to the file sink (if on) with the SAME message the ring got, so the on-disk run log and
+            // the downloaded ring read identically. Outside the ring lock so slow storage cannot stall logging.
+            WriteFileLine(kind, _now, message);
         }
 
-        // "[SERVER] Listening..." -> "SERVER". Only a prefix at the very start counts, so a bracket inside a
-        // message body cannot masquerade as a subsystem tag.
-        static string ParseTag(string message)
+        // "[SERVER] Listening..."          -> tag "SERVER", level null (caller did not declare one)
+        // "[BRIDGE:CRIT] Eye perm denied"  -> tag "BRIDGE", level "CRIT"
+        //
+        // Only a prefix at the very start counts, so a bracket inside a message body cannot masquerade as a
+        // subsystem tag. An unrecognized suffix ("[SERVER:hello]") is left as part of the tag rather than
+        // silently dropped: inventing a level from a typo would be worse than showing the typo.
+        static void ParsePrefix(string message, out string tag, out string level)
         {
-            if (message.Length < 3 || message[0] != '[') return "";
+            tag = "";
+            level = null;
+            if (message.Length < 3 || message[0] != '[') return;
+
             int close = message.IndexOf(']');
-            if (close <= 1 || close > 24) return "";
-            return message.Substring(1, close - 1);
+            if (close <= 1 || close > 24) return;
+
+            string inside = message.Substring(1, close - 1);
+            int colon = inside.LastIndexOf(':');
+            if (colon > 0 && colon < inside.Length - 1)
+            {
+                string suffix = inside.Substring(colon + 1).Trim();
+                if (string.Equals(suffix, LevelCrit, StringComparison.OrdinalIgnoreCase)) level = LevelCrit;
+                else if (string.Equals(suffix, LevelError, StringComparison.OrdinalIgnoreCase)) level = LevelError;
+                else if (string.Equals(suffix, LevelWarn, StringComparison.OrdinalIgnoreCase)) level = LevelWarn;
+                else if (string.Equals(suffix, LevelInfo, StringComparison.OrdinalIgnoreCase)) level = LevelInfo;
+
+                if (level != null) inside = inside.Substring(0, colon).Trim();
+            }
+
+            tag = inside;
+        }
+
+        /// <summary>How many held lines are at CRIT, and the most recent one's message. The dashboard's
+        /// run-day punch list uses this to say "something in the log needs you" without the operator having
+        /// to open the DEV log stream.</summary>
+        public static void CritSummary(out int critCount, out string latestCrit)
+        {
+            critCount = 0;
+            latestCrit = "";
+            lock (Gate)
+            {
+                for (int i = 0; i < _count; i++)
+                {
+                    Line line = _ring[Index(i)];
+                    if (!string.Equals(line.Level, LevelCrit, StringComparison.OrdinalIgnoreCase)) continue;
+                    critCount++;
+                    latestCrit = line.Message;
+                }
+            }
         }
 
         static string FirstLine(string s)
@@ -157,9 +317,14 @@ namespace TrialServer
         /// <paramref name="max"/> caps one response so a client that has been away (or a burst of logging)
         /// cannot produce a multi-megabyte payload on a headset. The returned cursor is the last line
         /// actually included, so a capped response is simply resumed by the next poll.
+        ///
+        /// <paramref name="minLevel"/> keeps only lines at that severity or worse ("WARN" shows WARN, ERROR
+        /// and CRIT). Null or "" keeps everything. Filtered server-side, exactly like the tag, so the client's
+        /// cursor and the Download button agree with what is on screen.
         /// </summary>
-        public static string ToJson(long since, string tagFilter, int max)
+        public static string ToJson(long since, string tagFilter, int max, string minLevel = null)
         {
+            int floor = string.IsNullOrEmpty(minLevel) ? 0 : Rank(minLevel);
             var sb = new StringBuilder(4096);
             sb.Append("{\"lines\":[");
 
@@ -178,6 +343,7 @@ namespace TrialServer
                     if (line.Seq <= since) continue;
                     if (!string.IsNullOrEmpty(tagFilter) &&
                         !string.Equals(line.Tag, tagFilter, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (Rank(line.Level) < floor) continue;
 
                     if (!first) sb.Append(',');
                     first = false;
@@ -185,7 +351,7 @@ namespace TrialServer
                     sb.Append("{\"seq\":").Append(line.Seq)
                       .Append(",\"t\":").Append(line.Time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
                       .Append(",\"tag\":\"").Append(Esc(line.Tag))
-                      .Append("\",\"type\":\"").Append(line.Type)
+                      .Append("\",\"level\":\"").Append(line.Level)
                       .Append("\",\"msg\":\"").Append(Esc(line.Message))
                       .Append("\"}");
 
@@ -193,8 +359,8 @@ namespace TrialServer
                     emitted++;
                 }
 
-                // With a tag filter on, the cursor must still advance past the lines we skipped, or the next
-                // poll re-walks them forever. Only safe when we did not stop early on the cap.
+                // With a tag or level filter on, the cursor must still advance past the lines we skipped, or
+                // the next poll re-walks them forever. Only safe when we did not stop early on the cap.
                 if (emitted < max) cursor = _seq;
             }
 
@@ -204,6 +370,43 @@ namespace TrialServer
             sb.Append(",\"dropped\":").Append(since > 0 && oldestHeld > since ? oldestHeld - since : 0);
             sb.Append(",\"total\":").Append(Total);
             return sb.Append('}').ToString();
+        }
+
+        /// <summary>
+        /// The whole held ring as a plain-text log, oldest first, one line each:
+        /// <c>[   12.3] WARN  [SERVER] message</c>. This is what the dashboard's "Download log" button serves,
+        /// so a run-day log can be pulled to a file the same way a session file is, with no adb / terminal.
+        ///
+        /// Called from the HTTP LISTENER THREAD, so it builds its own StringBuilder and touches no Unity API,
+        /// exactly like <see cref="ToJson"/>. Optionally filtered to one tag and/or a minimum level.
+        /// </summary>
+        public static string ToText(string tagFilter, string minLevel = null)
+        {
+            int floor = string.IsNullOrEmpty(minLevel) ? 0 : Rank(minLevel);
+
+            var sb = new StringBuilder(8192);
+            lock (Gate)
+            {
+                long oldestHeld = _seq - _count;
+                sb.Append("# Trial server log ring: ").Append(_count).Append(" line(s) held, ")
+                  .Append(_seq).Append(" total ever (oldest held seq ").Append(oldestHeld + 1).Append(").\n");
+                if (!string.IsNullOrEmpty(tagFilter)) sb.Append("# filtered to tag [").Append(tagFilter).Append("]\n");
+                if (floor > 0) sb.Append("# filtered to level ").Append(minLevel.ToUpperInvariant()).Append(" and worse\n");
+                sb.Append("# CRIT means the session's data is compromised, not merely that an error was thrown.\n");
+                sb.Append('\n');
+
+                for (int i = 0; i < _count; i++)
+                {
+                    Line line = _ring[Index(i)];
+                    if (!string.IsNullOrEmpty(tagFilter) &&
+                        !string.Equals(line.Tag, tagFilter, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (Rank(line.Level) < floor) continue;
+
+                    sb.Append('[').Append(line.Time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8))
+                      .Append("] ").Append((line.Level ?? LevelInfo).PadRight(5)).Append("  ").Append(line.Message).Append('\n');
+                }
+            }
+            return sb.ToString();
         }
 
         // Ring index of the i-th oldest held line.

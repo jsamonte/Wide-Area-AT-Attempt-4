@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace TrialServer
 {
@@ -33,6 +34,16 @@ namespace TrialServer
             var tracker = EyeAndHeadTracker.Instance;
             bool trackerPresent = tracker != null;
 
+            // Head tracking. Outdoors against a featureless sky the ML2 loses the head pose mid-trial, which
+            // quietly corrupts every head-relative number while the app itself looks fine. Tri-state on
+            // purpose: true/false when an HMD is present, null when there is NO head device at all (the Editor,
+            // the App Simulator), so the dashboard omits the chip off-device instead of crying "tracking lost"
+            // on every desk run. Read here on the main thread, like every other Unity call in this file.
+            bool? headTracked = null;
+            InputDevice headDevice = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+            if (headDevice.isValid && headDevice.TryGetFeatureValue(CommonUsages.isTracked, out bool isHeadTracked))
+                headTracked = isHeadTracked;
+
             // Live trial readout, straight off the study's tracker. GetRemainingTargetPositions allocates a list, but
             // this runs at the snapshot rate (a few Hz), not per frame, so it is not on any hot path. When the
             // tracker is absent these stay at rest values rather than throwing.
@@ -56,6 +67,29 @@ namespace TrialServer
               .Append("\"eyePermission\":").Append(B(eyePermission))
               .Append(",\"gazeManager\":").Append(B(gazePresent))
               .Append(",\"tracker\":").Append(B(trackerPresent))
+              .Append(",\"headTracked\":").Append(headTracked.HasValue ? B(headTracked.Value) : "null")
+              .Append('}');
+
+            // Headset vitals. Battery is the one that leaves every other light on the page green while it kills
+            // a session: if the headset dies mid-trial the gaze file simply stops. SystemInfo.batteryLevel is
+            // 0..1, or -1 where the platform will not report it; the dashboard says "not reported" rather than
+            // a fake 0%.
+            float battery = SystemInfo.batteryLevel;
+            bool charging = SystemInfo.batteryStatus == BatteryStatus.Charging ||
+                            SystemInfo.batteryStatus == BatteryStatus.Full;
+            Sb.Append(",\"vitals\":{")
+              .Append("\"batteryPct\":").Append(battery < 0f ? "null" : F(battery * 100f, 0))
+              .Append(",\"charging\":").Append(B(charging))
+              .Append('}');
+
+            // CRIT log lines, at TOP level, because the run-day punch list is on the calm page and the calm
+            // page never polls the log stream. A CRIT line means some subsystem already knows this session's
+            // data is compromised (eye permission denied, storage about to run out); without this the operator
+            // would only find out by opening DEV and reading the log.
+            LogRing.CritSummary(out int critCount, out string latestCrit);
+            Sb.Append(",\"crit\":{")
+              .Append("\"count\":").Append(critCount)
+              .Append(",\"latest\":\"").Append(Esc(latestCrit)).Append('"')
               .Append('}');
 
             Sb.Append(",\"trial\":{")
@@ -98,6 +132,18 @@ namespace TrialServer
               .Append('}');
 
             Sb.Append(",\"logLines\":").Append(LogRing.Total);
+
+            // The DEV block: everything the run-day dashboard does NOT need, and everything you would otherwise
+            // open a terminal for. It is always in the payload (a few hundred bytes at a few Hz is nothing) and
+            // the dashboard hides it until DEV is switched on. Strictly an OBSERVATION: nothing here writes.
+            //
+            // The performance block is nearly empty until the monitor is switched on from the dashboard: an OFF
+            // monitor must not leave a full card of numbers from whenever it last ran, because a stale card
+            // gets read as live and acted on. PerfMonitor writes its own JSON so the numbers and their
+            // formatting stay next to the code that produced them.
+            Sb.Append(",\"dev\":{\"perf\":{");
+            PerfMonitor.AppendJson(Sb);
+            Sb.Append("}}");
 
             Sb.Append('}');
             return Sb.ToString();
