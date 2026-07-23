@@ -59094,7 +59094,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 33
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -64096,7 +64096,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 22
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -72118,7 +72118,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 200
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -94908,7 +94908,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 80
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -106893,7 +106893,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 84
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -128158,7 +128158,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 4
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -138895,7 +138895,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 222
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -143373,7 +143373,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 3
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -146103,7 +146103,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 8
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -170491,7 +170491,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 20
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -179940,7 +179940,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 30
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -191207,7 +191207,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 44
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -200715,7 +200715,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 2
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -262395,7 +262395,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 48
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -291228,7 +291228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 40
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -295424,7 +295424,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 202
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -333940,7 +333940,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 82
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25
@@ -343091,7 +343091,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arucoID: 88
   useYawOnlyRotation: 1
-  lockElevation: 0
+  lockElevation: 1
   lockTilt: 0
   isFloorMarker: 1
   poseAverageSeconds: 0.25

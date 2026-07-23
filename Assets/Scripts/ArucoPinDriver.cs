@@ -210,52 +210,57 @@ public class ArucoPinDriver : MonoBehaviour
 
     private void UpdateSpacePin(Pose spongyPose, float now)
     {
-        // Only update once per continuous visual acquisition to avoid 
-        // destroying and recreating WLT spatial anchors continuously, 
+        // Only update once per continuous visual acquisition to avoid
+        // destroying and recreating WLT spatial anchors continuously,
         // which crashes the Magic Leap OpenXR runtime backend.
-        if (!_hasLockedThisSession)
+        if (_hasLockedThisSession) return;
+
+        var mgr = WorldLockingManager.GetInstance();
+
+        // These pins are SpacePinOrientable: WLT derives their orientation from the
+        // RELATIVE POSITIONS of all active pins (yaw-only -- the Orienter flattens Y),
+        // so any rotation passed in is discarded. ONLY the fed POSITION matters. We
+        // therefore drive position only, in Frozen (Unity global) space -- the same
+        // space the pin's authored ModelingPoseGlobal lives in, so the height lock
+        // below is a clean same-space assignment with no coordinate mixing.
+        Vector3 frozenPos = mgr.FrozenFromSpongy.Multiply(spongyPose.position);
+
+        if (lockElevation)
         {
-            Pose poseToFeed = spongyPose;
-            
-            if (lockElevation || lockTilt)
-            {
-                var mgr = WorldLockingManager.GetInstance();
-                // Find where the marker is EXPECTED to be in tracking space if the building is exactly at its current height/rotation
-                Pose expectedSpongyPose = mgr.SpongyFromLocked.Multiply(_spacePin.ModelingPoseGlobal);
+            // Floor-marker HEIGHT is the least reliable axis: a marker lying flat on the
+            // floor, viewed from above, has poor vertical precision, and physically sits
+            // ON the floor -- below where the building model places the pin. Feeding the
+            // detected Y makes the building sink to floor level near that pin ("pins
+            // lower than they should be"). So take X/Z from the detected marker (which is
+            // reliable) but HOLD Y at the pin's authored model height. The building aligns
+            // horizontally to the markers while staying at its correct, stable height --
+            // it can neither rise nor sink.
+            //
+            // NOTE: the previous implementation mixed Spongy/Locked/Frozen spaces
+            // (SpongyFromLocked applied to a Frozen-space ModelingPoseGlobal), so it never
+            // held height cleanly. This is a same-space (Frozen) compare and is correct.
+            frozenPos.y = _spacePin.ModelingPoseGlobal.position.y;
+        }
 
-                // By feeding WLT exactly the Y coordinate it expects, we tell WLT "there is zero height error".
-                // This guarantees WLT will not try to elevate the building, and also ensures multiple pins won't tilt the building.
-                if (lockElevation || lockTilt)
-                {
-                    poseToFeed.position.y = expectedSpongyPose.position.y;
-                }
-            }
+        // Position-only feed; SpacePinOrientable computes the (yaw-only) rotation itself.
+        _spacePin.SetFrozenPosition(frozenPos);
 
-            if (useYawOnlyRotation || lockTilt)
-            {
-                poseToFeed.rotation = isFloorMarker ? FloorMarkerYawOnly(spongyPose.rotation) : YawOnly(spongyPose.rotation);
-            }
-            
-            _spacePin.SetSpongyPose(poseToFeed);
-            
-            _lastLockedPose = spongyPose;
-            _lastLockTime = now;
-            _hasLockedThisSession = true;
+        _lastLockedPose = spongyPose;
+        _lastLockTime = now;
+        _hasLockedThisSession = true;
 
-            Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}, Tilt Locked: {lockTilt}");
+        Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}");
 
-            LogHeightDiagnostic(spongyPose);
+        LogHeightDiagnostic(spongyPose);
 
-            // The pose is now pushed into WLT's AlignmentManager. SpacePin/
-            // SpacePinOrientable/Orienter have no per-frame callbacks, so the pin holds
-            // its alignment with no further work from us -- sleeping this component
-            // removes it from Unity's Update list entirely until re-acquisition.
-            // Skipped when the debug text is on, because that text needs per-frame
-            // billboarding and a "Lost" state that only Update() can drive.
-            if (!showAlignmentInfoText)
-            {
-                enabled = false;
-            }
+        // SpacePin/SpacePinOrientable/Orienter have no per-frame callbacks, so the pin
+        // holds its alignment with no further work from us -- sleeping this component
+        // removes it from Unity's Update list entirely until re-acquisition. Skipped
+        // when the debug text is on, because that text needs per-frame billboarding
+        // and a "Lost" state that only Update() can drive.
+        if (!showAlignmentInfoText)
+        {
+            enabled = false;
         }
     }
 
@@ -278,9 +283,10 @@ public class ArucoPinDriver : MonoBehaviour
         try
         {
             var mgr = WorldLockingManager.GetInstance();
-            float detectedY = mgr.LockedFromSpongy.Multiply(spongyPose).position.y;
+            // All in Frozen (Unity global) space so detected/authored/placed are comparable.
+            float detectedY = mgr.FrozenFromSpongy.Multiply(spongyPose.position).y;
             float authoredY = _spacePin.ModelingPoseGlobal.position.y;
-            float placedY   = _spacePin.LockedPose.position.y;
+            float placedY   = mgr.FrozenFromLocked.Multiply(_spacePin.LockedPose.position).y;
             float elevErr   = detectedY - authoredY;
 
             string line = $"{DateTime.Now:HH:mm:ss.fff}\tAruco {arucoID}\t" +
