@@ -58,7 +58,7 @@ public class SequenceManager : MonoBehaviour
     private bool sequenceComplete = false;
     private bool isTutorialPhase = false;
     private Coroutine _cooldownRoutine;
-    private Coroutine _heartbeatRoutine;
+    private System.Threading.CancellationTokenSource _heartbeatCts;
 
     // Hardcoded Sequences based on your prompt
     // True = Wireframe ON. False = Wireframe OFF.
@@ -404,34 +404,54 @@ public class SequenceManager : MonoBehaviour
     /// wall-clock timestamp), whereas the JSON summary is only flushed at trial end and
     /// would be lost on a mid-trial crash. Keeping it out of the JSON also stops it
     /// polluting the experimental destructionEvents data.
+    ///
+    /// Runs on a background Task, NOT a coroutine: this component lives on the HUD
+    /// Canvas, which StartTutorialPhase()/OnStartButtonClicked() deactivate (via
+    /// gameObject.SetActive(false)) for the entire trial -- and a coroutine cannot run
+    /// on an inactive GameObject. A Task is independent of GameObject active state, and
+    /// Debug.Log is thread-safe (the tracker already logs from background threads).
     /// </summary>
     private void StartHeartbeat(string label)
     {
         StopHeartbeat();
-        if (heartbeatIntervalSeconds > 0f)
-            _heartbeatRoutine = StartCoroutine(HeartbeatLoop(label));
+        if (heartbeatIntervalSeconds <= 0f) return;
+
+        _heartbeatCts = new System.Threading.CancellationTokenSource();
+        var token = _heartbeatCts.Token;
+        int intervalMs = Mathf.RoundToInt(heartbeatIntervalSeconds * 1000f);
+
+        System.Threading.Tasks.Task.Run(async () =>
+        {
+            float elapsed = 0f;
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    await System.Threading.Tasks.Task.Delay(intervalMs, token);
+                    elapsed += heartbeatIntervalSeconds;
+                    // logcat only. Grep for [HEARTBEAT] in an adb logcat / bugreport to
+                    // find the last one before a reboot and thus which trial was active.
+                    Debug.Log($"[HEARTBEAT] {label} still running, elapsed {elapsed:F0}s");
+                }
+            }
+            catch (System.OperationCanceledException) { /* normal stop */ }
+        }, token);
     }
 
     private void StopHeartbeat()
     {
-        if (_heartbeatRoutine != null)
+        if (_heartbeatCts != null)
         {
-            StopCoroutine(_heartbeatRoutine);
-            _heartbeatRoutine = null;
+            _heartbeatCts.Cancel();
+            _heartbeatCts.Dispose();
+            _heartbeatCts = null;
         }
     }
 
-    private IEnumerator HeartbeatLoop(string label)
+    private void OnDestroy()
     {
-        float elapsed = 0f;
-        while (true)
-        {
-            yield return new WaitForSeconds(heartbeatIntervalSeconds);
-            elapsed += heartbeatIntervalSeconds;
-            // logcat only. Grep for [HEARTBEAT] in an adb logcat / bugreport to find
-            // the last one before a reboot and thus which trial/state was active.
-            Debug.Log($"[HEARTBEAT] {label} still running, elapsed {elapsed:F0}s");
-        }
+        // Ensure the heartbeat task doesn't outlive this component (e.g. on app quit).
+        StopHeartbeat();
     }
 
     private void SetWireframeActive(GameObject baselineObj, bool active)

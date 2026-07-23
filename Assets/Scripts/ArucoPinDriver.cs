@@ -44,6 +44,10 @@ public class ArucoPinDriver : MonoBehaviour
     [SerializeField] private float textWorldScale = 0.022f;
     [SerializeField] private int textFontSize = 72;
 
+    [Header("=== Height Diagnostics ===")]
+    [Tooltip("If true, every time a pin locks it appends a line to 'aruco_pin_height_diag.txt' in the app's persistent data folder, recording the authored/detected/placed world-height of the marker. This file survives being offline and a reboot, so it can be pulled over adb after an outdoor session to diagnose the 'markers scan lower' height problem. Safe to leave on; turn off once the height issue is solved.")]
+    [SerializeField] private bool logHeightDiagnostics = true;
+
     // References
     private SpacePinOrientable _spacePin;
 
@@ -240,6 +244,8 @@ public class ArucoPinDriver : MonoBehaviour
 
             Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}, Tilt Locked: {lockTilt}");
 
+            LogHeightDiagnostic(spongyPose);
+
             // The pose is now pushed into WLT's AlignmentManager. SpacePin/
             // SpacePinOrientable/Orienter have no per-frame callbacks, so the pin holds
             // its alignment with no further work from us -- sleeping this component
@@ -250,6 +256,46 @@ public class ArucoPinDriver : MonoBehaviour
             {
                 enabled = false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Appends one line per pin-lock to a persistent file so the "markers scan lower"
+    /// height problem can be diagnosed after an OFFLINE session (the file survives on
+    /// disk; logcat would roll over before reconnecting). For each lock it records:
+    ///   authored_Y  — where this marker's pin SHOULD sit (its modeling/world height)
+    ///   detected_Y  — where the (smoothed) camera detection actually placed it, in world space
+    ///   placed_Y    — where WLT ended up putting the pin after alignment
+    ///   elevErr     — detected_Y - authored_Y (the raw height error the camera reported)
+    /// Comparing these across the 18 pins, in lock order, shows whether the detections
+    /// themselves come in low, and whether the building sinks as more pins are added.
+    /// Pull it with: adb pull /sdcard/Android/data/com.Trial1/files/aruco_pin_height_diag.txt
+    /// </summary>
+    private void LogHeightDiagnostic(Pose spongyPose)
+    {
+        if (!logHeightDiagnostics) return;
+
+        try
+        {
+            var mgr = WorldLockingManager.GetInstance();
+            float detectedY = mgr.LockedFromSpongy.Multiply(spongyPose).position.y;
+            float authoredY = _spacePin.ModelingPoseGlobal.position.y;
+            float placedY   = _spacePin.LockedPose.position.y;
+            float elevErr   = detectedY - authoredY;
+
+            string line = $"{DateTime.Now:HH:mm:ss.fff}\tAruco {arucoID}\t" +
+                          $"authored_Y={authoredY:F4}\tdetected_Y={detectedY:F4}\t" +
+                          $"placed_Y={placedY:F4}\televErr={elevErr:+0.0000;-0.0000}\t" +
+                          $"lockElev={lockElevation}\tlockTilt={lockTilt}";
+
+            Debug.Log($"[PINDIAG] {line}");
+
+            string path = System.IO.Path.Combine(Application.persistentDataPath, "aruco_pin_height_diag.txt");
+            System.IO.File.AppendAllText(path, line + "\n");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[PINDIAG] Failed to write height diagnostic: {e.Message}");
         }
     }
 
