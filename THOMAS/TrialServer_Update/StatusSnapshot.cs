@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace TrialServer
 {
@@ -34,16 +33,6 @@ namespace TrialServer
             var tracker = EyeAndHeadTracker.Instance;
             bool trackerPresent = tracker != null;
 
-            // Head tracking. Outdoors against a featureless sky the ML2 loses the head pose mid-trial, which
-            // quietly corrupts every head-relative number while the app itself looks fine. Tri-state on
-            // purpose: true/false when an HMD is present, null when there is NO head device at all (the Editor,
-            // the App Simulator), so the dashboard omits the chip off-device instead of crying "tracking lost"
-            // on every desk run. Read here on the main thread, like every other Unity call in this file.
-            bool? headTracked = null;
-            InputDevice headDevice = InputDevices.GetDeviceAtXRNode(XRNode.Head);
-            if (headDevice.isValid && headDevice.TryGetFeatureValue(CommonUsages.isTracked, out bool isHeadTracked))
-                headTracked = isHeadTracked;
-
             // Live trial readout, straight off the study's tracker. GetRemainingTargetPositions allocates a list, but
             // this runs at the snapshot rate (a few Hz), not per frame, so it is not on any hot path. When the
             // tracker is absent these stay at rest values rather than throwing.
@@ -67,7 +56,6 @@ namespace TrialServer
               .Append("\"eyePermission\":").Append(B(eyePermission))
               .Append(",\"gazeManager\":").Append(B(gazePresent))
               .Append(",\"tracker\":").Append(B(trackerPresent))
-              .Append(",\"headTracked\":").Append(headTracked.HasValue ? B(headTracked.Value) : "null")
               .Append('}');
 
             // Headset vitals. Battery is the one that leaves every other light on the page green while it kills

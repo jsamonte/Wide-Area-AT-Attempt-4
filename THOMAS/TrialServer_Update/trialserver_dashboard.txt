@@ -560,13 +560,6 @@ function toggleWake() {
       fix: 'EyeAndHeadTracker is not in the scene, so nothing is being recorded. Check the study prefab is loaded.' });
     else chips.push({ cls: 'ok', label: 'Tracker: ok' });
 
-    // Head tracking. Tri-state: null off-device (no HMD, e.g. the Editor) so no chip at all; on-device, red
-    // when the head pose is lost. This is the OUTDOOR failure: a featureless sky drops tracking and every
-    // head-relative number silently goes wrong while the app still looks alive.
-    if (r.headTracked === false) chips.push({ cls: 'bad', label: 'Head tracking: LOST',
-      fix: 'The headset has lost its position (common outdoors against open sky or blank walls). Head-relative data is corrupt until it recovers. Give it visual features to lock onto, or pause until the pose returns.' });
-    else if (r.headTracked === true) chips.push({ cls: 'ok', label: 'Head tracking: ok' });
-
     // Battery, if the platform reports it.
     var vt = d.vitals || {};
     var bp = vt.batteryPct;

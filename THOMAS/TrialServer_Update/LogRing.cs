@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using UnityEngine;
 
@@ -75,21 +74,6 @@ namespace TrialServer
         static long _seq;            // total lines ever accepted
         static bool _installed;
 
-        // ---- Optional file sink -------------------------------------------------------------------------
-        //
-        // The download endpoint serves the in-memory ring, which needs a network and holds only the last N
-        // lines. For an OUTDOOR run with no phone attached, that is nothing. This sink writes every captured
-        // line to a file on the headset instead, flushed per line so a crash keeps the tail, so the whole run
-        // is on disk to pull with adb (or from the dashboard's files list once back on a network). It is the
-        // SAME single log path: the file gets exactly what the ring gets, so the two cannot drift.
-        static readonly object FileGate = new object();
-        static volatile StreamWriter _file;
-        static string _filePath = "";
-
-        /// <summary>The run log file currently being written, or "" if the file sink is off. Logged once at
-        /// startup so the operator (or an AI reading the run afterward) knows where the run was captured.</summary>
-        public static string FilePath { get { lock (FileGate) return _filePath; } }
-
         // Sampled on the main thread each frame and read by the logging threads, because Time.realtimeSinceStartup
         // is a Unity API and a line can be logged from a worker thread.
         static volatile float _now;
@@ -121,75 +105,6 @@ namespace TrialServer
                 _installed = false;
             }
             Application.logMessageReceivedThreaded -= OnLog;
-        }
-
-        /// <summary>Start mirroring every captured line to a file at <paramref name="dir"/>/logs/run_&lt;stamp&gt;.log.
-        /// Called once by ExperimentServer on the main thread when logToFile is on. Independent of the web
-        /// server: a no-network outdoor run still lands a full log on disk. No-ops if already writing.</summary>
-        public static void StartFileLog(string dir)
-        {
-            lock (FileGate)
-            {
-                if (_file != null) return;
-                try
-                {
-                    string logDir = Path.Combine(dir, "logs");
-                    Directory.CreateDirectory(logDir);
-                    string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-                    _filePath = Path.Combine(logDir, "run_" + stamp + ".log");
-                    _file = new StreamWriter(_filePath, false, new UTF8Encoding(false)) { AutoFlush = true };
-                    _file.WriteLine("# Trial server run log started " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    _file.WriteLine("# One line per Debug.Log, from every thread. CRIT means the session's data is compromised.");
-                    _file.WriteLine();
-                }
-                catch (Exception e)
-                {
-                    _file = null;
-                    _filePath = "";
-                    Debug.LogWarning("[SERVER] Run log file could not be opened (" + e.Message + "). Logging to the ring only.");
-                }
-            }
-        }
-
-        /// <summary>Flush and close the run log file, so the last lines survive and the handle is released.
-        /// Called on teardown / application quit.</summary>
-        public static void StopFileLog()
-        {
-            lock (FileGate)
-            {
-                if (_file == null) return;
-                try { _file.Flush(); _file.Dispose(); } catch { /* closing a broken writer is not worth a throw */ }
-                _file = null;
-                _filePath = "";
-            }
-        }
-
-        // Append one already-parsed line to the file sink, if open. Same format as ToText, so a line in the
-        // file reads identically to a line in the downloaded log. Its OWN lock, not the ring's: file I/O must
-        // not stall the logging threads. A write failure disables the sink rather than throwing into whatever
-        // thread happened to log, and stays silent (logging from inside the log callback could recurse).
-        static void WriteFileLine(string level, float time, string message)
-        {
-            if (_file == null) return;
-            lock (FileGate)
-            {
-                if (_file == null) return;
-                try
-                {
-                    _file.Write('[');
-                    _file.Write(time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8));
-                    _file.Write("] ");
-                    _file.Write((level ?? LevelInfo).PadRight(5));
-                    _file.Write("  ");
-                    _file.WriteLine(message);
-                }
-                catch
-                {
-                    try { _file.Dispose(); } catch { }
-                    _file = null;
-                    _filePath = "";
-                }
-            }
         }
 
         /// <summary>Main-thread tick: samples the clock the logging threads stamp their lines with.</summary>
@@ -228,10 +143,6 @@ namespace TrialServer
                 _head = (_head + 1) % _ring.Length;
                 if (_count < _ring.Length) _count++;
             }
-
-            // Mirror to the file sink (if on) with the SAME message the ring got, so the on-disk run log and
-            // the downloaded ring read identically. Outside the ring lock so slow storage cannot stall logging.
-            WriteFileLine(kind, _now, message);
         }
 
         // "[SERVER] Listening..."          -> tag "SERVER", level null (caller did not declare one)

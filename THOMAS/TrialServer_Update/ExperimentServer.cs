@@ -57,12 +57,6 @@ namespace TrialServer
         [Tooltip("Lines held in the in-memory dev log ring. Takes effect on the next launch.")]
         public int logBufferLines = 800;
 
-        [Tooltip("Write the whole run to a .log file on the headset (persistentDataPath/logs/run_<time>.log), " +
-                 "flushed per line. ON by default so an outdoor, no-network run is still captured for review " +
-                 "later (pull with adb, or from the files list once back on a network). Independent of the web " +
-                 "server: the file is written even with the server off.")]
-        public bool logToFile = true;
-
         /// <summary>Fired on the MAIN thread when a control request arrives. The SequenceBridge subscribes
         /// to this and turns the command into a click on the study's existing UI.</summary>
         public static event Action<string, string> OnCommand;
@@ -107,14 +101,6 @@ namespace TrialServer
             // ring that only begins recording once the socket is bound would miss exactly the failures you open
             // the dev log to diagnose.
             LogRing.Install(logBufferLines);
-
-            // Start the on-disk run log immediately (not in Start, and not gated on the web server): the whole
-            // point is the outdoor run with no phone attached, and the startup lines are the ones worth having.
-            if (logToFile)
-            {
-                LogRing.StartFileLog(_filesDir);
-                if (!string.IsNullOrEmpty(LogRing.FilePath)) Debug.Log($"{Tag} Run log -> {LogRing.FilePath}");
-            }
 
             // The dashboard ships as a TextAsset in Resources, NOT in StreamingAssets. On Android,
             // StreamingAssets lives inside the compressed APK and File.ReadAllText on it returns nothing: it
@@ -171,15 +157,10 @@ namespace TrialServer
         void OnDestroy()
         {
             LogRing.Uninstall();
-            LogRing.StopFileLog();
             StopServer();
         }
 
-        void OnApplicationQuit()
-        {
-            LogRing.StopFileLog();   // flush the tail before the process goes away
-            StopServer();
-        }
+        void OnApplicationQuit() => StopServer();
 
         // ---- Lifecycle ---------------------------------------------------------------------------------
 
@@ -372,13 +353,7 @@ namespace TrialServer
             {
                 if (Directory.Exists(_filesDir))
                 {
-                    // Gaze session JSON plus the run .log files, so a run captured with no network can be pulled
-                    // from the same list once back on one. Two patterns, not a wildcard, so nothing stray is served.
-                    var json = Directory.GetFiles(_filesDir, "*.json", SearchOption.AllDirectories);
-                    var logs = Directory.GetFiles(_filesDir, "*.log", SearchOption.AllDirectories);
-                    var files = new string[json.Length + logs.Length];
-                    json.CopyTo(files, 0);
-                    logs.CopyTo(files, json.Length);
+                    var files = Directory.GetFiles(_filesDir, "*.json", SearchOption.AllDirectories);
                     Array.Sort(files);
                     bool first = true;
                     foreach (var f in files)
@@ -416,9 +391,8 @@ namespace TrialServer
             }
 
             byte[] bytes = File.ReadAllBytes(full);
-            string mime = full.EndsWith(".log", StringComparison.OrdinalIgnoreCase) ? "text/plain; charset=utf-8" : "application/json";
             ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(full)}\"");
-            Send(ctx, 200, mime, bytes);
+            Send(ctx, 200, "application/json", bytes);
         }
 
         // Every gaze session JSON under the files tree, zipped in memory.

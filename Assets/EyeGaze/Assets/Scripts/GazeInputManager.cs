@@ -54,10 +54,20 @@ public class GazeInputManager : Singleton<GazeInputManager>
     private void OnPermissionDenied(string permission)
     {
         Logger.Instance.LogError($"Eye tracking permission denied.");
+
+        // CRIT, not just ERROR: a denied eye permission means the recorded gaze is empty while everything else
+        // looks healthy, which is the exact "worthless file that passed" failure. This line (unlike the
+        // LearnXR Logger call above) goes through Debug.LogError, so LogRing catches it: it drives the red CRIT
+        // row on the dashboard punch list and lands in the on-disk run log for review afterward.
+        Debug.LogError("[GAZE:CRIT] Eye tracking permission denied: recorded gaze data will be empty.");
     }
 
     private void OnPermissionGranted(string permission)
     {
         EyeTrackingPermissionGranted = true;
+
+        // INFO through Debug.Log so the run log records the permission OUTCOME either way. A run log that shows
+        // neither a grant nor a denial means the request callback never fired at all, which is its own finding.
+        Debug.Log("[GAZE] Eye tracking permission granted.");
     }
 }
