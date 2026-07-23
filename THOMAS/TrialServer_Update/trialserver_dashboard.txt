@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trial server dashboard</title>
+<style>
+  :root { --bg:#111417; --card:#1b2026; --line:#2c333b; --text:#e8edf2; --dim:#8b98a5;
+          --ok:#3fb950; --bad:#f85149; --warn:#d29922; --rec:#f85149; --sel:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim);
+       margin:0 0 10px; font-weight:600; }
+  .sub { color:var(--dim); font-size:13px; margin-bottom:16px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:12px;
+         padding:5px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .row:last-child { border-bottom:0; }
+  .k { color:var(--dim); }
+  .v { font-variant-numeric:tabular-nums; font-weight:600; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px;
+         vertical-align:middle; background:var(--bad); }
+  .dot.ok { background:var(--ok); }
+  .dot.warn { background:var(--warn); }
+  .state { font-size:26px; font-weight:700; letter-spacing:.02em; }
+  .state.rec { color:var(--rec); animation:blink 1s steps(1,end) infinite; }
+  .state.idle { color:var(--ok); }
+  .state.ready { color:var(--warn); }
+  .state.armed { color:var(--warn); animation:blink 1s steps(1,end) infinite; }
+  .state.tut { color:var(--sel); }
+  .state.paused { color:var(--dim); }
+  .cond { font-size:20px; font-weight:700; }
+  @keyframes blink { 50% { opacity:.35; } }
+  .stale { background:rgba(210,153,34,.12); border:1px solid var(--warn); color:#f0cd7a;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .stale.hidden { display:none; }
+  .alarm { background:rgba(248,81,73,.14); border:1px solid var(--bad); color:#ffb4b0;
+           border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:14px; }
+  .alarm.hidden { display:none; }
+  .hidden { display:none !important; }
+  .btn.stop { border-color:var(--bad); color:#ffb4b0; background:rgba(248,81,73,.10); }
+  .btn.warn { border-color:var(--warn); color:#f0cd7a; }
+  .badlist { color:#f0cd7a; font-size:13px; margin-top:8px; }
+  .badlist li { padding:1px 0; }
+
+  /* The outcome of the last command. This is where a refusal finally becomes visible: the reasons are
+     written by the bridge, and without this they would only reach logcat on a headset with no PC attached. */
+  .msg { border-radius:8px; padding:9px 12px; margin-top:10px; font-size:13px; line-height:1.4;
+         border:1px solid var(--line); background:#0d1116; }
+  .msg.hidden { display:none; }
+  .msg.ok { border-color:var(--ok); color:#8ee79b; }
+  .msg.warn { border-color:var(--warn); color:#f0cd7a; }
+  .msg.error { border-color:var(--bad); color:#ffb4b0; background:rgba(248,81,73,.10); }
+  a { color:#58a6ff; }
+  ul { margin:0; padding-left:18px; }
+  .note { color:var(--dim); font-size:12px; margin-top:10px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { background:#252c34; border:1px solid var(--line); color:var(--text); border-radius:7px;
+         padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn:active { transform:translateY(1px); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.go { background:rgba(63,185,80,.16); border-color:var(--ok); color:var(--ok); }
+  .btn.sel { border-color:var(--sel); color:var(--sel); background:rgba(88,166,255,.16); }
+  .btn.dev { border-color:#8957e5; color:#c4a3ff; }
+  .btn.dev.on { background:rgba(137,87,229,.18); }
+  .seqbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .startbtn { width:100%; margin-top:4px; padding:15px; font-size:16px; }
+  .idrow { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .idrow input { flex:1; min-width:120px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+                 border-radius:7px; padding:9px 10px; font-size:14px; }
+
+  /* THE PUNCH LIST. The one card that answers "is there anything I have to fix before I record?" without
+     turning DEV on and without reading a log. It is built from the SAME health chips the DEV bar shows, so
+     the two can never disagree; the difference is that this one hides the green ones and shows the ACTION.
+     An empty list is the goal, and it says so in green rather than being a blank box. */
+  .card.punch { margin-bottom:14px; border-color:var(--warn); }
+  .card.punch.clear { border-color:var(--ok); }
+  .card.punch.hasred { border-color:var(--bad); }
+  .pl { border-left:3px solid var(--warn); padding:7px 0 7px 10px; margin-bottom:8px; }
+  .pl.bad { border-left-color:var(--bad); }
+  .pl.clear { border-left-color:var(--ok); color:#8ee79b; font-weight:600; font-size:15px; }
+  .pltitle { font-weight:700; font-size:14px; }
+  .pl.bad .pltitle { color:#ffb4b0; }
+  .pl.warn .pltitle { color:#f0cd7a; }
+  .plfix { color:var(--dim); font-size:13px; line-height:1.45; margin-top:2px; }
+
+  .chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600;
+          margin:2px 4px 2px 0; }
+  .chip.ok { background:rgba(63,185,80,.16); color:var(--ok); }
+  .chip.bad { background:rgba(248,81,73,.16); color:var(--bad); }
+  .chip.warn { background:rgba(210,153,34,.16); color:var(--warn); }
+
+  /* DEV mode. Hidden on run day: the normal view stays the calm thing a researcher operates with a
+     participant present. DEV replaces sitting in a terminal running adb logcat, which is not available on
+     run day anyway (no PC on the headset). */
+  #devPanel.hidden { display:none; }
+  #devPanel { margin-top:20px; border-top:2px solid #8957e5; padding-top:16px; }
+  .devhead { color:#c4a3ff; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+             font-weight:700; margin-bottom:12px; }
+
+  /* Health bar: the at-a-glance "is anything on fire right now" summary, always visible while DEV is on so
+     it does not depend on which pane you last left open. Same chips the calm-page punch list is built from. */
+  #healthbar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  #healthbar .chip { display:inline-flex; align-items:center; }
+
+  #logbox { background:#0b0e12; border:1px solid var(--line); border-radius:8px; padding:10px;
+            height:52vh; overflow-y:auto; font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .ln { white-space:pre-wrap; word-break:break-word; padding:1px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+  .ln .t { color:#5c6773; }
+  .ln .tg { color:#58a6ff; font-weight:600; }
+  .ln.warn { color:#f0cd7a; }
+  .ln.error { color:#ff9a94; background:rgba(248,81,73,.07); }
+  /* CRIT is louder than ERROR on purpose. ERROR means something threw; CRIT means the SESSION DATA is
+     compromised, which is a different and worse thing to scroll past. */
+  .ln.crit { color:#fff; background:rgba(248,81,73,.22); border-left:3px solid var(--bad); padding-left:6px; }
+  .lv { font-weight:700; font-size:11px; padding:0 4px; border-radius:3px; }
+  .lv.warn { color:#f0cd7a; }
+  .lv.error { color:#ff9a94; }
+  .lv.crit { background:var(--bad); color:#fff; }
+  .fsep { width:1px; height:20px; background:var(--line); margin:0 4px; display:inline-block; }
+  .f.lv { border-style:dashed; }
+  .filters { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+  .f { background:#252c34; border:1px solid var(--line); color:var(--dim); border-radius:999px;
+       padding:4px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+  .f.on { border-color:#58a6ff; color:#58a6ff; background:rgba(88,166,255,.12); }
+  .search { flex:1; min-width:140px; background:#0d1116; border:1px solid var(--line); color:var(--text);
+            border-radius:7px; padding:7px 10px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<h1>Trial server dashboard</h1>
+<div class="sub" id="conn">connecting...</div>
+<div class="btns" style="margin-bottom:14px">
+  <button class="btn" id="wake" onclick="toggleWake()">Keep this screen awake: OFF</button>
+  <button class="btn dev" id="devbtn" onclick="toggleDev()">DEV: OFF</button>
+</div>
+
+<div class="stale hidden" id="staleBox">
+  <strong>No update from the headset.</strong> The last status is <span id="staleAge">?</span>s old.
+  The recording is unaffected (the study's gaze JSON does not go through this page), but this view is stale.
+</div>
+
+<!-- Denied eye permission is the failure that otherwise LOOKS fine: the app runs, the UI responds, but
+     dwell-destroy never fires and the gaze data is worthless. A quiet red dot in the Readiness card was too
+     easy to miss on device, so it screams up here instead. -->
+<div class="alarm hidden" id="eyeBox">
+  <strong>Eye tracking permission is NOT granted.</strong> Gems cannot be destroyed by gaze and the recorded
+  gaze data is empty. Accept the eye tracking popup on the headset (it appears after the photos/videos one)
+  before running anything.
+</div>
+
+<!-- The soft trial time limit. Display only, nothing auto-ends; the operator decides. -->
+<div class="alarm hidden" id="limitBox">
+  <strong>Trial over the time limit.</strong> This trial has run <span id="limitElapsed">?</span> of the
+  <span id="limitTotal">?</span> limit. Consider ending it from the Controls card.
+</div>
+
+<!-- THE PUNCH LIST. Answers "is there anything I have to fix before I record?" without turning DEV on and
+     without reading a log. Built from the same health chips the DEV bar shows, so the two cannot disagree;
+     the difference is that this hides the green ones and shows the ACTION. An empty list is the goal, and it
+     says so in green rather than being a blank box. -->
+<div class="card punch" id="punchcard">
+  <h2>Needs fixing</h2>
+  <div id="punchlist"><div class="pl">checking...</div></div>
+  <div class="note">Everything not green, worst first, with what to do about it. Green things are hidden on
+    purpose: this is a to-do list, not a status board. The full chip array (including what is passing) is in
+    DEV. A CRITICAL row means a subsystem has already declared this session's data compromised.</div>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h2>Trial</h2>
+    <div class="row"><span class="k">Phase</span><span class="state idle v" id="phase">-</span></div>
+    <div class="row"><span class="k">Condition</span><span class="cond v" id="condition">-</span></div>
+    <div class="row"><span class="k">Sequence</span><span class="v" id="sequence">-</span></div>
+    <div class="row"><span class="k">Trial</span><span class="v" id="number">-</span></div>
+    <div class="row"><span class="k">Pool</span><span class="v" id="pool">-</span></div>
+    <div class="note">The condition is (Dusk or Night) x (wireframe on or off), read from the study's own
+      sequence tables. If it reads a dash while a trial is queued, the reflection into those private fields
+      could not bind (the log says so once).</div>
+  </div>
+
+  <div class="card">
+    <h2>Live</h2>
+    <div class="row"><span class="k">Recording</span><span class="v" id="recording">-</span></div>
+    <div class="row"><span class="k">Trial time</span><span class="v" id="trialTime">-</span></div>
+    <div class="row"><span class="k">Time limit</span><span class="v" id="limit">-</span></div>
+    <div class="row"><span class="k">Targets remaining</span><span class="v" id="remaining">-</span></div>
+    <div class="row"><span class="k">Targets destroyed</span><span class="v" id="destroyed">-</span></div>
+    <div class="note">Targets are straight off the study's EyeAndHeadTracker. Trial time is this page's clock:
+      it freezes while paused and excludes paused time afterward. The tracker's own internal clock does NOT
+      exclude pauses; which one the trial rules should follow is an open decision (see TRIAL_SERVER.md).</div>
+  </div>
+
+  <div class="card">
+    <h2>Controls</h2>
+
+    <!-- One sequence, picked once. The study's SequenceManager ignores a second selection, so these lock
+         after the first pick; restart the app to choose another. Picking one starts the study's TUTORIAL
+         (4 practice gems) immediately, and the tutorial records: that is the study's design, not a trial. -->
+    <div class="seqbtns" id="seqbtns">
+      <button class="btn" onclick="selectSequence(0)">Sequence 1</button>
+      <button class="btn" onclick="selectSequence(1)">Sequence 2</button>
+      <button class="btn" onclick="selectSequence(2)">Sequence 3</button>
+      <button class="btn" onclick="selectSequence(3)">Sequence 4</button>
+    </div>
+
+    <!-- ARM, never start. Arming re-enables the Start button on the DEVICE; the participant is the one who
+         presses it. Until a trial is armed, this page holds that device button disabled. -->
+    <button class="btn go startbtn" id="armbtn" onclick="armTrial()" disabled>Arm trial</button>
+
+    <!-- In-trial controls. Pause/resume drive the tracker's own PauseRecording/ResumeRecording; End routes
+         through the study's own end-of-trial path and writes a MANUAL_END marker into the gaze JSON first. -->
+    <div class="btns" style="margin-top:8px">
+      <button class="btn warn" id="pausebtn" onclick="pauseTrial()" disabled>Pause</button>
+      <button class="btn" id="resumebtn" onclick="resumeTrial()" disabled>Resume</button>
+      <button class="btn stop" id="endbtn" onclick="endTrial()" disabled>End trial</button>
+    </div>
+
+    <div class="idrow">
+      <input id="in_mark" placeholder="note an event (lands in the gaze JSON)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')markEvent()">
+      <button class="btn" onclick="markEvent()">Mark</button>
+    </div>
+
+    <!-- Flag a spoiled run. The flag is a TRIAL_INVALID marker in the study's own gaze JSON, so the file
+         itself records that it should not be analyzed; the list below is just the session's tally. -->
+    <div class="idrow">
+      <input id="in_bad" placeholder="why the run is bad (e.g. tracking lost)" autocomplete="off"
+             onkeydown="if(event.key==='Enter')flagBad()">
+      <button class="btn stop" id="badbtn" onclick="flagBad()" disabled>Flag BAD</button>
+    </div>
+    <ul class="badlist hidden" id="badlist"></ul>
+
+    <div class="msg hidden" id="msgbox"></div>
+
+    <div class="note">A command returns 202 the instant the headset hears it, which is not the same as it
+      running. Watch the Phase above change: that, not the button, is the confirmation. If a command is
+      refused, the reason appears in the box right here.</div>
+  </div>
+
+  <div class="card">
+    <h2>Readiness</h2>
+    <div class="row"><span class="k">Eye permission</span><span class="v" id="r_eyeperm">-</span></div>
+    <div class="row"><span class="k">Gaze manager</span><span class="v" id="r_gaze">-</span></div>
+    <div class="row"><span class="k">Tracker</span><span class="v" id="r_tracker">-</span></div>
+    <div class="row"><span class="k">Battery</span><span class="v" id="r_batt">-</span></div>
+    <div class="note">All three green means a trial can record. Eye permission missing produces a
+      healthy-looking but worthless file; a missing tracker means nothing is being written at all. A dead
+      battery mid-trial leaves the file cut off.</div>
+  </div>
+
+</div>
+
+<!-- DEV MODE. Read-only, except the performance ON/OFF toggle, which is a control (start/stop sampling), not
+     a value edit. The log stream is the point: on run day there is no PC tethered to the headset, so
+     `adb logcat -s Unity | Select-String "\[SERVER\]"` is not available. The tag/level buttons are the same
+     filter, from a phone, built from the tags the app is actually logging. -->
+<div id="devPanel" class="hidden">
+  <div class="devhead">Dev mode (read-only)</div>
+
+  <!-- The what's-not-working summary, computed from the same status blob the panes show in detail, so it
+       never disagrees with them. The calm-page punch list above is this same data, minus the green chips. -->
+  <div id="healthbar"><span class="chip">waiting...</span></div>
+
+  <!-- PERFORMANCE. Off by default, and the button is the ONE thing in this panel that writes anything to the
+       headset. It is a CONTROL, not a value edit. It ships off because telemetry costs frame time, and a
+       recorded trial should not be paying to measure itself.
+
+       Frame rate on a headset is a half-truth on its own: the compositor holds a steady presented rate by
+       reprojecting stale frames, so the app can report 60 while the participant sees judder. The dropped-frame
+       count is the honest number, when the runtime publishes it at all. -->
+  <div class="card" id="perfcard" style="margin-bottom:16px">
+    <h2>Performance <span class="v" id="d_perfstate" style="float:right"></span></h2>
+    <div class="filters">
+      <button class="f" id="f_perf" onclick="togglePerf()">Turn sampling ON</button>
+    </div>
+    <canvas id="perfspark" height="46" style="width:100%;height:46px;display:block;margin:8px 0;
+      background:#12161a;border:1px solid var(--line);border-radius:6px"></canvas>
+    <div class="row"><span class="k">Frame rate (always live)</span><span class="v" id="d_fps">-</span></div>
+    <div class="row"><span class="k">Mean / 1% low</span><span class="v" id="d_pfps">-</span></div>
+    <div class="row"><span class="k">Frame ms p50 / p95 / p99</span><span class="v" id="d_ppct">-</span></div>
+    <div class="row"><span class="k">Worst frame</span><span class="v" id="d_pworst">-</span></div>
+    <div class="row"><span class="k">Over budget / hitches</span><span class="v" id="d_pover">-</span></div>
+    <div class="row"><span class="k">Memory (alloc / RSS / peak)</span><span class="v" id="d_pmem">-</span></div>
+    <div class="row"><span class="k">GC per frame</span><span class="v" id="d_pgc">-</span></div>
+    <div class="row"><span class="k">Draw calls / SetPass</span><span class="v" id="d_pdraw">-</span></div>
+    <div class="row"><span class="k">GPU app / compositor</span><span class="v" id="d_pgpu">-</span></div>
+    <div class="row"><span class="k">Dropped frames</span><span class="v" id="d_pdrop">-</span></div>
+    <div class="row"><span class="k">Thermal (now / peak)</span><span class="v" id="d_ptherm">-</span></div>
+    <div class="row"><span class="k">Battery drain</span><span class="v" id="d_pbatt">-</span></div>
+    <div class="row"><span class="k">Free storage</span><span class="v" id="d_pfree">-</span></div>
+    <div class="row"><span class="k">Subsystems</span><span class="v" id="d_psub">-</span></div>
+    <div class="note" id="d_pnote"></div>
+  </div>
+
+  <div class="filters" id="logfilters"></div>
+  <div class="filters">
+    <input class="search" id="logsearch" placeholder="filter text (e.g. BRIDGE, refused, bound)" autocomplete="off">
+    <button class="f on" id="f_follow" onclick="toggleFollow()">Follow</button>
+    <button class="f" onclick="clearLog()">Clear view</button>
+    <button class="f" onclick="downloadLog()" title="Save the headset's whole log ring to a .txt (respects the tag and level filters)">Download log</button>
+  </div>
+  <div id="logbox"><div class="ln"><span class="t">waiting for log lines...</span></div></div>
+  <div class="note" id="lognote"></div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Gaze session files on the headset</h2>
+    <ul id="files"><li class="k">none yet</li></ul>
+    <div class="btns"><a class="btn" id="zipall" href="/api/files/zip">Download all (zip)</a></div>
+    <div class="note">Downloading from here is a convenience. The authoritative pull at the end of a session
+      is still <code>adb pull</code> of the app's persistent data directory.</div>
+  </div>
+</div>
+
+<script>
+// The server ACCEPTS a command (202) and runs it on Unity's main thread a frame later. So a 202 means
+// "heard you", never "done". The bridge reports the real outcome (accepted or refused) into the status blob,
+// and the OUTCOME appears in the message box below the buttons. This line only reports what it truly knows:
+// that the headset received the bytes.
+function post(path, body) {
+  var note = document.getElementById('msgbox');
+  return fetch(path, { method: 'POST', body: body === undefined ? '' : body })
+    .then(function (r) {
+      // The command runs on Unity's next frame. Poll straight away (and again shortly after) rather than
+      // waiting up to 500 ms for the next scheduled tick.
+      setTimeout(poll, 60);
+      setTimeout(poll, 400);
+    })
+    .catch(function (e) {
+      note.className = 'msg error';
+      note.textContent = 'Could not reach the headset: ' + e;
+    });
+}
+
+// The study's SequenceManager takes a 0-based sequence index; the bridge parses the raw body as an int, so
+// send the number itself, not JSON.
+function selectSequence(i) { post('/api/trial/sequence', String(i)); }
+
+// Arming re-enables the device Start button so the PARTICIPANT starts the trial. This page never starts one
+// (/api/trial/start still exists on the server as a bring-up backdoor, deliberately unwired here).
+function armTrial() { post('/api/trial/arm'); }
+
+function pauseTrial() { post('/api/trial/pause'); }
+function resumeTrial() { post('/api/trial/resume'); }
+
+// Ending early is destructive to the run, so it confirms. It routes through the study's own end path.
+function endTrial() {
+  if (!confirm('End the current set early? A MANUAL_END marker is written to the gaze JSON.')) return;
+  post('/api/trial/end');
+}
+
+// The bridge uses the raw body as the marker text, so send the plain string.
+function markEvent() {
+  var el = document.getElementById('in_mark');
+  var text = el.value.trim();
+  if (!text) { return; }
+  post('/api/trial/mark', text).then(function () { el.value = ''; });
+}
+
+// Flag the current (or just-finished) trial invalid; the bridge picks which trial the flag names.
+function flagBad() {
+  var el = document.getElementById('in_bad');
+  post('/api/trial/bad', el.value.trim()).then(function () { el.value = ''; });
+}
+
+// The only write the DEV panel makes: start/stop the performance monitor. 202 means "heard you"; the next
+// status poll is what confirms it (the perf card's state chip flips).
+function togglePerf() {
+  var on = document.getElementById('f_perf').classList.contains('on');
+  fetch('/api/dev/perf?on=' + (on ? '0' : '1'), { method: 'POST' }).catch(function () {});
+}
+
+// Phones lock their screen after ~30 s. For a long session that means constantly waking the phone just to
+// see the panel. Wake Lock needs a user gesture, so it is a button. It is dropped whenever the page is
+// hidden, hence the re-request on visibilitychange below.
+var wakeLock = null;
+
+function setWakeLabel() {
+  document.getElementById('wake').textContent = 'Keep this screen awake: ' + (wakeLock ? 'ON' : 'OFF');
+}
+
+function toggleWake() {
+  if (!('wakeLock' in navigator)) {
+    document.getElementById('wake').textContent = 'Screen wake lock not supported by this browser';
+    return;
+  }
+  if (wakeLock) { wakeLock.release(); wakeLock = null; setWakeLabel(); return; }
+
+  navigator.wakeLock.request('screen').then(function (lock) {
+    wakeLock = lock;
+    lock.addEventListener('release', function () { wakeLock = null; setWakeLabel(); });
+    setWakeLabel();
+  }).catch(function (e) {
+    document.getElementById('wake').textContent = 'Could not keep the screen awake: ' + e.message;
+  });
+}
+
+(function () {
+  var lastOk = 0;
+
+  function txt(id, s) { document.getElementById(id).textContent = s; }
+
+  function flag(id, good, goodText, badText) {
+    var el = document.getElementById(id);
+    el.innerHTML = '<span class="dot ' + (good ? 'ok' : '') + '"></span>' + (good ? goodText : badText);
+  }
+
+  function n(v, digits, unit) {
+    if (v === null || v === undefined) return '-';
+    return v.toFixed(digits === undefined ? 1 : digits) + (unit || '');
+  }
+
+  // null / undefined -> 'n/a'. Deliberately NOT the same helper as n(): a zero that means "this device does
+  // not publish that counter" must not look like a zero that means "nothing happened".
+  function na(v, dec, unit) { return (v === null || v === undefined) ? 'n/a' : n(v, dec, unit); }
+
+  // One place turns a phase into its display class, so TUTORIAL reads as its own loud state and is never
+  // mistaken for a running trial (the tutorial spawns gems and records the moment a sequence is picked).
+  var PHASE_CLASS = { Recording: 'rec', Ready: 'ready', Armed: 'armed', Tutorial: 'tut', Paused: 'paused' };
+  var PHASE_TEXT = { Tutorial: 'TUTORIAL (not a trial)', Armed: 'ARMED - awaiting participant' };
+
+  function condLabel(t) {
+    if (!t.pool) return '-';
+    return (t.timeOfDay || '?') + ' + ' + (t.wireframe ? 'Wireframe' : 'No wireframe');
+  }
+
+  function mmss(s) {
+    var m = Math.floor(s / 60), r = Math.floor(s % 60);
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function render(d) {
+    var t = d.trial || {};
+    var phase = t.phase || '-';
+
+    var el = document.getElementById('phase');
+    el.textContent = PHASE_TEXT[phase] || phase.toUpperCase();
+    el.className = 'state v ' + (PHASE_CLASS[phase] || 'idle');
+
+    txt('condition', condLabel(t));
+    txt('sequence', t.sequence ? ('Sequence ' + t.sequence) : '(none picked)');
+    txt('number', t.number ? (t.number + ' of ' + t.total) : '-');
+    txt('pool', t.pool ? String(t.pool) : '-');
+
+    var lv = d.live || {};
+    document.getElementById('recording').innerHTML =
+      '<span class="dot ' + (lv.recording ? 'ok' : '') + '"></span>' + (lv.recording ? 'recording' : 'idle');
+    txt('trialTime', n(lv.trialTime, 1, ' s') + (phase === 'Paused' ? ' (paused)' : ''));
+    txt('remaining', lv.targetsRemaining === undefined ? '-' : String(lv.targetsRemaining));
+    txt('destroyed', lv.destroyed === undefined ? '-' : String(lv.destroyed));
+
+    // Elapsed vs the soft limit, and the over-limit banner. Only judged while a numbered trial is up: the
+    // tutorial's clock also runs but the limit is a trial rule. Display only; nothing auto-ends.
+    var limit = t.limit || 0;
+    var inTrial = phase === 'Recording' || phase === 'Paused';
+    txt('limit', limit ? (inTrial ? (mmss(lv.trialTime || 0) + ' / ' + mmss(limit)) : mmss(limit)) : '-');
+    var over = inTrial && limit > 0 && (lv.trialTime || 0) > limit;
+    document.getElementById('limitBox').classList.toggle('hidden', !over);
+    if (over) { txt('limitElapsed', mmss(lv.trialTime)); txt('limitTotal', mmss(limit)); }
+
+    // Sequence buttons lock once a sequence is picked (phase leaves Menu). Highlight the chosen one.
+    var seqEnabled = phase === 'Menu';
+    var seqEls = document.getElementById('seqbtns').children;
+    for (var i = 0; i < seqEls.length; i++) {
+      seqEls[i].disabled = !seqEnabled;
+      seqEls[i].classList.toggle('sel', (t.sequence === i + 1));
+    }
+
+    // Arm only lights when a numbered trial is queued (Ready). While Armed it reads as the handoff to the
+    // participant rather than going quietly gray.
+    var armBtn = document.getElementById('armbtn');
+    armBtn.disabled = phase !== 'Ready';
+    armBtn.textContent =
+      phase === 'Ready' ? ('Arm Trial ' + t.number + (t.pool ? ' (' + condLabel(t) + ')' : ''))
+      : phase === 'Armed' ? ('Armed: the participant starts Trial ' + t.number + ' on the device')
+      : 'Arm trial';
+
+    document.getElementById('pausebtn').disabled = phase !== 'Recording';
+    document.getElementById('resumebtn').disabled = phase !== 'Paused';
+    document.getElementById('endbtn').disabled =
+      !(phase === 'Tutorial' || phase === 'Recording' || phase === 'Paused');
+    // The bridge decides WHICH trial a bad flag names; the button just needs a trial to have existed.
+    document.getElementById('badbtn').disabled =
+      !(inTrial || phase === 'Done' || ((phase === 'Ready' || phase === 'Armed') && t.number > 1));
+
+    // The session's bad-trial tally, rebuilt from the snapshot so it survives a page reload.
+    var bad = d.badTrials || [];
+    var badUl = document.getElementById('badlist');
+    badUl.classList.toggle('hidden', !bad.length);
+    badUl.innerHTML = bad.map(function (b) { return '<li>BAD: ' + esc(b) + '</li>'; }).join('');
+
+    // The outcome of the last command, refusals included. Ages out after 20 s: a reason still sitting under a
+    // button you pressed ten minutes ago reads as a fresh refusal of the one you just pressed.
+    var m = d.msg || {};
+    var msg = document.getElementById('msgbox');
+    var showMsg = m.text && m.age < 20;
+    msg.className = 'msg ' + (showMsg ? (m.level || 'ok') : 'hidden');
+    if (showMsg) msg.textContent = m.text;
+
+    var r = d.ready || {};
+    flag('r_eyeperm', r.eyePermission, 'granted', 'DENIED');
+    flag('r_gaze', r.gazeManager, 'present', 'MISSING');
+    flag('r_tracker', r.tracker, 'present', 'MISSING');
+
+    // Battery. "not reported" rather than a fake 0% where the platform does not answer.
+    var vt = d.vitals || {};
+    if (vt.batteryPct === null || vt.batteryPct === undefined) {
+      txt('r_batt', 'not reported');
+    } else {
+      document.getElementById('r_batt').innerHTML =
+        '<span class="dot ' + (vt.batteryPct < 15 && !vt.charging ? '' : vt.batteryPct < 30 ? 'warn' : 'ok') + '"></span>' +
+        vt.batteryPct.toFixed(0) + '%' + (vt.charging ? ' (charging)' : '');
+    }
+
+    // Denied eye permission gets the screaming banner, not just the dot: without it dwell-destroy silently
+    // does nothing and the app otherwise looks healthy. Only judged once the gaze manager is up at all.
+    document.getElementById('eyeBox').classList.toggle('hidden', !(r.gazeManager && !r.eyePermission));
+
+    var s = d.server || {};
+    txt('conn', 'headset ' + (s.ip || '(usb tether)') + ':' + s.port + '  |  updated ' + new Date().toLocaleTimeString());
+
+    // The health chips are computed on EVERY poll, not just in DEV, because the run-day punch list is built
+    // from them. One computation, two views: the calm page shows the problems as a to-do list, DEV shows the
+    // same chips including the green ones. They cannot disagree, because there is only one source.
+    var chips = computeHealth(d);
+    renderPunchList(chips, d);
+
+    if (devOn) {
+      renderHealth(chips);
+      renderPerf((d.dev && d.dev.perf) || {});
+      txt('lognote', (d.logLines || 0) + ' lines logged on the headset since launch. Showing ' + logLines.length + '.');
+    }
+  }
+
+  // ---- Health chips + punch list -------------------------------------------------------------------
+  // One chip per subsystem, computed from the status blob. Green = fine, amber = a caveat you should know,
+  // red = a real problem to fix before recording. Ordered worst-first. Each non-green chip carries a FIX:
+  // the plain-language thing to actually go and do, because at 8am with a participant in the chair "restart
+  // band-OSC.py" is useful and "EEG: STALE 12s" is not.
+  function computeHealth(d) {
+    var r = d.ready || {};
+    var chips = [];   // {cls, label, fix}, cls in ok|warn|bad
+
+    // Eye tracking permission: the whole game. Denied looks healthy (app runs, UI responds) but the gaze
+    // data is empty. Only red once the gaze manager is up; a missing manager is its own separate problem.
+    if (!r.gazeManager) chips.push({ cls: 'bad', label: 'Gaze manager: MISSING',
+      fix: 'GazeInputManager is not in the scene, so there is no eye ray at all. Check the study prefab is loaded.' });
+    else if (!r.eyePermission) chips.push({ cls: 'bad', label: 'Eyes: permission DENIED',
+      fix: 'Gems cannot be destroyed by gaze and the recorded gaze data is empty. Accept the eye-tracking popup on the headset (it appears after the photos/videos one) before running anything.' });
+    else chips.push({ cls: 'ok', label: 'Eyes: ok' });
+
+    // Tracker present: with it missing, nothing is being written at all.
+    if (!r.tracker) chips.push({ cls: 'bad', label: 'Tracker: MISSING',
+      fix: 'EyeAndHeadTracker is not in the scene, so nothing is being recorded. Check the study prefab is loaded.' });
+    else chips.push({ cls: 'ok', label: 'Tracker: ok' });
+
+    // Battery, if the platform reports it.
+    var vt = d.vitals || {};
+    var bp = vt.batteryPct;
+    if (bp !== null && bp !== undefined) {
+      if (bp < 15 && !vt.charging) chips.push({ cls: 'bad', label: 'Battery: ' + n(bp, 0) + '%',
+        fix: 'If the headset dies mid-trial that run is cut off. Finish the current trial and charge.' });
+      else chips.push({ cls: 'ok', label: 'Battery: ' + n(bp, 0) + '%' + (vt.charging ? ' (chg)' : '') });
+    }
+
+    // Performance. Only speaks when the monitor is actually sampling: with it off there is nothing honest to
+    // say, and a chip that says "perf: unknown" on every run is one everyone learns to skip. These are the
+    // chips that matter for the crash/overheating problem this whole card exists to catch.
+    var p = (d.dev && d.dev.perf) || {};
+    if (p.on) {
+      if (p.freeMb !== null && p.freeMb !== undefined && p.freeCritMb && p.freeMb < p.freeCritMb) {
+        chips.push({ cls: 'bad', label: 'Storage: ' + n(p.freeMb, 0) + ' MB free',
+          fix: 'The headset is nearly out of space. A gaze session file will stop mid-write, silently. Download and clear old files before recording anything else.' });
+      }
+      if (p.thermal !== null && p.thermal !== undefined && p.thermalWarn && p.thermal >= p.thermalWarn) {
+        chips.push({ cls: 'bad', label: 'Thermal: throttling (' + p.thermal + ')',
+          fix: 'The headset is hot enough to be throttling, so slow frames right now are the HARDWARE, not a code regression. Let it cool before drawing any conclusion, and before a long session.' });
+      }
+      if (p.overPct !== null && p.overPct !== undefined && p.overPct > (p.overBudgetWarnPct || 20)) {
+        chips.push({ cls: 'warn', label: 'Frames: ' + n(p.overPct, 0) + '% over budget',
+          fix: 'A lot of frames are missing the budget (1% low is ' + na(p.lowFps, 1) + ' fps). Check the thermal state first, then how much is on screen at once.' });
+      } else {
+        chips.push({ cls: 'ok', label: 'Perf: ' + na(p.meanFps, 0) + ' fps' });
+      }
+    }
+
+    // CRIT log lines. A subsystem has already declared this session's data compromised, and without this the
+    // only way to find out is to open DEV and read the log. Not a per-subsystem chip: the catch-all for
+    // "something said CRIT".
+    if (d.crit && d.crit.count > 0) {
+      chips.push({ cls: 'bad', label: 'Log: ' + d.crit.count + ' CRITICAL',
+        fix: 'Latest: ' + (d.crit.latest || '(no message)') + '  -  open DEV, filter the log to CRIT for the full history.' });
+    }
+
+    var order = { bad: 0, warn: 1, ok: 2 };
+    chips.sort(function (a, b) { return order[a.cls] - order[b.cls]; });
+    return chips;
+  }
+
+  function renderHealth(chips) {
+    document.getElementById('healthbar').innerHTML = chips.map(function (c) {
+      return '<span class="chip ' + c.cls + '">' + esc(c.label) + '</span>';
+    }).join('');
+  }
+
+  // The run-day punch list: everything that needs fixing, in one card, worst first. An EMPTY list is the
+  // whole point, so the empty state is a loud green "nothing needs fixing" rather than a blank box that reads
+  // the same as "not loaded yet".
+  function renderPunchList(chips, d) {
+    var bad = chips.filter(function (c) { return c.cls !== 'ok'; });
+    var box = document.getElementById('punchlist');
+    var card = document.getElementById('punchcard');
+
+    var reds = bad.filter(function (c) { return c.cls === 'bad'; }).length;
+    card.classList.toggle('clear', bad.length === 0);
+    card.classList.toggle('hasred', reds > 0);
+
+    if (bad.length === 0) {
+      box.innerHTML = '<div class="pl clear">Nothing needs fixing. Every check is green.</div>';
+      return;
+    }
+
+    box.innerHTML = bad.map(function (c) {
+      return '<div class="pl ' + c.cls + '">' +
+             '<div class="pltitle">' + esc(c.label) + '</div>' +
+             (c.fix ? '<div class="plfix">' + esc(c.fix) + '</div>' : '') +
+             '</div>';
+    }).join('');
+  }
+
+  // ---- Performance ---------------------------------------------------------------------------------
+  var perfHistory = [];       // client-side, purely for the sparkline
+  var PERF_HISTORY = 120;     // about a minute at the 2 Hz poll
+
+  function renderPerf(p) {
+    var on = !!p.on;
+    var btn = document.getElementById('f_perf');
+    btn.textContent = on ? 'Turn sampling OFF' : 'Turn sampling ON';
+    btn.classList.toggle('on', on);
+
+    // Frame rate is ALWAYS live (PerfMonitor lerps it whether or not sampling is on).
+    txt('d_fps', na(p.fps, 1) + ' fps  (' + na(p.frameMs, 1, ' ms') + ')');
+
+    document.getElementById('d_perfstate').innerHTML = on
+      ? '<span class="dot ok"></span>sampling ' + na(p.forS, 0, 's')
+      : '<span class="dot"></span>off';
+
+    if (!on) {
+      perfHistory = [];
+      drawSpark();
+      ['d_pfps','d_ppct','d_pworst','d_pover','d_pmem','d_pgc','d_pdraw','d_pgpu','d_pdrop','d_ptherm','d_pbatt','d_pfree','d_psub']
+        .forEach(function (id) { txt(id, '-'); });
+      txt('d_pnote', 'Sampling is off, the shipped default: telemetry costs frame time and a recorded trial ' +
+                     'should not pay for it. Turn it on when you are asking a performance question, and off ' +
+                     'again before you record. The frame rate above is always live.');
+      return;
+    }
+
+    perfHistory.push(p.p95 === undefined ? null : p.p95);
+    if (perfHistory.length > PERF_HISTORY) perfHistory.shift();
+    drawSpark(p.budgetMs);
+
+    txt('d_pfps', na(p.meanFps, 1) + ' / ' + na(p.lowFps, 1) + ' fps');
+    txt('d_ppct', na(p.p50, 1) + ' / ' + na(p.p95, 1) + ' / ' + na(p.p99, 1) + ' ms');
+    txt('d_pworst', na(p.worstMs, 1, ' ms') + '  (' + na(p.samples, 0) + ' frames in window)');
+    txt('d_pover', na(p.overPct, 1, '%') + ' over ' + na(p.budgetMs, 1) + ' ms  /  ' + na(p.hitches, 0) + ' hitch(es)');
+    txt('d_pmem', na(p.allocMb, 0, ' MB') + ' / ' + na(p.rssMb, 0, ' MB') + ' / ' + na(p.rssPeakMb, 0, ' MB'));
+    txt('d_pgc', p.gcPerFrame === null ? 'n/a (needs a development build)' : n(p.gcPerFrame / 1024, 1, ' KB'));
+    txt('d_pdraw', p.drawCalls === null ? 'n/a (needs a development build)' : na(p.drawCalls, 0) + ' / ' + na(p.setPass, 0));
+    txt('d_pgpu', na(p.gpuAppMs, 2, ' ms') + ' / ' + na(p.gpuCompMs, 2, ' ms'));
+    txt('d_pdrop', na(p.dropped, 0) + (p.presented === null ? '' : ' of ' + n(p.presented, 0) + ' presented'));
+
+    var TH = ['NONE','LIGHT','MODERATE','SEVERE','CRITICAL','EMERGENCY','SHUTDOWN'];
+    txt('d_ptherm', p.thermal === null ? 'n/a (needs Android API 29+)'
+      : (TH[p.thermal] || p.thermal) + ' / ' + (TH[p.thermalPeak] || p.thermalPeak));
+    txt('d_pbatt', na(p.batteryPct, 0, '%') +
+      (p.drainPctPerHour === null ? '  (rate not established yet)'
+                                  : '  -' + n(p.drainPctPerHour, 1) + '%/h, about ' + na(p.hoursLeft, 1) + ' h left'));
+    txt('d_pfree', na(p.freeMb, 0, ' MB'));
+
+    var subs = p.subsystems || {};
+    var sk = Object.keys(subs);
+    txt('d_psub', sk.length ? sk.map(function (k) { return k + ' ' + n(subs[k], 2) + ' ms'; }).join(', ')
+                            : 'none reporting (call PerfMonitor.ReportSubsystemMs from your frame hogs)');
+
+    var note = [];
+    if (!p.devBuild) note.push('This is not a development build, so draw calls, SetPass and GC-per-frame read n/a. Everything else is real.');
+    if (!p.xrStats) note.push('The XR runtime is not publishing compositor stats on this device, so GPU times and dropped frames read n/a. App frame rate alone can look healthy while the compositor is reprojecting.');
+    txt('d_pnote', note.join(' '));
+  }
+
+  // A bare frame-time sparkline: p95 over the last minute, with the budget drawn as a line across it. The
+  // shape is the point. A flat trace at the budget is a healthy session; a rising one is thermal throttling
+  // creeping in, visible here long before it is obvious in any single number.
+  function drawSpark(budgetMs) {
+    var c = document.getElementById('perfspark');
+    if (!c) return;
+    var w = c.clientWidth || 300, h = c.height;
+    if (c.width !== w) c.width = w;
+    var g = c.getContext('2d');
+    g.clearRect(0, 0, w, h);
+    if (perfHistory.length < 2) return;
+
+    var max = 0;
+    perfHistory.forEach(function (v) { if (v !== null && v > max) max = v; });
+    if (budgetMs && budgetMs > max) max = budgetMs;
+    max = max * 1.15 || 1;
+
+    if (budgetMs) {
+      var by = h - (budgetMs / max) * h;
+      g.strokeStyle = '#4b5560'; g.setLineDash([4, 4]); g.beginPath();
+      g.moveTo(0, by); g.lineTo(w, by); g.stroke(); g.setLineDash([]);
+    }
+
+    g.strokeStyle = '#6fc3ff'; g.lineWidth = 1.5; g.beginPath();
+    var step = w / (PERF_HISTORY - 1);
+    var started = false;
+    perfHistory.forEach(function (v, i) {
+      if (v === null) return;
+      var x = i * step, y = h - (v / max) * h;
+      if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
+    });
+    g.stroke();
+  }
+
+  // ---- DEV MODE ------------------------------------------------------------------------------------
+  // Read-only. On run day, with no PC tethered to the headset, the log stream is how you answer "did the
+  // bridge bind to the study, and why was that command refused" from the phone already in your hand.
+
+  var devOn = localStorage.getItem('dev') === '1';
+
+  window.toggleDev = function () {
+    devOn = !devOn;
+    localStorage.setItem('dev', devOn ? '1' : '0');
+    applyDev();
+    if (devOn) { pollLogs(); pollFiles(true); }
+  };
+
+  function applyDev() {
+    document.getElementById('devPanel').classList.toggle('hidden', !devOn);
+    var b = document.getElementById('devbtn');
+    b.textContent = 'DEV: ' + (devOn ? 'ON' : 'OFF');
+    b.classList.toggle('on', devOn);
+  }
+
+  // ---- Log stream ----------------------------------------------------------------------------------
+  // Cursor-based: ask for everything since the last sequence number seen, so lines are never fetched twice
+  // and never skipped. If the headset ring wrapped while we were away it reports how many lines dropped, and
+  // we say so rather than presenting a log with a silent hole in it. Tags are derived from the lines
+  // themselves, so the filter buttons are always whatever the app is actually logging. Severity is filtered
+  // SERVER-side (like the tag), so the cursor and the Download button agree with what is on screen.
+
+  var logCursor = 0;
+  var logTag = '';          // '' = all subsystems
+  var logLevel = '';        // '' = every severity; otherwise a FLOOR ("WARN" shows WARN, ERROR and CRIT)
+  var logFollow = true;
+  var logLines = [];        // held client-side so the text filter can re-apply without refetching
+  var MAX_HELD = 1500;
+  var knownTags = [];
+
+  window.toggleFollow = function () {
+    logFollow = !logFollow;
+    document.getElementById('f_follow').classList.toggle('on', logFollow);
+  };
+
+  window.clearLog = function () { logLines = []; drawLog(); };
+
+  window.setLogTag = function (tg) {
+    logTag = tg;
+    // The server filters by tag, so switching tags means re-reading the ring from the start rather than
+    // continuing the cursor: otherwise only NEW lines of that tag would show and the history would look
+    // empty, which reads as "this subsystem is silent" when it is not.
+    logCursor = 0;
+    logLines = [];
+    drawTagFilters();
+    pollLogs();
+  };
+
+  // Same reasoning as the tag: severity is filtered server-side, so switching it re-reads from the start.
+  // CRIT gets its own button rather than making you remember it is included in "ERROR and worse".
+  window.setLogLevel = function (l) {
+    logLevel = l;
+    logCursor = 0;
+    logLines = [];
+    drawTagFilters();
+    pollLogs();
+  };
+
+  function drawTagFilters() {
+    var levels = [['', 'ALL LEVELS'], ['WARN', 'WARN+'], ['ERROR', 'ERROR+'], ['CRIT', 'CRIT']];
+    var html = levels.map(function (p) {
+      return '<button class="f lv' + (logLevel === p[0] ? ' on' : '') +
+             '" onclick="setLogLevel(\'' + p[0] + '\')">' + p[1] + '</button>';
+    }).join('') + '<span class="fsep"></span>';
+
+    html += '<button class="f' + (logTag === '' ? ' on' : '') + '" onclick="setLogTag(\'\')">ALL</button>';
+    knownTags.forEach(function (tg) {
+      html += '<button class="f' + (logTag === tg ? ' on' : '') + '" onclick="setLogTag(\'' + tg + '\')">' + tg + '</button>';
+    });
+    document.getElementById('logfilters').innerHTML = html;
+  }
+
+  function pollLogs() {
+    if (!devOn) return;
+
+    fetch('/api/logs?max=300&since=' + logCursor +
+          (logTag ? '&tag=' + encodeURIComponent(logTag) : '') +
+          (logLevel ? '&level=' + encodeURIComponent(logLevel) : ''),
+          { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        logCursor = d.cursor;
+
+        if (d.dropped > 0) {
+          logLines.push({ seq: -1, level: 'WARN', tag: '', t: 0,
+                          msg: '... ' + d.dropped + ' line(s) dropped: the headset ring buffer wrapped before this page read them.' });
+        }
+        if (d.lines.length) {
+          logLines = logLines.concat(d.lines);
+          // Derive tag filter buttons from what has actually been logged.
+          var changed = false;
+          d.lines.forEach(function (l) {
+            if (l.tag && knownTags.indexOf(l.tag) < 0) { knownTags.push(l.tag); changed = true; }
+          });
+          if (changed) { knownTags.sort(); drawTagFilters(); }
+        }
+        if (logLines.length > MAX_HELD) logLines = logLines.slice(logLines.length - MAX_HELD);
+
+        if (d.lines.length || d.dropped) drawLog();
+      })
+      .catch(function () {});
+  }
+
+  function drawLog() {
+    var box = document.getElementById('logbox');
+    var q = document.getElementById('logsearch').value.trim().toLowerCase();
+
+    var html = logLines.filter(function (l) {
+      return !q || l.msg.toLowerCase().indexOf(q) >= 0 || (l.tag || '').toLowerCase().indexOf(q) >= 0;
+    }).map(function (l) {
+      var lvl = (l.level || 'INFO').toLowerCase();
+      return '<div class="ln ' + lvl + '"><span class="t">' + l.t.toFixed(1) + 's</span> ' +
+             (lvl === 'info' ? '' : '<span class="lv ' + lvl + '">' + esc(l.level) + '</span> ') +
+             (l.tag ? '<span class="tg">[' + esc(l.tag) + ']</span> ' : '') + esc(l.msg) + '</div>';
+    }).join('');
+
+    box.innerHTML = html || '<div class="ln"><span class="t">no lines match.</span></div>';
+    if (logFollow) box.scrollTop = box.scrollHeight;
+  }
+
+  // Pull the headset's whole log ring to a .txt without adb, respecting BOTH current filters (tag and level),
+  // so what you save is what you were looking at. Navigate to the endpoint; the browser saves it.
+  window.downloadLog = function () {
+    var q = [];
+    if (logTag) q.push('tag=' + encodeURIComponent(logTag));
+    if (logLevel) q.push('level=' + encodeURIComponent(logLevel));
+    window.location = '/api/logs/download' + (q.length ? '?' + q.join('&') : '');
+  };
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ---- Session files -------------------------------------------------------------------------------
+  // Listing recurses the app's persistent data directory ON THE HEADSET. Doing that twice a second is real disk
+  // work for a list that changes once per trial. Every 5 s, redrawn only when it changed, and only while DEV
+  // is open (the list lives in the DEV panel).
+
+  var lastFilesJson = '';
+  var filesTimer = 0;
+
+  function pollFiles(force) {
+    if (!devOn) return;
+    if (!force && Date.now() - filesTimer < 5000) return;
+    filesTimer = Date.now();
+
+    fetch('/api/files', { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        if (text === lastFilesJson) return;
+        lastFilesJson = text;
+        var d = JSON.parse(text);
+
+        var ul = document.getElementById('files');
+        if (!d.files.length) { ul.innerHTML = '<li class="k">none yet</li>'; return; }
+
+        ul.innerHTML = d.files.map(function (f) {
+          return '<li><a href="/api/file?name=' + encodeURIComponent(f.path) + '">' + esc(f.name) + '</a>' +
+                 ' <span class="k">(' + (f.bytes / 1024).toFixed(0) + ' KB)</span></li>';
+        }).join('');
+      })
+      .catch(function () {});
+  }
+
+  function poll() {
+    fetch('/api/status', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { lastOk = Date.now(); render(d); })
+      .catch(function () { /* handled by the staleness check */ });
+
+    // Only when DEV is open. With it closed the page costs exactly what it always did, so the run-day
+    // dashboard is not paying for a log stream nobody is reading.
+    if (devOn) { pollLogs(); pollFiles(false); }
+  }
+
+  // Staleness is checked on the CLIENT clock, not the server's. A dashboard that silently keeps showing the
+  // last good numbers after the headset drops is worse than one that shows nothing.
+  setInterval(function () {
+    var age = (Date.now() - lastOk) / 1000;
+    var stale = lastOk > 0 && age > 3;
+    document.getElementById('staleBox').classList.toggle('hidden', !stale);
+    if (stale) txt('staleAge', age.toFixed(0));
+    if (lastOk === 0) txt('conn', 'no response from the headset yet');
+  }, 1000);
+
+  // Phones freeze background JS timers when the screen locks or you switch apps. On return, lastOk is minutes
+  // old and the staleness check would scream that the headset died when nothing happened. A false alarm
+  // mid-session is the alarm you learn to ignore.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    lastOk = Date.now();                                  // do not judge the link on a timer that was frozen
+    document.getElementById('staleBox').classList.add('hidden');
+    filesTimer = 0;
+    poll();                                               // re-establish the truth immediately
+
+    // The browser silently drops the wake lock while hidden, so it has to be retaken or the screen starts
+    // sleeping again halfway through the session with the button still reading ON.
+    if (wakeLock === null && document.getElementById('wake').textContent.indexOf('ON') >= 0) toggleWake();
+  });
+
+  window.poll = poll;   // so a button press can refresh immediately instead of waiting for the next tick
+
+  // The text filter redraws from what is already held, so typing never refetches.
+  document.getElementById('logsearch').addEventListener('input', drawLog);
+
+  applyDev();           // DEV survives a reload, so a debugging session is not undone by a refresh
+  drawTagFilters();     // seed the level buttons before any log arrives
+  if (devOn) { pollLogs(); pollFiles(true); }
+
+  poll();
+  setInterval(poll, 500);   // 2 Hz. Nothing here needs to be faster; the data path is not this page.
+})();
+</script>
+
+</body>
+</html>
