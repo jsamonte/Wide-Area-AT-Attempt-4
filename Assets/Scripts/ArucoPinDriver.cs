@@ -10,18 +10,8 @@ public class ArucoPinDriver : MonoBehaviour
     [Tooltip("The ID of the ArUco marker that will drive this SpacePin.")]
     public ulong arucoID;
 
-    [Tooltip("If true, strips pitch/roll from the detected marker pose, keeping only heading (yaw). " +
-             "Helpful if you trust the single marker's yaw but not its pitch/roll (e.g. wall marker).")]
-    public bool useYawOnlyRotation = false;
-
     [Tooltip("If true, mathematically locks the perceived height of the marker so World Locking Tools will NEVER elevate or lower the floor.")]
     public bool lockElevation = true;
-
-    [Tooltip("If true, mathematically locks the perceived height of the marker so World Locking Tools will NEVER tilt the floor when multiple markers are detected.")]
-    public bool lockTilt = true;
-
-    [Tooltip("CHECK THIS if the marker is flat on the floor! If true, it forces the Z-axis of the marker to point perfectly up at the ceiling, eliminating tilt without putting the prefab on its side.")]
-    public bool isFloorMarker = true;
 
     [Header("=== Smoothing & Dwell ===")]
     [SerializeField] private float poseAverageSeconds = 0.25f;
@@ -78,7 +68,6 @@ public class ArucoPinDriver : MonoBehaviour
 
     // Refinement State
     private float _lastLockTime = -1f;
-    private Pose _lastLockedPose;
 
     private void Start()
     {
@@ -245,7 +234,6 @@ public class ArucoPinDriver : MonoBehaviour
         // Position-only feed; SpacePinOrientable computes the (yaw-only) rotation itself.
         _spacePin.SetFrozenPosition(frozenPos);
 
-        _lastLockedPose = spongyPose;
         _lastLockTime = now;
         _hasLockedThisSession = true;
 
@@ -292,7 +280,7 @@ public class ArucoPinDriver : MonoBehaviour
             string line = $"{DateTime.Now:HH:mm:ss.fff}\tAruco {arucoID}\t" +
                           $"authored_Y={authoredY:F4}\tdetected_Y={detectedY:F4}\t" +
                           $"placed_Y={placedY:F4}\televErr={elevErr:+0.0000;-0.0000}\t" +
-                          $"lockElev={lockElevation}\tlockTilt={lockTilt}";
+                          $"lockElev={lockElevation}";
 
             Debug.Log($"[PINDIAG] {line}");
 
@@ -391,40 +379,6 @@ public class ArucoPinDriver : MonoBehaviour
         if (n == 0) return new Pose(Vector3.zero, Quaternion.identity);
         sumQ.Normalize();
         return new Pose(sumPos / n, new Quaternion(sumQ.x, sumQ.y, sumQ.z, sumQ.w));
-    }
-
-    private static Quaternion YawOnly(Quaternion r)
-    {
-        Vector3 fwd = r * Vector3.forward;
-        fwd.y = 0f;
-        if (fwd.sqrMagnitude < 1e-6f)
-        {
-            Vector3 right = r * Vector3.right;
-            right.y = 0f;
-            if (right.sqrMagnitude < 1e-6f) return Quaternion.identity;
-            fwd = Vector3.Cross(Vector3.up, right.normalized);
-        }
-        return Quaternion.LookRotation(fwd.normalized, Vector3.up);
-    }
-
-    private static Quaternion FloorMarkerYawOnly(Quaternion r)
-    {
-        // For a floor marker, the printed "top" of the marker (its Y axis) points along the floor.
-        // Its normal (Z axis) points straight up into the ceiling.
-        Vector3 markerTop = r * Vector3.up;
-        markerTop.y = 0f; // Flatten to floor
-
-        if (markerTop.sqrMagnitude < 1e-6f)
-        {
-            // If it was pointing straight up/down, fallback to its X axis (right)
-            Vector3 markerRight = r * Vector3.right;
-            markerRight.y = 0f;
-            if (markerRight.sqrMagnitude < 1e-6f) return Quaternion.identity;
-            markerTop = Vector3.Cross(markerRight.normalized, Vector3.up);
-        }
-
-        // We want a rotation where Forward (Z) is World UP, and Up (Y) is the markerTop vector.
-        return Quaternion.LookRotation(Vector3.up, markerTop.normalized);
     }
 
     // --- Debug Text ---
