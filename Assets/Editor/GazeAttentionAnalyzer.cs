@@ -25,6 +25,7 @@ public class GazeAttentionAnalyzer : EditorWindow
 
     private string folderPath = "";
     private bool useSummaryJson = true;
+    private bool useGazeEvents = true;
     private bool useRawNdjson = true;
     private bool groupByName = true;
     private bool includeOtherCategory = true;
@@ -104,6 +105,7 @@ public class GazeAttentionAnalyzer : EditorWindow
         EditorGUILayout.Space(4);
         EditorGUILayout.LabelField("Sources", EditorStyles.boldLabel);
         useSummaryJson = EditorGUILayout.ToggleLeft("gaze_session_summary_*.json (tracker's own rollup)", useSummaryJson);
+        useGazeEvents = EditorGUILayout.ToggleLeft("gaze_events_*.ndjson (per-look event stream)", useGazeEvents);
         useRawNdjson = EditorGUILayout.ToggleLeft("raw_eye_head_tracking_*.ndjson (recompute from per-frame stream)", useRawNdjson);
 
         EditorGUILayout.Space(4);
@@ -223,7 +225,7 @@ public class GazeAttentionAnalyzer : EditorWindow
 
         EditorPrefs.SetString(FolderPrefKey, folderPath);
 
-        int summaryFiles = 0, rawFiles = 0, skipped = 0;
+        int summaryFiles = 0, eventFiles = 0, rawFiles = 0, skipped = 0;
 
         if (useSummaryJson)
         {
@@ -231,6 +233,16 @@ public class GazeAttentionAnalyzer : EditorWindow
             {
                 var result = ReadSummary(path);
                 if (result != null) { results.Add(result); summaryFiles++; }
+                else skipped++;
+            }
+        }
+
+        if (useGazeEvents)
+        {
+            foreach (string path in Directory.GetFiles(folderPath, "gaze_events_*.ndjson").OrderBy(p => p))
+            {
+                var result = ReadGazeEvents(path);
+                if (result != null) { results.Add(result); eventFiles++; }
                 else skipped++;
             }
         }
@@ -253,8 +265,8 @@ public class GazeAttentionAnalyzer : EditorWindow
             return;
         }
 
-        status = string.Format("{0} summary file(s), {1} raw file(s) analysed{2}",
-            summaryFiles, rawFiles, skipped > 0 ? ", " + skipped + " skipped (no gaze-object data)." : ".");
+        status = string.Format("{0} summary file(s), {1} event file(s), {2} raw file(s) analysed{3}",
+            summaryFiles, eventFiles, rawFiles, skipped > 0 ? ", " + skipped + " skipped (no gaze-object data)." : ".");
     }
 
     /// <summary>Reads the gazeAttention rollup the tracker already wrote into a session summary.</summary>
@@ -334,7 +346,118 @@ public class GazeAttentionAnalyzer : EditorWindow
         public string type;
         public string objectName;
         public string category;
+        public float startTime;
+        public float endTime;
         public float durationSeconds;
+    }
+
+    /// <summary>
+    /// Reads the append-only per-look stream. Each line is one completed look, so dwell per
+    /// object is just the sum of durations. The trial length is approximated by the latest
+    /// endTime seen, which means the "% trial" column here excludes any look shorter than the
+    /// tracker's minLookDurationToLogSeconds. Use the summary JSON if you need exact totals.
+    /// </summary>
+    private FileResult ReadGazeEvents(string path)
+    {
+        try
+        {
+            var seconds = new Dictionary<string, float>();
+            var categories = new Dictionary<string, string>();
+            var looks = new Dictionary<string, int>();
+            var longest = new Dictionary<string, float>();
+            var firstLook = new Dictionary<string, float>();
+
+            float latestEndTime = 0f;
+            int parsed = 0;
+
+            using (var reader = new StreamReader(path))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (line.Length < 2 || line[0] != '{') continue;
+
+                    var ev = JsonUtility.FromJson<RawLookEventLine>(line);
+                    if (ev == null || string.IsNullOrEmpty(ev.objectName)) continue;
+
+                    parsed++;
+                    string name = ev.objectName;
+                    string category = string.IsNullOrEmpty(ev.category) ? "Other" : ev.category;
+
+                    if (!includeOtherCategory && category == "Other") continue;
+
+                    float existing;
+                    seconds.TryGetValue(name, out existing);
+                    seconds[name] = existing + ev.durationSeconds;
+                    categories[name] = category;
+
+                    int count;
+                    looks.TryGetValue(name, out count);
+                    looks[name] = count + 1;
+
+                    float best;
+                    longest.TryGetValue(name, out best);
+                    if (ev.durationSeconds > best) longest[name] = ev.durationSeconds;
+
+                    float first;
+                    if (!firstLook.TryGetValue(name, out first) || ev.startTime < first)
+                        firstLook[name] = ev.startTime;
+
+                    if (ev.endTime > latestEndTime) latestEndTime = ev.endTime;
+                }
+            }
+
+            if (parsed == 0) return null;
+
+            float onObjectSeconds = seconds.Values.Sum();
+            float trackedSeconds = Mathf.Max(latestEndTime, onObjectSeconds);
+
+            var rows = seconds.Select(kv =>
+            {
+                string category;
+                int count;
+                float best;
+                float first;
+                return new ObjectRow
+                {
+                    name = kv.Key,
+                    category = categories.TryGetValue(kv.Key, out category) ? category : "Other",
+                    seconds = kv.Value,
+                    looks = looks.TryGetValue(kv.Key, out count) ? count : 0,
+                    longestLook = longest.TryGetValue(kv.Key, out best) ? best : 0f,
+                    firstLookTime = firstLook.TryGetValue(kv.Key, out first) ? first : -1f
+                };
+            }).ToList();
+
+            var result = new FileResult
+            {
+                fileName = Path.GetFileName(path),
+                source = "look events",
+                trackedSeconds = trackedSeconds,
+                onObjectSeconds = onObjectSeconds,
+                onNothingSeconds = Mathf.Max(0f, trackedSeconds - onObjectSeconds),
+                objects = Finalize(rows, trackedSeconds, onObjectSeconds, groupByName)
+            };
+
+            result.categories = Finalize(
+                rows.Select(r => new ObjectRow
+                {
+                    name = r.category,
+                    category = r.category,
+                    seconds = r.seconds,
+                    looks = r.looks,
+                    longestLook = r.longestLook,
+                    firstLookTime = r.firstLookTime
+                }).ToList(),
+                trackedSeconds, onObjectSeconds, true);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("GazeAttentionAnalyzer: could not read " + Path.GetFileName(path) + " - " + ex.Message);
+            return null;
+        }
     }
 
     /// <summary>

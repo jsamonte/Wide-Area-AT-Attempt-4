@@ -125,6 +125,11 @@ public class SequenceManager : MonoBehaviour
         }
 
         SetFrameRate(menuFrameRate); // idle menu: run cool
+
+        // Build the wireframe cache now, while we're already on the menu, so the one-off
+        // hierarchy walk doesn't land in the middle of a trial transition.
+        CacheBlueWireframeChildren();
+
         ShowMenu("Please scan all ArUco Markers and Select a Sequence to start.");
     }
 
@@ -361,9 +366,8 @@ public class SequenceManager : MonoBehaviour
         if (poolNum == 3) SetWireframeActive(pool3_9Baseline, useWireframe);
         if (poolNum == 4) SetWireframeActive(pool4_9Baseline, useWireframe);
 
-        // Blue wireframe (12Baseline): enable/disable the whole GameObject to match
-        // whether this trial should show the wireframe.
-        if (blueWireframe12Baseline != null) blueWireframe12Baseline.SetActive(useWireframe);
+        // Blue wireframe (12Baseline): show/hide for this trial.
+        SetBlueWireframeVisible(useWireframe);
 
         // 4. Start JSON Tracker and log marker
         if (tracker != null)
@@ -459,6 +463,65 @@ public class SequenceManager : MonoBehaviour
     {
         // Ensure the heartbeat task doesn't outlive this component (e.g. on app quit).
         StopHeartbeat();
+    }
+
+    // ==================== BLUE WIREFRAME VISIBILITY ====================
+    //
+    // The blue wireframe subtree holds ~330 SplineExtrude components. SetActive() on the
+    // root runs OnEnable/OnDisable on every one of them, and SplineExtrude.OnEnable calls
+    // Rebuild() unconditionally: SplineMesh.Extrude + AutosmoothNormals + collider
+    // assignment, per component, all in the same frame -- with OnDisable destroying every
+    // generated mesh on the way out. That is a multi-second main-thread stall at every
+    // trial transition and a plausible ANR kill on device.
+    //
+    // Toggling the renderers and colliders directly is visually and physically identical
+    // (an inactive GameObject renders nothing and has no physics presence either) without
+    // ever waking the extruders. The generated meshes are built once, at load, and kept.
+
+    private MeshRenderer[] _blueWireframeRenderers;
+    private Collider[] _blueWireframeColliders;
+    private bool _blueWireframeCached;
+
+    private void CacheBlueWireframeChildren()
+    {
+        if (_blueWireframeCached || blueWireframe12Baseline == null) return;
+
+        // The root has to stay active from here on, since visibility is now driven by the
+        // child components rather than by the GameObject. If it was authored inactive this
+        // is the single rebuild we pay -- once, on the menu, instead of once per trial.
+        if (!blueWireframe12Baseline.activeSelf)
+            blueWireframe12Baseline.SetActive(true);
+
+        // Include inactive children so the cache is complete whatever state we start in.
+        _blueWireframeRenderers = blueWireframe12Baseline.GetComponentsInChildren<MeshRenderer>(true);
+        _blueWireframeColliders = blueWireframe12Baseline.GetComponentsInChildren<Collider>(true);
+        _blueWireframeCached = true;
+
+        Debug.Log($"SequenceManager: cached {_blueWireframeRenderers.Length} blue wireframe renderer(s) " +
+                  $"and {_blueWireframeColliders.Length} collider(s).");
+    }
+
+    private void SetBlueWireframeVisible(bool visible)
+    {
+        if (blueWireframe12Baseline == null) return;
+
+        CacheBlueWireframeChildren();
+
+        for (int i = 0; i < _blueWireframeRenderers.Length; i++)
+        {
+            if (_blueWireframeRenderers[i] != null)
+                _blueWireframeRenderers[i].enabled = visible;
+        }
+
+        // Colliders must follow the renderers. Under the old SetActive() the whole subtree
+        // left the physics scene when hidden; if they stayed on, the "no wireframe" trials
+        // would still have ~2,300 invisible capsules intercepting gaze rays -- blocking gem
+        // dwell with nothing on screen to explain why.
+        for (int i = 0; i < _blueWireframeColliders.Length; i++)
+        {
+            if (_blueWireframeColliders[i] != null)
+                _blueWireframeColliders[i].enabled = visible;
+        }
     }
 
     private void SetWireframeActive(GameObject baselineObj, bool active)

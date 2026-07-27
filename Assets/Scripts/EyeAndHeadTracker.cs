@@ -40,11 +40,11 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] [Range(1, 10)] private int gazeLogSampleEveryNFrames = 1;
     [Tooltip("Looks shorter than this still count toward the dwell totals, but are not written out as individual look events.")]
     [SerializeField] private float minLookDurationToLogSeconds = 0.15f;
-    [Tooltip("Also write one NDJSON line per completed look event (in addition to the per-frame stream).")]
+    [Tooltip("Stream every completed look event, as it happens, to its own append-only gaze_events_*.ndjson file. Independent of the raw per-frame stream. This is the crash-safe home for per-look data: lines are written once and never rewritten.")]
     [SerializeField] private bool logGazeEventsToNdjson = true;
-    [Tooltip("Write the individual look events into the JSON summary as well as the aggregate percentages. Turn off if the summary gets too big to re-serialise on every autosave (the NDJSON stream still has them).")]
-    [SerializeField] private bool includeLookEventsInSummary = true;
-    [Tooltip("Safety cap on how many individual look events are kept in memory for the JSON summary. The aggregate dwell totals and percentages are unaffected by this cap.")]
+    [Tooltip("ALSO embed the individual look events in the JSON summary. Off by default: the summary is rewritten in full on every autosave, so a growing event list there costs a main-thread hitch every few seconds. The aggregate percentages are always included either way.")]
+    [SerializeField] private bool includeLookEventsInSummary = false;
+    [Tooltip("Safety cap on how many individual look events are kept in memory for the JSON summary. Only applies when the option above is on; the aggregate dwell totals, percentages and the NDJSON event stream are unaffected by this cap.")]
     [SerializeField] private int maxStoredLookEvents = 1500;
 
     [Header("Logging")]
@@ -220,6 +220,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         public GazeAttentionSummary gazeAttention;
         public List<GazeLookEvent> gazeLookEvents = new List<GazeLookEvent>();
         public string rawTrackingFileReference;
+        public string gazeEventsFileReference;
     }
 
     [System.Serializable]
@@ -285,6 +286,9 @@ public class EyeAndHeadTracker : MonoBehaviour
     private float currentHitDistance = 0f;
 
     private readonly StringBuilder gazeEventStringBuilder = new StringBuilder(512);
+    private readonly ConcurrentQueue<string> gazeEventQueue = new ConcurrentQueue<string>();
+    private StreamWriter gazeEventWriter;
+    private string gazeEventsFileName;
     private static readonly IFormatProvider Inv = CultureInfo.InvariantCulture;
 
     private readonly int fillProgressProperty = Shader.PropertyToID("_FillProgress");
@@ -362,13 +366,11 @@ public class EyeAndHeadTracker : MonoBehaviour
                 {
                     rawNdjsonWriter = new StreamWriter(rawPath, true);
                 }
-                
-                if (!isRawLoggingThreadRunning)
-                {
-                    isRawLoggingThreadRunning = true;
-                    System.Threading.Tasks.Task.Run(RawLoggingThreadLoop);
-                }
+
+                EnsureRawLoggingThread();
             }
+
+            OpenGazeEventWriter();
             hasInitializedRecording = true;
         }
         else
@@ -433,6 +435,10 @@ public class EyeAndHeadTracker : MonoBehaviour
             }
         }
 
+        // ResetGazeLogging above closed the look in progress, which may still be sitting in
+        // the queue. Drain it into the OUTGOING trial's file before swapping writers.
+        CloseGazeEventWriter();
+
         if (useEfficientRawLogging)
         {
             string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson");
@@ -440,13 +446,11 @@ public class EyeAndHeadTracker : MonoBehaviour
             {
                 rawNdjsonWriter = new StreamWriter(rawPath, true);
             }
-            
-            if (!isRawLoggingThreadRunning)
-            {
-                isRawLoggingThreadRunning = true;
-                System.Threading.Tasks.Task.Run(RawLoggingThreadLoop);
-            }
+
+            EnsureRawLoggingThread();
         }
+
+        OpenGazeEventWriter();
 
         hasInitializedRecording = true;
         isRecording = true;
@@ -528,6 +532,15 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             CloseCurrentLook(Time.realtimeSinceStartup);
             SaveSessionData();
+
+            // Backgrounding is where Android is most likely to kill us, so push the queued
+            // events out synchronously rather than trusting the writer thread to get a slice.
+            DrainGazeEventQueue();
+            if (gazeEventWriter != null)
+            {
+                lock (rawWriterLock) { gazeEventWriter.Flush(); }
+            }
+
             Debug.Log("EyeAndHeadTracker: App paused, data saved safely.");
         }
         else
@@ -540,6 +553,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         CloseCurrentLook(Time.realtimeSinceStartup);
         SaveSessionData();
+        CloseGazeEventWriter();
         Debug.Log("EyeAndHeadTracker: App quit, data saved safely.");
     }
 
@@ -1044,12 +1058,13 @@ public class EyeAndHeadTracker : MonoBehaviour
                 }
             };
 
-            // The NDJSON stream always gets the event; the in-memory list is capped because
-            // it is re-serialised into the summary JSON on every autosave.
-            if (logGazeEventsToNdjson && useEfficientRawLogging && rawNdjsonWriter != null)
+            // Append-only stream: written once, never rewritten, so it survives a hard kill.
+            if (gazeEventWriter != null)
                 EnqueueLookEventNdjson(ev);
 
-            if (gazeLookEvents.Count < maxStoredLookEvents)
+            // The in-memory copy only exists to be embedded in the summary, which is
+            // rewritten in full on every autosave -- hence opt-in, and capped.
+            if (includeLookEventsInSummary && gazeLookEvents.Count < maxStoredLookEvents)
                 gazeLookEvents.Add(ev);
         }
 
@@ -1057,6 +1072,74 @@ public class EyeAndHeadTracker : MonoBehaviour
         currentLookSampleCount = 0;
         currentLookDistanceSum = 0f;
         currentLookDirections.Clear();
+    }
+
+    /// <summary>
+    /// Opens the per-trial, append-only look-event stream. Deliberately independent of
+    /// <see cref="useEfficientRawLogging"/>: look events are cheap (a handful per second at
+    /// most) and this is the only place they are stored crash-safely, since the JSON summary
+    /// is rewritten wholesale on every autosave rather than appended to.
+    /// </summary>
+    private void OpenGazeEventWriter()
+    {
+        if (!enableGazeObjectLogging || !logGazeEventsToNdjson) return;
+
+        try
+        {
+            gazeEventsFileName = $"gaze_events_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson";
+            string path = Path.Combine(persistentDataPath, gazeEventsFileName);
+
+            lock (rawWriterLock)
+            {
+                gazeEventWriter = new StreamWriter(path, true);
+            }
+
+            EnsureRawLoggingThread();
+            Debug.Log($"EyeAndHeadTracker: streaming look events to {gazeEventsFileName}");
+        }
+        catch (Exception ex)
+        {
+            gazeEventWriter = null;
+            gazeEventsFileName = null;
+            Debug.LogError($"EyeAndHeadTracker: could not open gaze event stream: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Drains anything still queued and closes the look-event stream. Draining synchronously
+    /// matters here: the background writer would otherwise find a null writer and silently
+    /// drop the last few events of a trial.
+    /// </summary>
+    private void CloseGazeEventWriter()
+    {
+        if (gazeEventWriter == null) return;
+
+        DrainGazeEventQueue();
+
+        lock (rawWriterLock)
+        {
+            gazeEventWriter.Flush();
+            gazeEventWriter.Close();
+            gazeEventWriter = null;
+        }
+    }
+
+    private void DrainGazeEventQueue()
+    {
+        while (gazeEventQueue.TryDequeue(out string line))
+        {
+            lock (rawWriterLock)
+            {
+                if (gazeEventWriter != null) gazeEventWriter.WriteLine(line);
+            }
+        }
+    }
+
+    private void EnsureRawLoggingThread()
+    {
+        if (isRawLoggingThreadRunning) return;
+        isRawLoggingThreadRunning = true;
+        System.Threading.Tasks.Task.Run(RawLoggingThreadLoop);
     }
 
     private void EnqueueLookEventNdjson(GazeLookEvent ev)
@@ -1080,7 +1163,7 @@ public class EyeAndHeadTracker : MonoBehaviour
             .Append(",\"z\":").Append(ev.objectPosition.z.ToString("F4", Inv))
             .Append("}}");
 
-        rawLogQueue.Enqueue(gazeEventStringBuilder.ToString());
+        gazeEventQueue.Enqueue(gazeEventStringBuilder.ToString());
     }
 
     /// <summary>
@@ -1242,7 +1325,8 @@ public class EyeAndHeadTracker : MonoBehaviour
                 gazeLookEvents = includeLookEventsInSummary
                     ? new List<GazeLookEvent>(gazeLookEvents)
                     : new List<GazeLookEvent>(),
-                rawTrackingFileReference = rawFileRef
+                rawTrackingFileReference = rawFileRef,
+                gazeEventsFileReference = gazeEventsFileName
             };
             string json = JsonUtility.ToJson(root, true);
 
@@ -1259,6 +1343,16 @@ public class EyeAndHeadTracker : MonoBehaviour
                         lock (rawWriterLock)
                         {
                             rawNdjsonWriter.Flush();
+                        }
+                    }
+
+                    // Push the look-event stream to disk on the same cadence, so a hard
+                    // kill loses at most one autosave interval of events.
+                    if (gazeEventWriter != null)
+                    {
+                        lock (rawWriterLock)
+                        {
+                            gazeEventWriter.Flush();
                         }
                     }
                 }
@@ -1291,9 +1385,13 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         CloseCurrentLook(Time.realtimeSinceStartup);
         SaveSessionData();
-        
+
+        // Close the event stream before stopping the writer thread, so the drain happens
+        // while the writer is still open.
+        CloseGazeEventWriter();
+
         isRawLoggingThreadRunning = false;
-        
+
         if (rawNdjsonWriter != null)
         {
             lock (rawWriterLock)
@@ -1319,13 +1417,23 @@ public class EyeAndHeadTracker : MonoBehaviour
                     }
                 }
             }
+            else if (gazeEventQueue.TryDequeue(out string eventLine))
+            {
+                lock (rawWriterLock)
+                {
+                    if (gazeEventWriter != null)
+                    {
+                        gazeEventWriter.WriteLine(eventLine);
+                    }
+                }
+            }
             else
             {
                 Thread.Sleep(5); // Prevent 100% CPU usage
             }
         }
-        
-        // Drain the queue before exiting
+
+        // Drain both queues before exiting
         while (rawLogQueue.TryDequeue(out string logLine))
         {
             lock (rawWriterLock)
@@ -1333,6 +1441,17 @@ public class EyeAndHeadTracker : MonoBehaviour
                 if (rawNdjsonWriter != null)
                 {
                     rawNdjsonWriter.WriteLine(logLine);
+                }
+            }
+        }
+
+        while (gazeEventQueue.TryDequeue(out string eventLine))
+        {
+            lock (rawWriterLock)
+            {
+                if (gazeEventWriter != null)
+                {
+                    gazeEventWriter.WriteLine(eventLine);
                 }
             }
         }

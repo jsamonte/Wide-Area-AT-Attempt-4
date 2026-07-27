@@ -23,7 +23,22 @@ public class ArucoMarkerManager : MonoBehaviour
     [SerializeField] private bool estimateArucoLength = false;
 
     [Header("=== Controller Offset Adjustment ===")]
-    [SerializeField] private bool enableControllerAdjustment = true;
+    // OFF by default, and it should stay off for a World-Locking build. Three reasons:
+    //
+    //  1. It fights WLT. The SpacePins align the model by correcting the camera, and each
+    //     ArucoPinDriver locks against its pin's authored ModelingPoseGlobal (including the
+    //     elevation lock). Moving buildingRoot after pins have locked means those authored
+    //     poses no longer describe where the model actually is.
+    //  2. It breaks static batching. A batched renderer's geometry is baked into world
+    //     space; move the transform and the visuals stop tracking it while the colliders
+    //     still move, so gaze raycasts hit geometry that isn't where it appears to be.
+    //  3. It is reachable mid-trial. This component keeps running after the marker
+    //     detector is destroyed, so a participant brushing the thumbstick could shift the
+    //     entire world model during a recorded trial.
+    //
+    // Turn it on only for manual calibration work, in a build where the model is not
+    // marked Batching Static.
+    [SerializeField] private bool enableControllerAdjustment = false;
     [SerializeField] private float offsetAdjustSpeed = 0.8f;
     [SerializeField] private float rotationAdjustSpeed = 45f;
     [SerializeField] private float inputDeadzone = 0.12f;
@@ -88,7 +103,10 @@ public class ArucoMarkerManager : MonoBehaviour
         Permissions.RequestPermission(Permissions.SpaceImportExport, OnSpacePermissionGranted, OnPermissionDenied);
         CreateMarkerDetector();
 
-        if (buildingRoot != null)
+        // Only attach the grab rig when manual adjustment is actually wanted. Adding a
+        // Rigidbody + XRGrabInteractable to the building root makes it movable, which is
+        // exactly what static batching and the SpacePin alignment need it not to be.
+        if (buildingRoot != null && enableControllerAdjustment)
         {
             SetupGrabInteraction(buildingRoot);
         }
@@ -153,7 +171,9 @@ public class ArucoMarkerManager : MonoBehaviour
             }
         }
 
-        if (!IsSharedInstanceGrabbed() && enableControllerAdjustment)
+        // Ordered so the disabled case costs one bool test: IsSharedInstanceGrabbed does a
+        // GetComponent every frame, and HandleControllerOffsetAdjustment polls XR devices.
+        if (enableControllerAdjustment && !IsSharedInstanceGrabbed())
             HandleControllerOffsetAdjustment();
     }
 
@@ -183,6 +203,9 @@ public class ArucoMarkerManager : MonoBehaviour
 
     void LateUpdate()
     {
+        // Checked first so the per-frame GetComponent and XR device queries below don't
+        // run at all in a normal (non-calibration) session.
+        if (!enableControllerAdjustment) return;
         if (buildingRoot == null) return;
         var grab = buildingRoot.GetComponent<XRGrabInteractable>();
         if (grab == null || !grab.isSelected || grab.interactorsSelecting.Count == 0) return;
