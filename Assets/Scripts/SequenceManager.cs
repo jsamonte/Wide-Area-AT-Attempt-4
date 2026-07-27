@@ -221,7 +221,14 @@ public class SequenceManager : MonoBehaviour
                 t.transform.Rotate(90f, 0f, 0f, Space.Self); 
                 
                 t.tag = "DwellDestroyTarget";
-                
+
+                // Label it for the gaze logger so it reports a clean prefab name, not "(Clone)".
+                var loggable = t.GetComponent<GazeLoggableObject>();
+                if (loggable == null) loggable = t.AddComponent<GazeLoggableObject>();
+                loggable.category = "Target";
+                if (string.IsNullOrEmpty(loggable.displayName)) loggable.displayName = tutorialTargetPrefab.name;
+
+
                 // Force into the layer the tracker uses (grabbed from spawner if possible)
                 if (spawner != null)
                 {

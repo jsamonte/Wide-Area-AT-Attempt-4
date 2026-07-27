@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,6 +28,24 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool enableDwellDestroyFeature = true;
     [Tooltip("If true, casts an extra unmasked ray each frame to log exactly what the eye hits (name + layer). Off by default to save per-frame CPU/heat on Magic Leap.")]
     [SerializeField] private bool logUnmaskedEyeHit = false;
+
+    [Header("Gaze Object Logging (targets, recall objects, any collider)")]
+    [Tooltip("Records what the eye ray actually lands on — gems, recall objects, walls, props, anything with a collider — into the JSON summary and the raw NDJSON stream.")]
+    [SerializeField] private bool enableGazeObjectLogging = true;
+    [Tooltip("Which layers the gaze-logging ray may hit. Leave as Everything so untagged props and world geometry are captured too.")]
+    [SerializeField] private LayerMask gazeLogLayers = ~0;
+    [Tooltip("Maximum distance the gaze-logging ray travels, in metres.")]
+    [SerializeField] private float gazeLogMaxDistance = 50f;
+    [Tooltip("Sample the gaze-logging ray every N frames. 1 = every frame; raise it to cut CPU/heat on Magic Leap.")]
+    [SerializeField] [Range(1, 10)] private int gazeLogSampleEveryNFrames = 1;
+    [Tooltip("Looks shorter than this still count toward the dwell totals, but are not written out as individual look events.")]
+    [SerializeField] private float minLookDurationToLogSeconds = 0.15f;
+    [Tooltip("Also write one NDJSON line per completed look event (in addition to the per-frame stream).")]
+    [SerializeField] private bool logGazeEventsToNdjson = true;
+    [Tooltip("Write the individual look events into the JSON summary as well as the aggregate percentages. Turn off if the summary gets too big to re-serialise on every autosave (the NDJSON stream still has them).")]
+    [SerializeField] private bool includeLookEventsInSummary = true;
+    [Tooltip("Safety cap on how many individual look events are kept in memory for the JSON summary. The aggregate dwell totals and percentages are unaffected by this cap.")]
+    [SerializeField] private int maxStoredLookEvents = 1500;
 
     [Header("Logging")]
     [Tooltip("If true, starts recording immediately. If false, wait until ResumeRecording() is called.")]
@@ -70,6 +89,10 @@ public class EyeAndHeadTracker : MonoBehaviour
         public HeadTransformData headTransform;
         public EyeTrackingData eyeTracking;
         public string eyeRaycastHitObject;
+        public string gazeHitCategory;
+        public string gazeHitTag;
+        public string gazeHitLayer;
+        public float gazeHitDistanceMeters;
     }
 
     [System.Serializable] public class HeadTransformData { public Vector3Data position; public QuaternionData rotation; }
@@ -118,6 +141,59 @@ public class EyeAndHeadTracker : MonoBehaviour
         public string notes;
     }
 
+    /// <summary>
+    /// One continuous look at a single object: from the frame the gaze ray landed on it
+    /// until the frame it left. Written to the JSON summary and (optionally) the NDJSON stream.
+    /// </summary>
+    [System.Serializable]
+    public class GazeLookEvent
+    {
+        public int lookOrder;
+        public string objectName;
+        public string category;          // "Target", "RecallObject", "Other", or whatever GazeLoggableObject says
+        public string objectTag;
+        public string layer;
+        public int objectInstanceId;
+        public float startTime;          // seconds since this trial's recording started
+        public float endTime;
+        public float durationSeconds;
+        public int sampleCount;
+        public float meanDistanceMeters;
+        public float gazeStability_deg;
+        public Vector3Data objectPosition;
+    }
+
+    /// <summary>Total dwell accumulated on one object across the whole trial.</summary>
+    [System.Serializable]
+    public class GazeObjectStat
+    {
+        public string objectName;
+        public string category;
+        public int objectInstanceId;
+        public float totalDwellSeconds;
+        public int lookCount;
+        public float meanLookDurationSeconds;
+        public float longestLookSeconds;
+        public float firstLookTime = -1f;
+        public float percentOfTrackedTime;    // share of all time the gaze ray was sampled
+        public float percentOfTimeOnObjects;  // share of the time the gaze was on *something*
+    }
+
+    /// <summary>The "what did they actually look at, and for how much of the trial" rollup.</summary>
+    [System.Serializable]
+    public class GazeAttentionSummary
+    {
+        public float totalTrackedSeconds;
+        public float totalTimeOnObjectsSeconds;
+        public float totalTimeOnNothingSeconds;
+        public float percentTimeOnObjects;
+        public float percentTimeOnNothing;
+        public int totalLookEvents;
+        public int distinctObjectsLookedAt;
+        public List<GazeObjectStat> perCategory = new List<GazeObjectStat>();
+        public List<GazeObjectStat> perObject = new List<GazeObjectStat>();
+    }
+
     [System.Serializable]
     public class SessionPerformanceData
     {
@@ -141,6 +217,8 @@ public class EyeAndHeadTracker : MonoBehaviour
         public SessionMeta metadata;
         public SessionPerformanceData sessionData;
         public List<DestructionEvent> destructionEvents = new List<DestructionEvent>();
+        public GazeAttentionSummary gazeAttention;
+        public List<GazeLookEvent> gazeLookEvents = new List<GazeLookEvent>();
         public string rawTrackingFileReference;
     }
 
@@ -169,6 +247,45 @@ public class EyeAndHeadTracker : MonoBehaviour
     private List<Vector3> dwellDirectionsDuringCurrentDwell = new List<Vector3>();
     private string currentHitObjectName = "None";
     private float autoSaveTimer = 0f;
+
+    // ---- Gaze object logging state ----
+    /// <summary>Cached, per-collider resolution of "which logical object is this and what is it called".</summary>
+    private class GazeObjectInfo
+    {
+        public int objectId;
+        public string name;
+        public string category;
+        public string objectTag;
+        public string layer;
+        public Transform transform;
+    }
+
+    private readonly Dictionary<int, GazeObjectInfo> gazeInfoByColliderId = new Dictionary<int, GazeObjectInfo>();
+    private readonly Dictionary<int, GazeObjectStat> gazeStatsByObjectId = new Dictionary<int, GazeObjectStat>();
+    private readonly List<GazeLookEvent> gazeLookEvents = new List<GazeLookEvent>();
+    private readonly List<Vector3> currentLookDirections = new List<Vector3>();
+    private const int MAX_LOOK_DIRECTION_SAMPLES = 900; // ~30 s at 30 fps, then we stop growing the list
+
+    private GazeObjectInfo currentGazeInfo;
+    private float currentLookStartTime;
+    private int currentLookSampleCount;
+    private float currentLookDistanceSum;
+    private Vector3 currentLookObjectPosition;
+
+    private float gazeTrackedSeconds;
+    private float gazeOnObjectSeconds;
+    private float gazeOnNothingSeconds;
+    private float lastGazeSampleTime = -1f;
+    private int gazeSampleFrameCounter;
+    private int gazeLookEventCounter;
+
+    private string currentHitCategory = "None";
+    private string currentHitTag = "None";
+    private string currentHitLayer = "None";
+    private float currentHitDistance = 0f;
+
+    private readonly StringBuilder gazeEventStringBuilder = new StringBuilder(512);
+    private static readonly IFormatProvider Inv = CultureInfo.InvariantCulture;
 
     private readonly int fillProgressProperty = Shader.PropertyToID("_FillProgress");
     private const float MIN_FILL_RANGE = -0.6f;
@@ -260,6 +377,9 @@ public class EyeAndHeadTracker : MonoBehaviour
             lastFrameTimestamp = Time.realtimeSinceStartup;
         }
 
+        // Don't let the paused interval count as dwell time on the first sample back.
+        lastGazeSampleTime = -1f;
+
         isRecording = true;
         Debug.Log("EyeAndHeadTracker: JSON recording RESUMED.");
     }
@@ -278,6 +398,9 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         if (!isRecording) return;
         isRecording = false;
+        // Close the look in progress so it makes it into the summary rather than being lost.
+        CloseCurrentLook(Time.realtimeSinceStartup);
+        SetCurrentHitFields(null, 0f);
         SaveSessionData(); // Force save to disk whenever we pause to ensure data safety
         Debug.Log("EyeAndHeadTracker: JSON recording PAUSED.");
     }
@@ -294,7 +417,8 @@ public class EyeAndHeadTracker : MonoBehaviour
         destructionEvents.Clear();
         destroyCount = 0;
         performanceData = new SessionPerformanceData();
-        
+        ResetGazeLogging();
+
         appStartTime = Time.realtimeSinceStartup;
         lastFrameTimestamp = appStartTime;
         startTimeString = DateTime.Now.ToString("MM_dd_HH_mm_ss");
@@ -367,7 +491,9 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void Update()
     {
-        currentHitObjectName = "None";
+        // When gaze object logging is on, the hit fields are owned by SampleGazeObjects() and
+        // stay sticky between samples (they may be throttled to every Nth frame).
+        if (!enableGazeObjectLogging) currentHitObjectName = "None";
 
         // Gated on isRecording so this doesn't keep raycasting/querying the eye-tracking
         // hardware every frame during cooldown/menu screens between trials, when
@@ -382,6 +508,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (isRecording)
         {
+            if (enableGazeObjectLogging) SampleGazeObjects();
+
             CaptureTrackingFrame();
 
             // Periodic auto-save to prevent data loss on crash
@@ -398,13 +526,19 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         if (pauseStatus)
         {
+            CloseCurrentLook(Time.realtimeSinceStartup);
             SaveSessionData();
             Debug.Log("EyeAndHeadTracker: App paused, data saved safely.");
+        }
+        else
+        {
+            lastGazeSampleTime = -1f; // the backgrounded interval isn't dwell time
         }
     }
 
     private void OnApplicationQuit()
     {
+        CloseCurrentLook(Time.realtimeSinceStartup);
         SaveSessionData();
         Debug.Log("EyeAndHeadTracker: App quit, data saved safely.");
     }
@@ -440,6 +574,10 @@ public class EyeAndHeadTracker : MonoBehaviour
         
         UpdateEyeTrackingData(currentTrackingFrame.eyeTracking);
         currentTrackingFrame.eyeRaycastHitObject = currentHitObjectName;
+        currentTrackingFrame.gazeHitCategory = currentHitCategory;
+        currentTrackingFrame.gazeHitTag = currentHitTag;
+        currentTrackingFrame.gazeHitLayer = currentHitLayer;
+        currentTrackingFrame.gazeHitDistanceMeters = currentHitDistance;
 
         if (useEfficientRawLogging && rawNdjsonWriter != null)
         {
@@ -449,24 +587,29 @@ public class EyeAndHeadTracker : MonoBehaviour
             var e = f.eyeTracking;
 
             ndjsonStringBuilder.Clear();
-            ndjsonStringBuilder.Append("{\"frameId\":").Append(f.frameId)
+            ndjsonStringBuilder.Append("{\"type\":\"frame\",\"frameId\":").Append(f.frameId)
                 .Append(",\"timestamp\":\"").Append(f.timestamp)
-                .Append("\",\"deltaTimeMs\":").Append(f.deltaTimeMs.ToString("F3"))
-                .Append(",\"headTransform\":{\"position\":{\"x\":").Append(h.position.x.ToString("F4")).Append(",\"y\":").Append(h.position.y.ToString("F4")).Append(",\"z\":").Append(h.position.z.ToString("F4"))
-                .Append("},\"rotation\":{\"x\":").Append(h.rotation.x.ToString("F4")).Append(",\"y\":").Append(h.rotation.y.ToString("F4")).Append(",\"z\":").Append(h.rotation.z.ToString("F4")).Append(",\"w\":").Append(h.rotation.w.ToString("F4"))
+                .Append("\",\"deltaTimeMs\":").Append(f.deltaTimeMs.ToString("F3", Inv))
+                .Append(",\"headTransform\":{\"position\":{\"x\":").Append(h.position.x.ToString("F4", Inv)).Append(",\"y\":").Append(h.position.y.ToString("F4", Inv)).Append(",\"z\":").Append(h.position.z.ToString("F4", Inv))
+                .Append("},\"rotation\":{\"x\":").Append(h.rotation.x.ToString("F4", Inv)).Append(",\"y\":").Append(h.rotation.y.ToString("F4", Inv)).Append(",\"z\":").Append(h.rotation.z.ToString("F4", Inv)).Append(",\"w\":").Append(h.rotation.w.ToString("F4", Inv))
                 .Append("}},\"eyeTracking\":{\"leftEye\":{\"isValid\":").Append(e.leftEye.isValid ? "true" : "false")
-                .Append(",\"gazeOrigin\":{\"x\":").Append(e.leftEye.gazeOrigin.x.ToString("F4")).Append(",\"y\":").Append(e.leftEye.gazeOrigin.y.ToString("F4")).Append(",\"z\":").Append(e.leftEye.gazeOrigin.z.ToString("F4"))
-                .Append("},\"gazeDirection\":{\"x\":").Append(e.leftEye.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.leftEye.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.leftEye.gazeDirection.z.ToString("F4"))
-                .Append("},\"pupilDiameterMm\":").Append(e.leftEye.pupilDiameterMm.ToString("F2"))
-                .Append(",\"openness\":").Append(e.leftEye.openness.ToString("F2"))
+                .Append(",\"gazeOrigin\":{\"x\":").Append(e.leftEye.gazeOrigin.x.ToString("F4", Inv)).Append(",\"y\":").Append(e.leftEye.gazeOrigin.y.ToString("F4", Inv)).Append(",\"z\":").Append(e.leftEye.gazeOrigin.z.ToString("F4", Inv))
+                .Append("},\"gazeDirection\":{\"x\":").Append(e.leftEye.gazeDirection.x.ToString("F4", Inv)).Append(",\"y\":").Append(e.leftEye.gazeDirection.y.ToString("F4", Inv)).Append(",\"z\":").Append(e.leftEye.gazeDirection.z.ToString("F4", Inv))
+                .Append("},\"pupilDiameterMm\":").Append(e.leftEye.pupilDiameterMm.ToString("F2", Inv))
+                .Append(",\"openness\":").Append(e.leftEye.openness.ToString("F2", Inv))
                 .Append("},\"rightEye\":{\"isValid\":").Append(e.rightEye.isValid ? "true" : "false")
-                .Append(",\"gazeOrigin\":{\"x\":").Append(e.rightEye.gazeOrigin.x.ToString("F4")).Append(",\"y\":").Append(e.rightEye.gazeOrigin.y.ToString("F4")).Append(",\"z\":").Append(e.rightEye.gazeOrigin.z.ToString("F4"))
-                .Append("},\"gazeDirection\":{\"x\":").Append(e.rightEye.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.rightEye.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.rightEye.gazeDirection.z.ToString("F4"))
-                .Append("},\"pupilDiameterMm\":").Append(e.rightEye.pupilDiameterMm.ToString("F2"))
-                .Append(",\"openness\":").Append(e.rightEye.openness.ToString("F2"))
+                .Append(",\"gazeOrigin\":{\"x\":").Append(e.rightEye.gazeOrigin.x.ToString("F4", Inv)).Append(",\"y\":").Append(e.rightEye.gazeOrigin.y.ToString("F4", Inv)).Append(",\"z\":").Append(e.rightEye.gazeOrigin.z.ToString("F4", Inv))
+                .Append("},\"gazeDirection\":{\"x\":").Append(e.rightEye.gazeDirection.x.ToString("F4", Inv)).Append(",\"y\":").Append(e.rightEye.gazeDirection.y.ToString("F4", Inv)).Append(",\"z\":").Append(e.rightEye.gazeDirection.z.ToString("F4", Inv))
+                .Append("},\"pupilDiameterMm\":").Append(e.rightEye.pupilDiameterMm.ToString("F2", Inv))
+                .Append(",\"openness\":").Append(e.rightEye.openness.ToString("F2", Inv))
                 .Append("},\"combinedGaze\":{\"isValid\":").Append(e.combinedGaze.isValid ? "true" : "false")
-                .Append(",\"gazeDirection\":{\"x\":").Append(e.combinedGaze.gazeDirection.x.ToString("F4")).Append(",\"y\":").Append(e.combinedGaze.gazeDirection.y.ToString("F4")).Append(",\"z\":").Append(e.combinedGaze.gazeDirection.z.ToString("F4"))
-                .Append("}}},\"eyeRaycastHitObject\":\"").Append(f.eyeRaycastHitObject).Append("\"}");
+                .Append(",\"gazeDirection\":{\"x\":").Append(e.combinedGaze.gazeDirection.x.ToString("F4", Inv)).Append(",\"y\":").Append(e.combinedGaze.gazeDirection.y.ToString("F4", Inv)).Append(",\"z\":").Append(e.combinedGaze.gazeDirection.z.ToString("F4", Inv))
+                .Append("}}},\"eyeRaycastHitObject\":\"").Append(EscapeJson(f.eyeRaycastHitObject))
+                .Append("\",\"gazeHitCategory\":\"").Append(EscapeJson(f.gazeHitCategory))
+                .Append("\",\"gazeHitTag\":\"").Append(EscapeJson(f.gazeHitTag))
+                .Append("\",\"gazeHitLayer\":\"").Append(EscapeJson(f.gazeHitLayer))
+                .Append("\",\"gazeHitDistanceMeters\":").Append(f.gazeHitDistanceMeters.ToString("F3", Inv))
+                .Append("}");
             rawLogQueue.Enqueue(ndjsonStringBuilder.ToString());
         }
         else if (!useEfficientRawLogging)
@@ -518,25 +661,41 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     // ==================== GAZE DESTRUCTION ====================
 
-    private void RunEyeDwellDestruction()
+    /// <summary>
+    /// Resolves the eye gaze ray into world space (the raw pose is in tracking space).
+    /// Returns false when eye tracking isn't available this frame.
+    /// </summary>
+    private bool TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation)
     {
-        var gazePositionTrackingSpace = GazeInputManager.Instance.GazePosition;
-        var gazeRotationTrackingSpace = GazeInputManager.Instance.GazeRotation;
+        gazePosition = Vector3.zero;
+        gazeRotation = Quaternion.identity;
 
-        Vector3 gazePosition = gazePositionTrackingSpace;
-        Quaternion gazeRotation = gazeRotationTrackingSpace;
+        if (GazeInputManager.Instance == null || !GazeInputManager.Instance.EyeTrackingPermissionGranted)
+            return false;
+
+        gazePosition = GazeInputManager.Instance.GazePosition;
+        gazeRotation = GazeInputManager.Instance.GazeRotation;
 
         if (Camera.main != null && Camera.main.transform.parent != null)
         {
             var trackingOrigin = Camera.main.transform.parent;
-            gazePosition = trackingOrigin.TransformPoint(gazePositionTrackingSpace);
-            gazeRotation = trackingOrigin.rotation * gazeRotationTrackingSpace;
+            gazePosition = trackingOrigin.TransformPoint(gazePosition);
+            gazeRotation = trackingOrigin.rotation * gazeRotation;
         }
+
+        return true;
+    }
+
+    private void RunEyeDwellDestruction()
+    {
+        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation))
+            return;
 
         // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log.
         // Gated off by default: this extra unmasked, infinite-distance raycast runs every
         // frame against ALL colliders and needlessly adds CPU/heat on Magic Leap.
-        if (logUnmaskedEyeHit &&
+        // Redundant once gaze object logging is on — that already records every collider hit.
+        if (logUnmaskedEyeHit && !enableGazeObjectLogging &&
             Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, Mathf.Infinity))
         {
             currentHitObjectName = debugHit.collider.name + " (Layer: " + LayerMask.LayerToName(debugHit.collider.gameObject.layer) + ")";
@@ -686,6 +845,338 @@ public class EyeAndHeadTracker : MonoBehaviour
         }
     }
 
+    // ==================== GAZE OBJECT LOGGING ====================
+
+    /// <summary>
+    /// Casts the eye ray against every collider on <see cref="gazeLogLayers"/> and accumulates
+    /// how long the participant looked at each object — gems, recall objects, and any other
+    /// collider in the scene. Feeds both the per-frame NDJSON stream and the JSON summary.
+    /// </summary>
+    private void SampleGazeObjects()
+    {
+        gazeSampleFrameCounter++;
+        if (gazeLogSampleEveryNFrames > 1 && (gazeSampleFrameCounter % gazeLogSampleEveryNFrames) != 0)
+            return;
+
+        float now = Time.realtimeSinceStartup;
+        float dt = (lastGazeSampleTime < 0f) ? 0f : now - lastGazeSampleTime;
+        // Discard implausible gaps (first sample, app resume, level load) so they don't
+        // inflate the dwell totals the percentages are computed from.
+        if (dt < 0f || dt > 1f) dt = 0f;
+        lastGazeSampleTime = now;
+
+        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation))
+        {
+            CloseCurrentLook(now);
+            SetCurrentHitFields(null, 0f);
+            return;
+        }
+
+        Vector3 gazeDirection = gazeRotation * Vector3.forward;
+        gazeTrackedSeconds += dt;
+
+        GazeObjectInfo hitObject = null;
+        float hitDistance = 0f;
+        if (Physics.Raycast(gazePosition, gazeDirection, out RaycastHit hit, gazeLogMaxDistance, gazeLogLayers))
+        {
+            hitObject = ResolveGazeObject(hit.collider);
+            hitDistance = hit.distance;
+        }
+
+        if (hitObject == null)
+        {
+            gazeOnNothingSeconds += dt;
+            CloseCurrentLook(now);
+            SetCurrentHitFields(null, 0f);
+            return;
+        }
+
+        gazeOnObjectSeconds += dt;
+
+        if (currentGazeInfo == null || currentGazeInfo.objectId != hitObject.objectId)
+        {
+            CloseCurrentLook(now);
+            BeginLook(hitObject, now);
+        }
+
+        currentLookSampleCount++;
+        currentLookDistanceSum += hitDistance;
+        if (currentLookDirections.Count < MAX_LOOK_DIRECTION_SAMPLES)
+            currentLookDirections.Add(gazeDirection);
+        if (hitObject.transform != null)
+            currentLookObjectPosition = hitObject.transform.position;
+
+        var stat = GetOrCreateStat(hitObject);
+        stat.totalDwellSeconds += dt;
+        float currentLookDuration = now - currentLookStartTime;
+        if (currentLookDuration > stat.longestLookSeconds)
+            stat.longestLookSeconds = currentLookDuration;
+
+        SetCurrentHitFields(hitObject, hitDistance);
+    }
+
+    private void SetCurrentHitFields(GazeObjectInfo info, float distance)
+    {
+        currentHitObjectName = info != null ? info.name : "None";
+        currentHitCategory = info != null ? info.category : "None";
+        currentHitTag = info != null ? info.objectTag : "None";
+        currentHitLayer = info != null ? info.layer : "None";
+        currentHitDistance = distance;
+    }
+
+    /// <summary>
+    /// Works out which logical object a collider belongs to, and how it should be labelled.
+    /// Priority: an explicit <see cref="GazeLoggableObject"/> anywhere up the hierarchy (that is
+    /// how spawned gems and recall objects identify themselves), then the dwell-destroy tag,
+    /// then a plain "Other" fallback so untagged colliders are still counted.
+    /// Cached per collider because this runs every sampled frame.
+    /// </summary>
+    private GazeObjectInfo ResolveGazeObject(Collider col)
+    {
+        if (col == null) return null;
+
+        int colliderId = col.GetInstanceID();
+        if (gazeInfoByColliderId.TryGetValue(colliderId, out var cached) && cached.transform != null)
+            return cached;
+
+        // Entries for destroyed objects are never looked up again, so drop the whole cache
+        // once it grows past anything a single trial could plausibly need.
+        if (gazeInfoByColliderId.Count > 4096) gazeInfoByColliderId.Clear();
+
+        Transform root = col.transform;
+        string category = null;
+        string name = null;
+
+        var loggable = col.GetComponentInParent<GazeLoggableObject>();
+        if (loggable != null)
+        {
+            root = loggable.transform;
+            category = loggable.category;
+            name = loggable.ResolvedName;
+        }
+        else
+        {
+            // Fall back to the dwell-destroy tag so gems are still classified as targets
+            // even if nobody attached a GazeLoggableObject to them.
+            Transform t = col.transform;
+            while (t != null)
+            {
+                if (t.CompareTag(targetTag)) { root = t; category = "Target"; break; }
+                t = t.parent;
+            }
+        }
+
+        var info = new GazeObjectInfo
+        {
+            objectId = root.gameObject.GetInstanceID(),
+            name = string.IsNullOrEmpty(name) ? root.gameObject.name : name,
+            category = string.IsNullOrEmpty(category) ? "Other" : category,
+            objectTag = root.gameObject.tag,
+            layer = LayerMask.LayerToName(root.gameObject.layer),
+            transform = root
+        };
+
+        gazeInfoByColliderId[colliderId] = info;
+        return info;
+    }
+
+    private GazeObjectStat GetOrCreateStat(GazeObjectInfo info)
+    {
+        if (gazeStatsByObjectId.TryGetValue(info.objectId, out var stat)) return stat;
+
+        stat = new GazeObjectStat
+        {
+            objectName = info.name,
+            category = info.category,
+            objectInstanceId = info.objectId
+        };
+        gazeStatsByObjectId[info.objectId] = stat;
+        return stat;
+    }
+
+    private void BeginLook(GazeObjectInfo info, float now)
+    {
+        currentGazeInfo = info;
+        currentLookStartTime = now;
+        currentLookSampleCount = 0;
+        currentLookDistanceSum = 0f;
+        currentLookDirections.Clear();
+        currentLookObjectPosition = info.transform != null ? info.transform.position : Vector3.zero;
+
+        var stat = GetOrCreateStat(info);
+        stat.lookCount++;
+        if (stat.firstLookTime < 0f)
+            stat.firstLookTime = now - appStartTime;
+    }
+
+    /// <summary>
+    /// Ends the look currently in progress and, if it lasted long enough to be meaningful,
+    /// writes it out as a look event. Dwell time itself was already accumulated per sample,
+    /// so discarding a short look never loses time from the percentages.
+    /// </summary>
+    private void CloseCurrentLook(float now)
+    {
+        if (currentGazeInfo == null) return;
+
+        float duration = Mathf.Max(0f, now - currentLookStartTime);
+
+        if (duration >= minLookDurationToLogSeconds)
+        {
+            var ev = new GazeLookEvent
+            {
+                lookOrder = ++gazeLookEventCounter,
+                objectName = currentGazeInfo.name,
+                category = currentGazeInfo.category,
+                objectTag = currentGazeInfo.objectTag,
+                layer = currentGazeInfo.layer,
+                objectInstanceId = currentGazeInfo.objectId,
+                startTime = currentLookStartTime - appStartTime,
+                endTime = now - appStartTime,
+                durationSeconds = duration,
+                sampleCount = currentLookSampleCount,
+                meanDistanceMeters = currentLookSampleCount > 0 ? currentLookDistanceSum / currentLookSampleCount : 0f,
+                gazeStability_deg = CalculateGazeStability(currentLookDirections),
+                objectPosition = new Vector3Data
+                {
+                    x = currentLookObjectPosition.x,
+                    y = currentLookObjectPosition.y,
+                    z = currentLookObjectPosition.z
+                }
+            };
+
+            // The NDJSON stream always gets the event; the in-memory list is capped because
+            // it is re-serialised into the summary JSON on every autosave.
+            if (logGazeEventsToNdjson && useEfficientRawLogging && rawNdjsonWriter != null)
+                EnqueueLookEventNdjson(ev);
+
+            if (gazeLookEvents.Count < maxStoredLookEvents)
+                gazeLookEvents.Add(ev);
+        }
+
+        currentGazeInfo = null;
+        currentLookSampleCount = 0;
+        currentLookDistanceSum = 0f;
+        currentLookDirections.Clear();
+    }
+
+    private void EnqueueLookEventNdjson(GazeLookEvent ev)
+    {
+        gazeEventStringBuilder.Clear();
+        gazeEventStringBuilder.Append("{\"type\":\"gazeLookEvent\",\"lookOrder\":").Append(ev.lookOrder)
+            .Append(",\"timestamp\":\"").Append(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", Inv))
+            .Append("\",\"objectName\":\"").Append(EscapeJson(ev.objectName))
+            .Append("\",\"category\":\"").Append(EscapeJson(ev.category))
+            .Append("\",\"objectTag\":\"").Append(EscapeJson(ev.objectTag))
+            .Append("\",\"layer\":\"").Append(EscapeJson(ev.layer))
+            .Append("\",\"objectInstanceId\":").Append(ev.objectInstanceId)
+            .Append(",\"startTime\":").Append(ev.startTime.ToString("F3", Inv))
+            .Append(",\"endTime\":").Append(ev.endTime.ToString("F3", Inv))
+            .Append(",\"durationSeconds\":").Append(ev.durationSeconds.ToString("F3", Inv))
+            .Append(",\"sampleCount\":").Append(ev.sampleCount)
+            .Append(",\"meanDistanceMeters\":").Append(ev.meanDistanceMeters.ToString("F3", Inv))
+            .Append(",\"gazeStability_deg\":").Append(ev.gazeStability_deg.ToString("F3", Inv))
+            .Append(",\"objectPosition\":{\"x\":").Append(ev.objectPosition.x.ToString("F4", Inv))
+            .Append(",\"y\":").Append(ev.objectPosition.y.ToString("F4", Inv))
+            .Append(",\"z\":").Append(ev.objectPosition.z.ToString("F4", Inv))
+            .Append("}}");
+
+        rawLogQueue.Enqueue(gazeEventStringBuilder.ToString());
+    }
+
+    /// <summary>
+    /// Builds the "what did they look at, and for what share of the trial" rollup that goes
+    /// into the session summary JSON. Percentages are computed here so the JSON is directly
+    /// readable without any post-processing.
+    /// </summary>
+    private GazeAttentionSummary BuildGazeAttentionSummary()
+    {
+        var summary = new GazeAttentionSummary
+        {
+            totalTrackedSeconds = gazeTrackedSeconds,
+            totalTimeOnObjectsSeconds = gazeOnObjectSeconds,
+            totalTimeOnNothingSeconds = gazeOnNothingSeconds,
+            percentTimeOnObjects = Percent(gazeOnObjectSeconds, gazeTrackedSeconds),
+            percentTimeOnNothing = Percent(gazeOnNothingSeconds, gazeTrackedSeconds),
+            totalLookEvents = gazeLookEventCounter,
+            distinctObjectsLookedAt = gazeStatsByObjectId.Count
+        };
+
+        foreach (var stat in gazeStatsByObjectId.Values)
+        {
+            summary.perObject.Add(new GazeObjectStat
+            {
+                objectName = stat.objectName,
+                category = stat.category,
+                objectInstanceId = stat.objectInstanceId,
+                totalDwellSeconds = stat.totalDwellSeconds,
+                lookCount = stat.lookCount,
+                meanLookDurationSeconds = stat.lookCount > 0 ? stat.totalDwellSeconds / stat.lookCount : 0f,
+                longestLookSeconds = stat.longestLookSeconds,
+                firstLookTime = stat.firstLookTime,
+                percentOfTrackedTime = Percent(stat.totalDwellSeconds, gazeTrackedSeconds),
+                percentOfTimeOnObjects = Percent(stat.totalDwellSeconds, gazeOnObjectSeconds)
+            });
+        }
+        summary.perObject.Sort((a, b) => b.totalDwellSeconds.CompareTo(a.totalDwellSeconds));
+
+        // Roll the per-object numbers up per category (Target / RecallObject / Other / custom).
+        var byCategory = new Dictionary<string, GazeObjectStat>();
+        foreach (var stat in gazeStatsByObjectId.Values)
+        {
+            if (!byCategory.TryGetValue(stat.category, out var cat))
+            {
+                cat = new GazeObjectStat { objectName = stat.category, category = stat.category, firstLookTime = -1f };
+                byCategory[stat.category] = cat;
+            }
+            cat.totalDwellSeconds += stat.totalDwellSeconds;
+            cat.lookCount += stat.lookCount;
+            if (stat.longestLookSeconds > cat.longestLookSeconds) cat.longestLookSeconds = stat.longestLookSeconds;
+            if (stat.firstLookTime >= 0f && (cat.firstLookTime < 0f || stat.firstLookTime < cat.firstLookTime))
+                cat.firstLookTime = stat.firstLookTime;
+        }
+
+        foreach (var cat in byCategory.Values)
+        {
+            cat.meanLookDurationSeconds = cat.lookCount > 0 ? cat.totalDwellSeconds / cat.lookCount : 0f;
+            cat.percentOfTrackedTime = Percent(cat.totalDwellSeconds, gazeTrackedSeconds);
+            cat.percentOfTimeOnObjects = Percent(cat.totalDwellSeconds, gazeOnObjectSeconds);
+            summary.perCategory.Add(cat);
+        }
+        summary.perCategory.Sort((a, b) => b.totalDwellSeconds.CompareTo(a.totalDwellSeconds));
+
+        return summary;
+    }
+
+    private static float Percent(float part, float whole) => whole > 0f ? (part / whole) * 100f : 0f;
+
+    private void ResetGazeLogging()
+    {
+        CloseCurrentLook(Time.realtimeSinceStartup);
+        gazeInfoByColliderId.Clear();
+        gazeStatsByObjectId.Clear();
+        gazeLookEvents.Clear();
+        currentLookDirections.Clear();
+        currentGazeInfo = null;
+        gazeTrackedSeconds = 0f;
+        gazeOnObjectSeconds = 0f;
+        gazeOnNothingSeconds = 0f;
+        lastGazeSampleTime = -1f;
+        gazeSampleFrameCounter = 0;
+        gazeLookEventCounter = 0;
+        SetCurrentHitFields(null, 0f);
+    }
+
+    /// <summary>Minimal JSON string escaping for object names written into the NDJSON stream.</summary>
+    private static string EscapeJson(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.IndexOf('"') < 0 && value.IndexOf('\\') < 0 && value.IndexOf('\n') < 0 && value.IndexOf('\r') < 0 && value.IndexOf('\t') < 0)
+            return value;
+
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"")
+                    .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
+    }
+
     // ==================== SAVE ====================
 
     public void LogMarker(string message)
@@ -747,6 +1238,10 @@ public class EyeAndHeadTracker : MonoBehaviour
                 metadata = metaCopy,
                 sessionData = perfCopy,
                 destructionEvents = destructionCopy,
+                gazeAttention = BuildGazeAttentionSummary(),
+                gazeLookEvents = includeLookEventsInSummary
+                    ? new List<GazeLookEvent>(gazeLookEvents)
+                    : new List<GazeLookEvent>(),
                 rawTrackingFileReference = rawFileRef
             };
             string json = JsonUtility.ToJson(root, true);
@@ -794,6 +1289,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void OnDestroy()
     {
+        CloseCurrentLook(Time.realtimeSinceStartup);
         SaveSessionData();
         
         isRawLoggingThreadRunning = false;

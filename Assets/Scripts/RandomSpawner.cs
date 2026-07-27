@@ -191,7 +191,7 @@ public class RandomSpawner : MonoBehaviour
             for (int i = 0; i < targetCount; i++)
             {
                 Transform spawnPoint = shuffledLocations[i];
-                SpawnAndConfigure(targetPrefab, spawnPoint.position, spawnPoint.rotation, "DwellDestroyTarget", targetLayer, false);
+                SpawnAndConfigure(targetPrefab, spawnPoint.position, spawnPoint.rotation, "DwellDestroyTarget", targetLayer, false, "Target");
             }
 
             // 3. Spawn Recall Objects
@@ -212,7 +212,7 @@ public class RandomSpawner : MonoBehaviour
                 // Pick the next unique recall object (we know recallObjectCount <= shuffledRecallObjects.Count)
                 int recallObjectIndex = i - targetCount;
                 GameObject recallObjectToSpawn = shuffledRecallObjects[recallObjectIndex];
-                SpawnAndConfigure(recallObjectToSpawn, spawnPoint.position, spawnPoint.rotation, "Untagged", recallObjectLayer, false);
+                SpawnAndConfigure(recallObjectToSpawn, spawnPoint.position, spawnPoint.rotation, "Untagged", recallObjectLayer, false, "RecallObject");
             }
         }
         else if (currentSpawnMode == SpawnMode.Planes)
@@ -312,7 +312,7 @@ public class RandomSpawner : MonoBehaviour
             for (int i = 0; i < targetCount && spawnIndex < validPoints.Count; i++, spawnIndex++)
             {
                 Vector3 pos = validPoints[spawnIndex] + Vector3.up * spawnHeightOffset;
-                SpawnAndConfigure(targetPrefab, pos, Quaternion.identity, "DwellDestroyTarget", targetLayer, true);
+                SpawnAndConfigure(targetPrefab, pos, Quaternion.identity, "DwellDestroyTarget", targetLayer, true, "Target");
             }
 
             // Spawn Recall Objects
@@ -320,7 +320,7 @@ public class RandomSpawner : MonoBehaviour
             {
                 Vector3 pos = validPoints[spawnIndex] + Vector3.up * spawnHeightOffset;
                 GameObject recallObj = shuffledRecallObjects[i % shuffledRecallObjects.Count];
-                SpawnAndConfigure(recallObj, pos, Quaternion.identity, "Untagged", recallObjectLayer, true);
+                SpawnAndConfigure(recallObj, pos, Quaternion.identity, "Untagged", recallObjectLayer, true, "RecallObject");
             }
         }
 
@@ -329,7 +329,7 @@ public class RandomSpawner : MonoBehaviour
         Physics.SyncTransforms();
     }
 
-    private void SpawnAndConfigure(GameObject prefab, Vector3 position, Quaternion rotation, string tagToApply, string layerToApply, bool alignBottomToPosition)
+    private void SpawnAndConfigure(GameObject prefab, Vector3 position, Quaternion rotation, string tagToApply, string layerToApply, bool alignBottomToPosition, string gazeCategory)
     {
         // Ignore the placeholder's rotation entirely to guarantee it matches the prefab viewer exactly
         Quaternion finalRotation = prefab.transform.rotation;
@@ -386,6 +386,14 @@ public class RandomSpawner : MonoBehaviour
         // We rely on EyeAndHeadTracker.cs to correctly identify child colliders 
         // without overriding specially configured child layers (like "Invisible").
         spawnedObj.tag = tagToApply;
+
+        // Label the object for EyeAndHeadTracker's gaze logger, so the JSON/NDJSON logs report
+        // the prefab's real name and category instead of "Prefab(Clone)" / "Other".
+        GazeLoggableObject loggable = spawnedObj.GetComponent<GazeLoggableObject>();
+        if (loggable == null) loggable = spawnedObj.AddComponent<GazeLoggableObject>();
+        loggable.category = gazeCategory;
+        if (string.IsNullOrEmpty(loggable.displayName)) loggable.displayName = prefab.name;
+
         int layerId = LayerMask.NameToLayer(layerToApply);
         if (layerId > -1) {
             spawnedObj.layer = layerId;
