@@ -8,7 +8,6 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.XR.OpenXR;
 using MagicLeap.OpenXR.Features.MarkerUnderstanding;
-using MagicLeap.Android;
 using Unity.XR.CoreUtils;
 
 namespace MagicLeap.Examples
@@ -54,6 +53,12 @@ namespace MagicLeap.Examples
         [SerializeField, Tooltip("Rotation offset applied to the prefab so it sits correctly on the marker")]
         private Vector3 rotationOffset = new Vector3(270f, 0f, 0f);
 
+        [SerializeField, Tooltip("Position offset in meters applied after the rotation offset. Use X to shift the map sideways from the marker, Y up/down, Z forward/back.")]
+        private Vector3 positionOffset = Vector3.zero;
+
+        [SerializeField, Tooltip("If true, the position offset follows the map's own orientation (X is always 'sideways' relative to the marker). If false, the offset is applied in world axes.")]
+        private bool offsetInMarkerSpace = true;
+
         [Header("Smoothing")]
         [SerializeField, Tooltip("How smoothly the map follows the marker. Lower = smoother/delayed, Higher = faster/jittery.")]
         private float followSpeed = 12f;
@@ -69,7 +74,6 @@ namespace MagicLeap.Examples
         private Vector3 targetPosition;
         private Quaternion targetRotation;
         private bool hasInitialPose = false;
-        private bool permissionGranted = false;
 
         private void OnValidate()
         {
@@ -95,24 +99,16 @@ namespace MagicLeap.Examples
             // called exactly once per frame (at end-of-frame) across all scripts.
             MarkerDetectorPump.Instance.Register(markerFeature);
 
-            // Request permissions exactly like Prototype3
-            Permissions.RequestPermission(Permissions.SpaceImportExport, OnPermissionGranted, OnPermissionDenied);
+            // No permission request here. This used to ask for SPACE_IMPORT_EXPORT (copied from
+            // Prototype3), but that permission is not declared in AndroidManifest.xml and nothing in
+            // this component ever read the result -- so it only ever logged an ERROR on every launch.
+            // Marker tracking runs on MARKER_TRACKING, which IS declared and granted.
 
             // Do NOT create the detector here by default. It is created on demand
             // via StartTracking() (e.g. when a trial begins) so the camera/CV
             // pipeline -- and its heat -- stays off until the map is actually needed.
             if (startTrackingOnStart)
                 StartTracking();
-        }
-
-        private void OnPermissionGranted(string permission)
-        {
-            permissionGranted = true;
-        }
-
-        private void OnPermissionDenied(string permission)
-        {
-            Debug.LogError($"[MapTracking] Permission denied: {permission}");
         }
 
         /// <summary>
@@ -210,8 +206,9 @@ namespace MagicLeap.Examples
                 if (currentCustomInstance != null)
                 {
                     Quaternion offsetRot = Quaternion.Euler(rotationOffset);
-                    targetPosition = worldPose.position;
                     targetRotation = worldPose.rotation * offsetRot;
+                    targetPosition = worldPose.position +
+                        (offsetInMarkerSpace ? targetRotation * positionOffset : positionOffset);
 
                     if (!hasInitialPose)
                     {

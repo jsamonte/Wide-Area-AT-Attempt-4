@@ -53,10 +53,10 @@ public class CautionStairsAudio : MonoBehaviour
     public LayerMask cautionLayerMask = -1; // -1 = Everything
 
     [Header("Debug")]
-    [Tooltip("Enable console logs when the rig enters a caution area or audio plays. Great for testing.")]
-    public bool enableDebugLogs = true;
+    [Tooltip("Enable console logs when the rig enters a caution area or audio plays. Great for testing. Off by default: on device every log line is mirrored to the run log with AutoFlush, so a per-frame log costs a synchronous file write inside the frame.")]
+    public bool enableDebugLogs = false;
 
-    [Tooltip("Log every raycast hit each frame (very verbose) -- use this to see exactly what's under the rig even when it doesn't match a caution plane.")]
+    [Tooltip("Log the per-frame containment test (every raycast hit / bounds match) -- very verbose -- use this to see exactly what's under the rig even when it doesn't match a caution plane. Expect tens of thousands of lines in a session.")]
     public bool logAllRaycastHits = false;
 
     private AudioSource audioSource;
@@ -175,7 +175,9 @@ public class CautionStairsAudio : MonoBehaviour
                     rigPos.z >= bounds.min.z && rigPos.z <= bounds.max.z &&
                     rigPos.y >= bounds.min.y - 2f && rigPos.y <= bounds.max.y + 5f)
                 {
-                    if (enableDebugLogs) Debug.Log($"CautionStairsAudio: Bounds match on '{plane.name}'.", this);
+                    // Per-frame while the rig stands on a plane, so it sits behind the verbose flag
+                    // rather than enableDebugLogs -- this one line was 95% of a 2.1 MB run log.
+                    if (logAllRaycastHits) Debug.Log($"CautionStairsAudio: Bounds match on '{plane.name}'.", this);
                     return true;
                 }
             }
@@ -203,7 +205,8 @@ public class CautionStairsAudio : MonoBehaviour
             {
                 if (_resolvedColliders.Contains(hit.collider))
                 {
-                    if (enableDebugLogs) Debug.Log($"CautionStairsAudio: Raycast match on '{hit.collider.name}'.", this);
+                    // Per-frame, same as the bounds branch above.
+                    if (logAllRaycastHits) Debug.Log($"CautionStairsAudio: Raycast match on '{hit.collider.name}'.", this);
                     return true;
                 }
             }

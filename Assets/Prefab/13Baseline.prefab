@@ -82445,7 +82445,7 @@ MonoBehaviour:
   cautionLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  enableDebugLogs: 1
+  enableDebugLogs: 0
   logAllRaycastHits: 0
 --- !u!1 &2116882545569777166
 GameObject:
