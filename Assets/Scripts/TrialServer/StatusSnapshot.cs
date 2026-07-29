@@ -92,9 +92,14 @@ namespace TrialServer
               .Append(",\"latest\":\"").Append(Esc(latestCrit)).Append('"')
               .Append('}');
 
+            // "number" is the ABSOLUTE trial number (3 and 4 during Part 2, never re-based to 1 and 2), so
+            // "first"/"last" are what the page needs to tell "no trial has run yet" from "one just finished".
             Sb.Append(",\"trial\":{")
               .Append("\"sequence\":").Append(ServerState.SelectedSequence)
+              .Append(",\"part\":").Append(ServerState.SelectedPart)
               .Append(",\"number\":").Append(ServerState.TrialNumber)
+              .Append(",\"first\":").Append(ServerState.FirstTrialNumber)
+              .Append(",\"last\":").Append(ServerState.LastTrialNumber)
               .Append(",\"total\":").Append(ServerState.TotalTrials)
               .Append(",\"pool\":").Append(ServerState.Pool)
               .Append(",\"wireframe\":").Append(B(ServerState.Wireframe))

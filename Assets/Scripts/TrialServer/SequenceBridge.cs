@@ -1,4 +1,3 @@
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,15 +16,21 @@ namespace TrialServer
     /// that button; the participant then starts the trial themselves on the device. The bridge notices the
     /// start by watching the tracker's trial clock and flips its phase to Recording.
     ///
+    /// PARTS. A session runs HALF a sequence, so there are eight selectable buttons, addressed here by the
+    /// flattened index SequenceManager exposes: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4. Part 1
+    /// (Trials 1-2, Dusk) runs the tutorial first, so picking it moves to phase Tutorial. Part 2 (Trials 3-4,
+    /// Night) is run after a headset reboot and SKIPS the tutorial, so picking it moves STRAIGHT to Ready with
+    /// trial 3 queued. Trials are never renumbered, which is why the flow runs on ServerState's
+    /// First/LastTrialNumber rather than counting 1..4.
+    ///
     /// COMMAND HANDLING runs on the MAIN thread: the server enqueues inbound requests and drains them in
     /// Update, invoking OnCommand there. So everything in this class is main-thread and may freely touch Unity.
     ///
-    /// THE FRAGILE POINTS are reflection, and both are guarded. (1) The pool and wireframe tables are two
-    /// PRIVATE 4x4 arrays on SequenceManager, read by name for DISPLAY only. (2) Ending a trial early invokes
-    /// SequenceManager's private OnTrialFinished() by name, which is the study's own end-of-trial path (pause
-    /// recording, clear gems, advance, show the menu). If either name ever changes, that feature degrades with
-    /// one loud warning and everything else keeps working. Public getters / a public EndTrialEarly() on
-    /// SequenceManager would remove the reflection entirely if that trade is ever wanted.
+    /// NO REFLECTION. This class used to read SequenceManager's private state (the pool/wireframe tables, the
+    /// trial index) and invoke its private OnTrialFinished() by name, which broke silently on a rename and
+    /// could not express parts at all — a bare trial index no longer tells you which part you are in.
+    /// SequenceManager now exposes exactly what is needed as public read-only members plus a public
+    /// EndTrialEarly(), so everything here is a compile-time reference.
     /// </summary>
     public class SequenceBridge : MonoBehaviour
     {
@@ -49,21 +54,14 @@ namespace TrialServer
         float _pausedSeconds;
         float _pauseStartedAt;
 
-        // Reflection into SequenceManager's private members, bound once. The two table fields are display
-        // only; the method is the early-end path.
-        FieldInfo _seqIndexField;
-        FieldInfo _trialIndexField;
-        FieldInfo _poolsField;
-        FieldInfo _wireframesField;
-        MethodInfo _onTrialFinishedMethod;
-        bool _reflectionOk;
-        bool _reflectionWarned;
-
         void Start()
         {
             // Reset the shared state in case static fields survived a domain-reload-disabled play session.
             ServerState.SelectedSequence = 0;
+            ServerState.SelectedPart = 0;
             ServerState.TrialNumber = 0;
+            ServerState.FirstTrialNumber = 1;
+            ServerState.LastTrialNumber = ServerState.TotalTrials;
             ServerState.Pool = 0;
             ServerState.Wireframe = false;
             ServerState.TimeOfDay = "";
@@ -114,35 +112,6 @@ namespace TrialServer
             {
                 Debug.LogWarning($"{Tag} SequenceManager has no tracker assigned; trial-end detection is off.");
             }
-
-            BindReflection();
-        }
-
-        void BindReflection()
-        {
-            const BindingFlags F = BindingFlags.Instance | BindingFlags.NonPublic;
-            var t = typeof(SequenceManager);
-            _seqIndexField = t.GetField("currentSequenceIndex", F);
-            _trialIndexField = t.GetField("currentTrialIndex", F);
-            _poolsField = t.GetField("sequencePools", F);
-            _wireframesField = t.GetField("sequenceWireframes", F);
-            _onTrialFinishedMethod = t.GetMethod("OnTrialFinished", F);
-
-            _reflectionOk = _seqIndexField != null && _trialIndexField != null &&
-                            _poolsField != null && _wireframesField != null;
-
-            if (!_reflectionOk && !_reflectionWarned)
-            {
-                _reflectionWarned = true;
-                Debug.LogWarning($"{Tag} Could not bind SequenceManager's private fields " +
-                    "(currentSequenceIndex/currentTrialIndex/sequencePools/sequenceWireframes). Pool, wireframe " +
-                    "and time-of-day will not display. Core trial control (select/arm/mark) is unaffected. " +
-                    "This usually means a field was renamed; add public getters to make it rock-solid.");
-            }
-
-            if (_onTrialFinishedMethod == null)
-                Debug.LogWarning($"{Tag} Could not bind SequenceManager.OnTrialFinished(); the dashboard's " +
-                    "End trial command will be refused. A rename did this; a public EndTrialEarly() fixes it.");
         }
 
         // ---- Arm gate + device-start detection ----------------------------------------------------------
@@ -195,49 +164,27 @@ namespace TrialServer
 
         // ---- Live display -------------------------------------------------------------------------------
 
-        // Pull the current/queued trial's pool + wireframe + time-of-day out of the study's private tables and
-        // publish them to ServerState for the snapshot. Only meaningful while a numbered trial is queued or
-        // running; cleared otherwise so the dashboard never shows a stale pool during the menu or tutorial.
+        // Publish the current/queued trial's pool + wireframe + time-of-day to ServerState for the snapshot.
+        // Only meaningful while a numbered trial is queued or running; cleared otherwise so the dashboard
+        // never shows a stale pool during the menu or tutorial.
         void RefreshTrialDisplay()
         {
             bool active = ServerState.Phase == TrialPhase.Ready || ServerState.Phase == TrialPhase.Armed ||
                           ServerState.Phase == TrialPhase.Recording || ServerState.Phase == TrialPhase.Paused;
-            if (!active || !_reflectionOk)
+            if (!active)
             {
-                if (!active) { ServerState.Pool = 0; ServerState.Wireframe = false; ServerState.TimeOfDay = ""; }
+                ServerState.Pool = 0; ServerState.Wireframe = false; ServerState.TimeOfDay = "";
                 return;
             }
 
-            try
-            {
-                int seq = (int)_seqIndexField.GetValue(_sm);
-                int trial = (int)_trialIndexField.GetValue(_sm);
-                if (seq < 0 || seq > 3 || trial < 0 || trial > 3)
-                {
-                    ServerState.Pool = 0; ServerState.Wireframe = false; ServerState.TimeOfDay = "";
-                    return;
-                }
+            int seq = _sm.SelectedSequenceIndex;
+            int trial = _sm.CurrentTrialIndex;
 
-                var pools = (int[,])_poolsField.GetValue(_sm);
-                var wires = (bool[,])_wireframesField.GetValue(_sm);
-                ServerState.Pool = pools[seq, trial];
-                ServerState.Wireframe = wires[seq, trial];
-                // Trials 0-1 are Dusk, 2-3 are Night, per the study's sequence design.
-                ServerState.TimeOfDay = trial < 2 ? "Dusk" : "Night";
-            }
-            catch (System.Exception e)
-            {
-                // A cast or bounds failure means the tables changed shape. Degrade the display, do not crash,
-                // and stop trying so we do not spam the log every frame.
-                _reflectionOk = false;
-                if (!_reflectionWarned)
-                {
-                    _reflectionWarned = true;
-                    Debug.LogWarning($"{Tag} Reading SequenceManager's private tables failed ({e.Message}). " +
-                                     "Pool/wireframe/time-of-day display is now off; core control still works.");
-                }
-                ServerState.Pool = 0; ServerState.Wireframe = false; ServerState.TimeOfDay = "";
-            }
+            // GetPoolForTrial returns 0 out of range, which is the same "unknown" the dashboard already
+            // renders as a dash, so no separate bounds check is needed here.
+            ServerState.Pool = _sm.GetPoolForTrial(seq, trial);
+            ServerState.Wireframe = _sm.GetWireframeForTrial(seq, trial);
+            ServerState.TimeOfDay = ServerState.Pool > 0 ? SequenceManager.TimeOfDayForTrial(trial) : "";
         }
 
         // ---- Trial-end detection ------------------------------------------------------------------------
@@ -251,18 +198,22 @@ namespace TrialServer
         {
             switch (ServerState.Phase)
             {
+                // Only Part 1 has a tutorial, so this always hands off to trial 1; it is written against
+                // FirstTrialNumber anyway so the two can never drift apart.
                 case TrialPhase.Tutorial:
-                    ServerState.TrialNumber = 1;
+                    ServerState.TrialNumber = ServerState.FirstTrialNumber;
                     ServerState.Phase = TrialPhase.Ready;
-                    ServerState.Report($"Tutorial {how}. Trial 1 is queued; arm it when ready.");
+                    ServerState.Report($"Tutorial {how}. Trial {ServerState.TrialNumber} is queued; arm it when ready.");
                     break;
 
                 case TrialPhase.Recording:
                 case TrialPhase.Paused:
-                    if (ServerState.TrialNumber >= ServerState.TotalTrials)
+                    // The PART ends at LastTrialNumber (2 for Part 1, 4 for Part 2), not at trial 4.
+                    if (ServerState.TrialNumber >= ServerState.LastTrialNumber)
                     {
                         ServerState.Phase = TrialPhase.Done;
-                        ServerState.Report($"Trial {ServerState.TrialNumber} {how}. Sequence finished.");
+                        ServerState.Report($"Trial {ServerState.TrialNumber} {how}. " +
+                                           $"Sequence {ServerState.SelectedSequence} Part {ServerState.SelectedPart} finished.");
                     }
                     else
                     {
@@ -311,30 +262,56 @@ namespace TrialServer
                 return;
             }
 
-            if (!int.TryParse((body ?? "").Trim(), out int index) || index < 0 || index > 3)
+            // Flattened index: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4.
+            int buttonCount = _sm.SequenceButtonCount;
+            if (!int.TryParse((body ?? "").Trim(), out int index) || index < 0 || index >= buttonCount)
             {
-                ServerState.Report($"Sequence command needs an index 0-3; got \"{body}\".", "error");
+                ServerState.Report($"Sequence command needs an index 0-{buttonCount - 1} " +
+                                   $"(0-3 = Part 1 Seq 1-4, 4-7 = Part 2 Seq 1-4); got \"{body}\".", "error");
                 return;
             }
 
-            if (_sm.sequenceButtons == null || index >= _sm.sequenceButtons.Length || _sm.sequenceButtons[index] == null)
+            int seqNumber = (index % SequenceManager.SequencesPerPart) + 1;
+            int partNumber = (index / SequenceManager.SequencesPerPart) + 1;
+
+            var button = _sm.GetSequenceButton(index);
+            if (button == null)
             {
-                ServerState.Report($"Sequence button {index} is not wired in the scene.", "error");
+                ServerState.Report($"Sequence {seqNumber} Part {partNumber} button is not wired in the scene.", "error");
                 return;
             }
 
-            if (!ClickButton(_sm.sequenceButtons[index]))
+            if (!ClickButton(button))
             {
-                ServerState.Report($"Sequence button {index} has no Button component to click.", "error");
+                ServerState.Report($"Sequence {seqNumber} Part {partNumber} button has no Button component to click.", "error");
                 return;
             }
 
-            ServerState.SelectedSequence = index + 1;
-            ServerState.TrialNumber = 0;
-            ServerState.Phase = TrialPhase.Tutorial;
+            ServerState.SelectedSequence = seqNumber;
+            ServerState.SelectedPart = partNumber;
+            ServerState.FirstTrialNumber = _sm.FirstTrialNumber;
+            ServerState.LastTrialNumber = _sm.LastTrialNumber;
             _pausedSeconds = 0f;
-            ServerState.Report($"Sequence {index + 1} selected. The tutorial (4 practice gems) is running; " +
-                               "recording starts with it by the study's design.");
+
+            if (partNumber == 1)
+            {
+                // Part 1 runs the tutorial before trial 1. It spawns gems and records, so it gets its own
+                // loud phase rather than looking like a trial.
+                ServerState.TrialNumber = 0;
+                ServerState.Phase = TrialPhase.Tutorial;
+                ServerState.Report($"Sequence {seqNumber} Part 1 selected (Trials 1-2, Dusk). The tutorial " +
+                                   "(4 practice gems) is running; recording starts with it by the study's design.");
+            }
+            else
+            {
+                // Part 2 skips the tutorial (rebooted headset, participant already trained), so the study
+                // is sitting on the wait screen for trial 3 the moment the button is clicked. Go straight
+                // to Ready; the arm gate takes over from here and holds the device Start button.
+                ServerState.TrialNumber = ServerState.FirstTrialNumber;
+                ServerState.Phase = TrialPhase.Ready;
+                ServerState.Report($"Sequence {seqNumber} Part 2 selected (Trials 3-4, Night). No tutorial: " +
+                                   $"Trial {ServerState.TrialNumber} is queued; arm it when ready.");
+            }
         }
 
         // Arm the queued trial: re-enable the study's own Start button so the PARTICIPANT can start it on the
@@ -393,10 +370,9 @@ namespace TrialServer
             ServerState.Report($"Trial {ServerState.TrialNumber} started via the backdoor.");
         }
 
-        // End the current set early by invoking the study's own end-of-trial path (OnTrialFinished: pause
-        // recording, clear spawned gems, advance the trial index, show the menu). Reflection because the
-        // method is private; refused loudly if the binding failed. A MANUAL_END marker lands in the gaze JSON
-        // first so the file itself says the set did not run to completion.
+        // End the current set early through the study's own end-of-trial path (EndTrialEarly: pause
+        // recording, clear spawned gems, advance the trial index, show the menu). A MANUAL_END marker lands
+        // in the gaze JSON first so the file itself says the set did not run to completion.
         void HandleEnd()
         {
             bool endable = ServerState.Phase == TrialPhase.Tutorial ||
@@ -405,13 +381,6 @@ namespace TrialServer
             if (!endable)
             {
                 ServerState.Report("Nothing is running to end.", "error");
-                return;
-            }
-
-            if (_onTrialFinishedMethod == null)
-            {
-                ServerState.Report("Cannot end early: SequenceManager.OnTrialFinished was not found " +
-                                   "(renamed?). End the set on the device instead.", "error");
                 return;
             }
 
@@ -430,7 +399,7 @@ namespace TrialServer
 
             try
             {
-                _onTrialFinishedMethod.Invoke(_sm, null);
+                _sm.EndTrialEarly();
             }
             catch (System.Exception e)
             {
@@ -438,7 +407,7 @@ namespace TrialServer
                 return;
             }
 
-            // Invoking the method directly does not re-fire OnAllTargetsDestroyed, so advance our phase here.
+            // Calling the method directly does not re-fire OnAllTargetsDestroyed, so advance our phase here.
             AdvanceFlow("ended from the dashboard");
 
             // Ending the tutorial early leaves its 4 practice gems in the scene: they are spawned directly,
@@ -510,9 +479,12 @@ namespace TrialServer
                     return;
             }
 
-            if (n < 1)
+            // Against the PART's first trial, not 1. In Part 2 the queued trial is 3, so a bare "n >= 1"
+            // would happily flag "Trial 2" -- a trial from the Part 1 session, run before this app launch,
+            // whose file this session cannot annotate.
+            if (n < ServerState.FirstTrialNumber)
             {
-                ServerState.Report("No trial has run yet.", "error");
+                ServerState.Report("No trial has run yet in this part.", "error");
                 return;
             }
 

@@ -200,15 +200,26 @@
   <div class="card">
     <h2>Controls</h2>
 
-    <!-- One sequence, picked once. The study's SequenceManager ignores a second selection, so these lock
-         after the first pick; restart the app to choose another. Picking one starts the study's TUTORIAL
-         (4 practice gems) immediately, and the tutorial records: that is the study's design, not a trial. -->
+    <!-- One sequence AND part, picked once. The study's SequenceManager ignores a second selection, so these
+         lock after the first pick; restart the app to choose another. Two columns, matching the device's own
+         menu: LEFT is Part 1, RIGHT is Part 2. data-idx is the flattened index the bridge expects (0-3 =
+         Part 1 Seq 1-4, 4-7 = Part 2 Seq 1-4); the DOM order interleaves the parts to fill the grid by
+         column, so it is NOT the same as the child order. Picking a PART 1 button starts the study's TUTORIAL
+         (4 practice gems) immediately, and the tutorial records: that is the study's design, not a trial.
+         PART 2 has no tutorial and queues Trial 3 straight away. -->
     <div class="seqbtns" id="seqbtns">
-      <button class="btn" onclick="selectSequence(0)">Sequence 1</button>
-      <button class="btn" onclick="selectSequence(1)">Sequence 2</button>
-      <button class="btn" onclick="selectSequence(2)">Sequence 3</button>
-      <button class="btn" onclick="selectSequence(3)">Sequence 4</button>
+      <button class="btn" data-idx="0" onclick="selectSequence(0)">Seq 1 - Part 1</button>
+      <button class="btn" data-idx="4" onclick="selectSequence(4)">Seq 1 - Part 2</button>
+      <button class="btn" data-idx="1" onclick="selectSequence(1)">Seq 2 - Part 1</button>
+      <button class="btn" data-idx="5" onclick="selectSequence(5)">Seq 2 - Part 2</button>
+      <button class="btn" data-idx="2" onclick="selectSequence(2)">Seq 3 - Part 1</button>
+      <button class="btn" data-idx="6" onclick="selectSequence(6)">Seq 3 - Part 2</button>
+      <button class="btn" data-idx="3" onclick="selectSequence(3)">Seq 4 - Part 1</button>
+      <button class="btn" data-idx="7" onclick="selectSequence(7)">Seq 4 - Part 2</button>
     </div>
+    <div class="note">Part 1 = Trials 1 &amp; 2 (Dusk), preceded by the tutorial. Part 2 = Trials 3 &amp; 4
+      (Night), no tutorial. One part per app launch: the headset is rebooted between them, and trials are
+      never renumbered, so Part 2 really does start at Trial 3.</div>
 
     <!-- ARM, never start. Arming re-enables the Start button on the DEVICE; the participant is the one who
          presses it. Until a trial is armed, this page holds that device button disabled. -->
@@ -338,8 +349,8 @@ function post(path, body) {
     });
 }
 
-// The study's SequenceManager takes a 0-based sequence index; the bridge parses the raw body as an int, so
-// send the number itself, not JSON.
+// The bridge takes the FLATTENED 0-based button index (0-3 = Part 1 Seq 1-4, 4-7 = Part 2 Seq 1-4) and
+// parses the raw body as an int, so send the number itself, not JSON.
 function selectSequence(i) { post('/api/trial/sequence', String(i)); }
 
 // Arming re-enables the device Start button so the PARTICIPANT starts the trial. This page never starts one
@@ -421,7 +432,8 @@ function toggleWake() {
   function na(v, dec, unit) { return (v === null || v === undefined) ? 'n/a' : n(v, dec, unit); }
 
   // One place turns a phase into its display class, so TUTORIAL reads as its own loud state and is never
-  // mistaken for a running trial (the tutorial spawns gems and records the moment a sequence is picked).
+  // mistaken for a running trial (in Part 1 the tutorial spawns gems and records the moment a sequence is
+  // picked; Part 2 has no tutorial and goes straight to READY).
   var PHASE_CLASS = { Recording: 'rec', Ready: 'ready', Armed: 'armed', Tutorial: 'tut', Paused: 'paused' };
   var PHASE_TEXT = { Tutorial: 'TUTORIAL (not a trial)', Armed: 'ARMED - awaiting participant' };
 
@@ -444,7 +456,7 @@ function toggleWake() {
     el.className = 'state v ' + (PHASE_CLASS[phase] || 'idle');
 
     txt('condition', condLabel(t));
-    txt('sequence', t.sequence ? ('Sequence ' + t.sequence) : '(none picked)');
+    txt('sequence', t.sequence ? ('Sequence ' + t.sequence + ' - Part ' + t.part) : '(none picked)');
     txt('number', t.number ? (t.number + ' of ' + t.total) : '-');
     txt('pool', t.pool ? String(t.pool) : '-');
 
@@ -464,12 +476,16 @@ function toggleWake() {
     document.getElementById('limitBox').classList.toggle('hidden', !over);
     if (over) { txt('limitElapsed', mmss(lv.trialTime)); txt('limitTotal', mmss(limit)); }
 
-    // Sequence buttons lock once a sequence is picked (phase leaves Menu). Highlight the chosen one.
+    // Sequence/part buttons lock once one is picked (phase leaves Menu). Highlight the chosen one. Read the
+    // flattened index off data-idx rather than the child position: the DOM is ordered to fill the two-column
+    // grid by column, so child 1 is Seq 1 Part 2, not Seq 2.
     var seqEnabled = phase === 'Menu';
     var seqEls = document.getElementById('seqbtns').children;
     for (var i = 0; i < seqEls.length; i++) {
+      var idx = parseInt(seqEls[i].getAttribute('data-idx'), 10);
       seqEls[i].disabled = !seqEnabled;
-      seqEls[i].classList.toggle('sel', (t.sequence === i + 1));
+      seqEls[i].classList.toggle('sel',
+        t.sequence === (idx % 4) + 1 && t.part === Math.floor(idx / 4) + 1);
     }
 
     // Arm only lights when a numbered trial is queued (Ready). While Armed it reads as the handoff to the
@@ -485,9 +501,11 @@ function toggleWake() {
     document.getElementById('resumebtn').disabled = phase !== 'Paused';
     document.getElementById('endbtn').disabled =
       !(phase === 'Tutorial' || phase === 'Recording' || phase === 'Paused');
-    // The bridge decides WHICH trial a bad flag names; the button just needs a trial to have existed.
+    // The bridge decides WHICH trial a bad flag names; the button just needs a trial to have existed IN THIS
+    // PART. Compared against t.first, not 1: in Part 2 the queued trial is 3, and "> 1" would light the
+    // button before anything had run.
     document.getElementById('badbtn').disabled =
-      !(inTrial || phase === 'Done' || ((phase === 'Ready' || phase === 'Armed') && t.number > 1));
+      !(inTrial || phase === 'Done' || ((phase === 'Ready' || phase === 'Armed') && t.number > t.first));
 
     // The session's bad-trial tally, rebuilt from the snapshot so it survives a page reload.
     var bad = d.badTrials || [];

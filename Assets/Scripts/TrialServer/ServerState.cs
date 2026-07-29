@@ -27,10 +27,25 @@ namespace TrialServer
         /// <summary>1-4 once a sequence is picked, 0 while still on the menu.</summary>
         public static int SelectedSequence;
 
+        /// <summary>1 or 2 once a sequence is picked, 0 while still on the menu. A session runs HALF a
+        /// sequence: Part 1 is Trials 1-2 (Dusk, preceded by the tutorial), Part 2 is Trials 3-4 (Night,
+        /// no tutorial — the headset is rebooted between the parts and the participant has already done
+        /// it). Trials are never renumbered, so Part 2 really does start at "Trial 3".</summary>
+        public static int SelectedPart;
+
         /// <summary>1-based trial number the study is on (queued or recording). 0 before the first trial.</summary>
         public static int TrialNumber;
 
-        /// <summary>Total numbered trials in a sequence. The study is a fixed four.</summary>
+        /// <summary>1-based number of the selected part's FIRST trial: 1 for Part 1, 3 for Part 2. Set when
+        /// a sequence is picked; this is what TrialNumber starts at, not a hardcoded 1.</summary>
+        public static int FirstTrialNumber = 1;
+
+        /// <summary>1-based number of the selected part's LAST trial: 2 for Part 1, 4 for Part 2. Reaching
+        /// it ends the session (phase Done), not reaching trial 4.</summary>
+        public static int LastTrialNumber = 4;
+
+        /// <summary>Total numbered trials in a WHOLE sequence, both parts. Display only, so the dashboard
+        /// can read "Trial 3 of 4" during Part 2; the flow itself runs on First/LastTrialNumber.</summary>
         public static int TotalTrials = 4;
 
         /// <summary>Pool 1-4 for the current/queued trial, 0 when unknown (reflection into the private table

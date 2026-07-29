@@ -111,6 +111,27 @@ public class RandomSpawner : MonoBehaviour
         }
     }
 
+    /// <summary>The fixed seed authored for a pool. Pool 1's seed is the fallback for an unrecognised
+    /// value, matching what the spawn path itself does.</summary>
+    public int GetSeedForPool(PoolSelection pool)
+    {
+        switch (pool)
+        {
+            case PoolSelection.Pool1: return pool1Seed;
+            case PoolSelection.Pool2: return pool2Seed;
+            case PoolSelection.Pool3: return pool3Seed;
+            case PoolSelection.Pool4: return pool4Seed;
+            default: return pool1Seed;
+        }
+    }
+
+    /// <summary>
+    /// The seed the next <see cref="SpawnObjects"/> will use, or null when <see cref="useFixedSeed"/> is
+    /// off — in which case there is no seed to report and the layout is NOT reproducible. Callers that
+    /// record the seed alongside the data should say so rather than printing a seed that was never applied.
+    /// </summary>
+    public int? ActiveSeed => useFixedSeed ? GetSeedForPool(selectedPool) : (int?)null;
+
     private List<GameObject> GetActivePool()
     {
         switch (selectedPool)
@@ -149,15 +170,7 @@ public class RandomSpawner : MonoBehaviour
 
         if (useFixedSeed)
         {
-            int seedToUse = pool1Seed;
-            switch (selectedPool)
-            {
-                case PoolSelection.Pool1: seedToUse = pool1Seed; break;
-                case PoolSelection.Pool2: seedToUse = pool2Seed; break;
-                case PoolSelection.Pool3: seedToUse = pool3Seed; break;
-                case PoolSelection.Pool4: seedToUse = pool4Seed; break;
-            }
-            Random.InitState(seedToUse);
+            Random.InitState(GetSeedForPool(selectedPool));
         }
 
         // The number of recall objects is exactly the number of unique prefabs provided

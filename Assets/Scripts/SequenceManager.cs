@@ -16,12 +16,39 @@ public class SequenceManager : MonoBehaviour
     [Header("UI References")]
     public GameObject mainInstructionsObject;
     
-    [Header("Sequence Buttons")]
-    [Tooltip("Drag your 4 Sequence Buttons here.")]
-    public GameObject[] sequenceButtons; 
+    // ==================== SEQUENCE / PART BUTTONS ====================
+    //
+    // A session is half a sequence. PART 1 is Trials 1 & 2 (both Dusk) and runs the tutorial first;
+    // PART 2 is Trials 3 & 4 (both Night) and SKIPS the tutorial, because the headset is rebooted
+    // between the two parts and the same participant has already done the tutorial in Part 1.
+    //
+    // The two parts are authored as two separate arrays rather than one array of eight so the
+    // Inspector says which is which. Laid out in the scene as two columns: Part 1 on the LEFT,
+    // Part 2 on the RIGHT, Sequence 1-4 top to bottom in each.
 
-    [Tooltip("Drag the Text child of each sequence button into this array.")]
-    public GameObject[] sequenceButtonTexts;
+    // FormerlySerializedAs: these two were "sequenceButtons"/"sequenceButtonTexts" back when a session ran a
+    // whole sequence. The old four buttons ARE the Part 1 column, so the attribute migrates the existing
+    // scene wiring into Part 1 instead of silently emptying it and leaving a menu with no working buttons.
+    [Header("Sequence Buttons — PART 1  (Trials 1 & 2 · Dusk · runs the tutorial)")]
+    [Tooltip("LEFT column, top to bottom: Sequence 1, 2, 3, 4.\n\n" +
+             "Picking one of these runs the 4-gem tutorial, then Trials 1 and 2 (both Dusk).")]
+    [UnityEngine.Serialization.FormerlySerializedAs("sequenceButtons")]
+    public GameObject[] sequenceButtonsPart1 = new GameObject[SequencesPerPart];
+
+    [Tooltip("The Text child of each PART 1 button, same order. Optional — if left empty the button " +
+             "itself is searched for a TMP_Text child.")]
+    [UnityEngine.Serialization.FormerlySerializedAs("sequenceButtonTexts")]
+    public GameObject[] sequenceButtonTextsPart1 = new GameObject[SequencesPerPart];
+
+    [Header("Sequence Buttons — PART 2  (Trials 3 & 4 · Night · NO tutorial)")]
+    [Tooltip("RIGHT column, top to bottom: Sequence 1, 2, 3, 4.\n\n" +
+             "Part 2 is run after rebooting the headset, so picking one of these SKIPS the tutorial " +
+             "and goes straight to the wait screen for Trial 3 (both trials are Night).")]
+    public GameObject[] sequenceButtonsPart2 = new GameObject[SequencesPerPart];
+
+    [Tooltip("The Text child of each PART 2 button, same order. Optional — if left empty the button " +
+             "itself is searched for a TMP_Text child.")]
+    public GameObject[] sequenceButtonTextsPart2 = new GameObject[SequencesPerPart];
 
     [Header("Start Button")]
     [Tooltip("Drag your dedicated Start Trial button here.")]
@@ -52,13 +79,34 @@ public class SequenceManager : MonoBehaviour
     [Tooltip("While a trial (or the tutorial) is running, a heartbeat line is written to the device log (logcat) at this interval. It is deliberately NOT written to the trial JSON: logcat survives a mid-trial reboot (the JSON copy would be buffered in RAM and lost on the very reboot we're trying to diagnose), and it keeps the experimental data clean. Pull it with 'adb logcat' or a bugreport and grep for [HEARTBEAT]. Set 0 to disable.")]
     [SerializeField] private float heartbeatIntervalSeconds = 30f;
 
+    /// <summary>How many sequences there are (1-4). One button per sequence, per part.</summary>
+    public const int SequencesPerPart = 4;
+
+    /// <summary>How many trials each part runs. Part 1 = trial indices 0-1, Part 2 = trial indices 2-3.</summary>
+    public const int TrialsPerPart = 2;
+
     // Internal State
     private int currentSequenceIndex = -1;
-    private int currentTrialIndex = 0;
+    private int currentPartIndex = 0;      // 0 = Part 1 (trials 0-1), 1 = Part 2 (trials 2-3)
+    private int currentTrialIndex = 0;     // ABSOLUTE index 0-3 into the sequence tables, never re-based per part
     private bool sequenceComplete = false;
     private bool isTutorialPhase = false;
     private Coroutine _cooldownRoutine;
     private System.Threading.CancellationTokenSource _heartbeatCts;
+
+    // Flattened view of the two authored button arrays, built once in Awake: index 0-3 = Part 1
+    // Sequence 1-4, index 4-7 = Part 2 Sequence 1-4. Everything else in this class -- and the trial
+    // server's SequenceBridge -- works in that one index space, so the two-array split stays purely an
+    // authoring convenience.
+    private GameObject[] _allButtons;
+    private GameObject[] _allButtonTexts;
+
+    // First (inclusive) and last (exclusive) ABSOLUTE trial index of the selected part. A part is just a
+    // window over the 4x4 tables below, which is why nothing here renumbers trials: Part 2's trials stay
+    // "Trial 3"/"Trial 4" in the UI, in the markers, and in the recording filenames, so its data can never
+    // collide with Part 1's.
+    private int PartFirstTrialIndex => currentPartIndex * TrialsPerPart;
+    private int PartEndTrialIndex => PartFirstTrialIndex + TrialsPerPart;
 
     // Hardcoded Sequences based on your prompt
     // True = Wireframe ON. False = Wireframe OFF.
@@ -77,6 +125,84 @@ public class SequenceManager : MonoBehaviour
         { true, false, true, false }  // Sequence 4
     };
 
+    // ==================== PUBLIC READ-ONLY API ====================
+    //
+    // For the trial server's SequenceBridge, which used to reach in here by reflection to display the
+    // pool/wireframe/time-of-day and to end a trial early. Reflection broke silently on a rename and could
+    // not survive the part change at all (a bare trial index no longer tells you which part you are in),
+    // so the few things it needs are exposed properly instead. All observation, except EndTrialEarly.
+
+    /// <summary>0-3 once a sequence is picked, -1 while still on the menu.</summary>
+    public int SelectedSequenceIndex => currentSequenceIndex;
+
+    /// <summary>0 = Part 1 (Trials 1-2, Dusk), 1 = Part 2 (Trials 3-4, Night). Meaningless until picked.</summary>
+    public int SelectedPartIndex => currentPartIndex;
+
+    /// <summary>Absolute index (0-3) of the running or queued trial.</summary>
+    public int CurrentTrialIndex => currentTrialIndex;
+
+    /// <summary>1-based number of the selected part's FIRST trial: 1 for Part 1, 3 for Part 2.</summary>
+    public int FirstTrialNumber => PartFirstTrialIndex + 1;
+
+    /// <summary>1-based number of the selected part's LAST trial: 2 for Part 1, 4 for Part 2.</summary>
+    public int LastTrialNumber => PartEndTrialIndex;
+
+    /// <summary>Number of sequence/part buttons in the flattened index space: 0-3 = Part 1 Sequence 1-4,
+    /// 4-7 = Part 2 Sequence 1-4.</summary>
+    public int SequenceButtonCount => _allButtons != null ? _allButtons.Length : 0;
+
+    /// <summary>The button at a flattened index (see <see cref="SequenceButtonCount"/>), or null if the
+    /// index is out of range or that slot was never wired in the Inspector.</summary>
+    public GameObject GetSequenceButton(int flatIndex) =>
+        (_allButtons != null && flatIndex >= 0 && flatIndex < _allButtons.Length) ? _allButtons[flatIndex] : null;
+
+    /// <summary>Pool number (1-4) for an absolute trial index, or 0 if the sequence/index is out of range.</summary>
+    public int GetPoolForTrial(int sequenceIndex, int trialIndex) =>
+        InTableRange(sequenceIndex, trialIndex) ? sequencePools[sequenceIndex, trialIndex] : 0;
+
+    /// <summary>Whether the given trial shows the wireframe. False if the sequence/index is out of range.</summary>
+    public bool GetWireframeForTrial(int sequenceIndex, int trialIndex) =>
+        InTableRange(sequenceIndex, trialIndex) && sequenceWireframes[sequenceIndex, trialIndex];
+
+    private static bool InTableRange(int sequenceIndex, int trialIndex) =>
+        sequenceIndex >= 0 && sequenceIndex < SequencesPerPart &&
+        trialIndex >= 0 && trialIndex < SequencesPerPart;
+
+    /// <summary>"Dusk" for trials 1-2, "Night" for trials 3-4. The part boundary and the lighting boundary
+    /// are the same split by design: Part 1 is the Dusk session, Part 2 the Night session.</summary>
+    public static string TimeOfDayForTrial(int trialIndex) => trialIndex < TrialsPerPart ? "Dusk" : "Night";
+
+    /// <summary>Ends the running trial through this class's own end-of-trial path (pause recording, clear
+    /// gems, advance, show the menu) exactly as if the last target had been destroyed. The trial server's
+    /// "End trial" command is the only caller.</summary>
+    public void EndTrialEarly() => OnTrialFinished();
+
+    private void Awake()
+    {
+        // Built in Awake, not Start: the trial server's SequenceBridge can bind to this component before
+        // our Start runs, and it indexes buttons through GetSequenceButton.
+        BuildCombinedButtonArrays();
+    }
+
+    /// <summary>Flattens the two authored per-part arrays into one 0-7 index space. Missing or short arrays
+    /// simply leave null slots, which every consumer already skips.</summary>
+    private void BuildCombinedButtonArrays()
+    {
+        _allButtons = new GameObject[SequencesPerPart * 2];
+        _allButtonTexts = new GameObject[SequencesPerPart * 2];
+
+        for (int s = 0; s < SequencesPerPart; s++)
+        {
+            _allButtons[s] = ElementOrNull(sequenceButtonsPart1, s);
+            _allButtons[SequencesPerPart + s] = ElementOrNull(sequenceButtonsPart2, s);
+            _allButtonTexts[s] = ElementOrNull(sequenceButtonTextsPart1, s);
+            _allButtonTexts[SequencesPerPart + s] = ElementOrNull(sequenceButtonTextsPart2, s);
+        }
+    }
+
+    private static GameObject ElementOrNull(GameObject[] array, int index) =>
+        (array != null && index >= 0 && index < array.Length) ? array[index] : null;
+
     private void Start()
     {
         if (spawner != null) spawner.spawnOnAwake = false;
@@ -86,28 +212,31 @@ public class SequenceManager : MonoBehaviour
         // Fallback so the map still works if the Inspector reference wasn't wired.
         if (mapTracking == null) mapTracking = FindObjectOfType<MagicLeap.Examples.MapTracking>();
 
-        // Set up the unified button clicks in code and initialize their names
-        for (int i = 0; i < sequenceButtons.Length; i++)
+        // Wire every sequence/part button in code and label its face, so the Inspector never has to carry
+        // an OnClick binding that could drift out of step with the array order.
+        for (int i = 0; i < _allButtons.Length; i++)
         {
-            if (sequenceButtons[i] != null)
+            if (_allButtons[i] == null) continue;
+
+            int index = i; // local copy for closure
+            int seqNumber = (i % SequencesPerPart) + 1;
+            int partNumber = (i / SequencesPerPart) + 1;
+
+            // Name the buttons "Seq 1 - Part 1", "Seq 1 - Part 2", etc.
+            SetButtonText(index, $"Seq {seqNumber} - Part {partNumber}");
+
+            var btn = _allButtons[i].GetComponent<UnityEngine.UI.Button>();
+            if (btn == null) btn = _allButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
+
+            if (btn != null)
             {
-                int index = i; // local copy for closure
-                
-                // Name the buttons "Sequence 1", "Sequence 2", etc.
-                SetButtonText(index, $"Sequence {index + 1}");
-
-                var btn = sequenceButtons[i].GetComponent<UnityEngine.UI.Button>();
-                if (btn == null) btn = sequenceButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
-
-                if (btn != null)
-                {
-                    btn.onClick.RemoveAllListeners();
-                    btn.onClick.AddListener(() => SelectSequence(index));
-                }
-                else
-                {
-                    Debug.LogWarning($"SequenceManager: Could not find Button component for Sequence Button {i}.");
-                }
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => SelectSequence(index));
+            }
+            else
+            {
+                Debug.LogWarning($"SequenceManager: Could not find Button component for " +
+                                 $"Sequence {seqNumber} Part {partNumber} (flat index {i}).");
             }
         }
 
@@ -130,7 +259,8 @@ public class SequenceManager : MonoBehaviour
         // hierarchy walk doesn't land in the middle of a trial transition.
         CacheBlueWireframeChildren();
 
-        ShowMenu("Please scan all ArUco Markers and Select a Sequence to start.");
+        ShowMenu("Please scan all ArUco Markers, then select a Sequence and Part to start.\n" +
+                 "Part 1 = Trials 1 & 2 (Dusk).   Part 2 = Trials 3 & 4 (Night).");
     }
 
     /// <summary>Central place to change the render cap. Hard-capped at 30 fps to keep
@@ -141,49 +271,73 @@ public class SequenceManager : MonoBehaviour
         Application.targetFrameRate = Mathf.Min(fps, MaxFrameRate);
     }
 
-    private void OnUnifiedButtonClicked(int buttonIndex)
-    {
-        if (currentSequenceIndex == -1)
-        {
-            // 1. FIRST CLICK: We are picking a sequence
-            SelectSequence(buttonIndex);
-        }
-        else
-        {
-            // 2. SUBSEQUENT CLICKS: Only Button 0 is visible and it acts as the Start button
-            if (buttonIndex == 0)
-            {
-                OnStartButtonClicked();
-            }
-        }
-    }
-
-    private void SelectSequence(int index)
+    /// <summary>
+    /// Handles a click on any of the eight sequence/part buttons. <paramref name="flatIndex"/> is the
+    /// flattened index: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4.
+    /// </summary>
+    private void SelectSequence(int flatIndex)
     {
         if (currentSequenceIndex != -1) return; // Prevent double-fire on sequence selection
 
-        currentSequenceIndex = index;
-        currentTrialIndex = 0;
+        currentSequenceIndex = flatIndex % SequencesPerPart;
+        currentPartIndex = flatIndex / SequencesPerPart;
+        currentTrialIndex = PartFirstTrialIndex; // Part 1 starts at trial 0, Part 2 at trial 2
         sequenceComplete = false;
 
-        // Hide ALL sequence buttons
-        for (int i = 0; i < sequenceButtons.Length; i++)
-        {
-            if (sequenceButtons[i] != null)
-            {
-                var btn = sequenceButtons[i].GetComponent<UnityEngine.UI.Button>();
-                if (btn == null) btn = sequenceButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
-                
-                if (btn != null) btn.gameObject.SetActive(false);
-                else sequenceButtons[i].SetActive(false); // Fallback
-            }
-        }
-        
+        HideAllSequenceButtons();
+
         // Ensure start button is hidden
         if (startButton != null) startButton.SetActive(false);
 
-        // Start Tutorial Phase instead of going straight to the first trial
-        StartTutorialPhase();
+        // The markers have been scanned and the building is locked, so both CV detectors come down HERE,
+        // at selection, rather than inside the tutorial. Part 2 skips the tutorial, and leaving the
+        // space-pin detector running through its wait screen and the start cooldown is exactly the
+        // CV/heat load the rest of this class works to avoid.
+        TearDownScanningDetectors();
+
+        if (currentPartIndex == 0)
+        {
+            // Part 1: tutorial first, then Trials 1 and 2.
+            StartTutorialPhase();
+        }
+        else
+        {
+            // Part 2 runs after a headset reboot, on a participant who already did the tutorial in
+            // Part 1, so it goes straight to the wait screen for Trial 3. Nothing else needs priming:
+            // EyeAndHeadTracker.StartNewTrialRecording opens its own writers and starts its own clock,
+            // so the first numbered trial bootstraps recording on its own.
+            Debug.Log($"SequenceManager: Sequence {currentSequenceIndex + 1} Part 2 selected; " +
+                      "skipping the tutorial and queueing Trial 3.");
+            UpdateMenuForNextTrial();
+        }
+    }
+
+    private void HideAllSequenceButtons()
+    {
+        for (int i = 0; i < _allButtons.Length; i++)
+        {
+            if (_allButtons[i] == null) continue;
+
+            var btn = _allButtons[i].GetComponent<UnityEngine.UI.Button>();
+            if (btn == null) btn = _allButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
+
+            if (btn != null) btn.gameObject.SetActive(false);
+            else _allButtons[i].SetActive(false); // Fallback
+        }
+    }
+
+    /// <summary>
+    /// Brings down both CV detectors. Space pins have served their purpose once a sequence is picked
+    /// (the building is locked), and map tracking is stopped defensively in case a prior trial's cleanup
+    /// failed — together that guarantees neither detector is running while we sit on a menu or in the
+    /// tutorial. Both calls are idempotent, so this is safe to call from any state.
+    /// </summary>
+    private void TearDownScanningDetectors()
+    {
+        if (ArucoMarkerManager.Instance != null)
+            ArucoMarkerManager.Instance.DestroyMarkerTrackers();
+        if (mapTracking != null)
+            mapTracking.StopTracking();
     }
 
     private void StartTutorialPhase()
@@ -191,16 +345,6 @@ public class SequenceManager : MonoBehaviour
         isTutorialPhase = true;
         gameObject.SetActive(false); // Hide HUD during tutorial
         SetFrameRate(trialFrameRate); // active gameplay
-
-        // Space pins have served their purpose (building is locked) — tear down the
-        // space-pin detector now so it isn't running during the tutorial or trials.
-        // Also defensively stop map tracking: the tutorial never uses it, so if a
-        // prior trial's cleanup somehow failed to stop it, this guarantees neither
-        // CV detector is running during the tutorial.
-        if (ArucoMarkerManager.Instance != null)
-            ArucoMarkerManager.Instance.DestroyMarkerTrackers();
-        if (mapTracking != null)
-            mapTracking.StopTracking();
 
         if (tutorialTargetPrefab != null)
         {
@@ -264,21 +408,24 @@ public class SequenceManager : MonoBehaviour
         gameObject.SetActive(true); // Show HUD
         SetFrameRate(menuFrameRate); // idle menu: run cool and let the device cool down
 
-        if (currentTrialIndex >= 4)
+        if (currentTrialIndex >= PartEndTrialIndex)
         {
             sequenceComplete = true;
-            ShowMenu($"Sequence {currentSequenceIndex + 1} Complete!\nPlease close the application or restart.");
+            string whatNext = (currentPartIndex == 0)
+                ? "Please reboot the headset before running Part 2."
+                : "Please close the application.";
+            ShowMenu($"Sequence {currentSequenceIndex + 1} Part {currentPartIndex + 1} Complete!\n{whatNext}");
             if (startButton != null) startButton.SetActive(false);
             if (tracker != null) tracker.PauseRecording();
             return;
         }
 
-        string timeOfDay = (currentTrialIndex < 2) ? "Dusk" : "Night";
+        string timeOfDay = TimeOfDayForTrial(currentTrialIndex);
         int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
 
-        if (currentTrialIndex == 0)
+        if (currentTrialIndex == PartFirstTrialIndex)
         {
-            ShowMenu($"Sequence {currentSequenceIndex + 1} Selected.\n\nPlease wait until the researcher approves Trial 1 ({timeOfDay} - Pool {poolNum}).");
+            ShowMenu($"Sequence {currentSequenceIndex + 1} Part {currentPartIndex + 1} Selected.\n\nPlease wait until the researcher approves Trial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
         }
         else
         {
@@ -345,7 +492,7 @@ public class SequenceManager : MonoBehaviour
 
         int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
         bool useWireframe = sequenceWireframes[currentSequenceIndex, currentTrialIndex];
-        string timeOfDay = (currentTrialIndex < 2) ? "Dusk" : "Night";
+        string timeOfDay = TimeOfDayForTrial(currentTrialIndex);
 
         // 2. Clear old objects and spawn new ones
         if (spawner != null)
@@ -373,12 +520,26 @@ public class SequenceManager : MonoBehaviour
         if (tracker != null)
         {
             tracker.RefreshTargetList();
-            tracker.StartNewTrialRecording($"Trial_{currentTrialIndex + 1}");
+            tracker.StartNewTrialRecording($"Trial_{currentTrialIndex + 1}", BuildConditionTag(poolNum));
             string wireframeText = useWireframe ? "Wireframe" : "Zero Wireframe";
             tracker.LogMarker($"Trial {currentTrialIndex + 1} ({timeOfDay}): Pool {poolNum} + {wireframeText}");
         }
 
         StartHeartbeat($"Trial_{currentTrialIndex + 1}");
+    }
+
+    /// <summary>
+    /// The condition fragment folded into this trial's output filenames: "Pool3_Seed300", or
+    /// "Pool3_SeedRandom" when the spawner has fixed seeds switched off and the layout is therefore not
+    /// reproducible (better than printing a seed that was never applied). Read off the spawner AFTER
+    /// selectedPool has been set, so it always describes the layout that was actually spawned.
+    /// </summary>
+    private string BuildConditionTag(int poolNum)
+    {
+        if (spawner == null) return $"Pool{poolNum}";
+
+        int? seed = spawner.ActiveSeed;
+        return seed.HasValue ? $"Pool{poolNum}_Seed{seed.Value}" : $"Pool{poolNum}_SeedRandom";
     }
 
     private void OnTrialFinished()
@@ -388,6 +549,17 @@ public class SequenceManager : MonoBehaviour
         if (isTutorialPhase)
         {
             isTutorialPhase = false;
+
+            // Seal the tutorial's files here rather than letting the next trial's
+            // StartNewTrialRecording close them: that path would leave them named incomplete_
+            // forever, even though the tutorial ran to completion.
+            if (tracker != null)
+            {
+                tracker.LogMarker("Tutorial Ended.");
+                tracker.PauseRecording();
+                tracker.FinalizeTrialFiles();
+            }
+
             UpdateMenuForNextTrial(); // Show the menu for Trial 1
             return;
         }
@@ -396,6 +568,10 @@ public class SequenceManager : MonoBehaviour
         {
             tracker.LogMarker($"Trial {currentTrialIndex + 1} Ended.");
             tracker.PauseRecording();
+
+            // Every target was destroyed (or the researcher ended the set deliberately), so the files
+            // are complete: close them and rename incomplete_ -> completed_.
+            tracker.FinalizeTrialFiles();
         }
 
         // All targets destroyed -> stop the map detector to drop camera/CV load and heat.
@@ -546,22 +722,15 @@ public class SequenceManager : MonoBehaviour
         }
     }
 
+    /// <summary>Sets the face text of a sequence/part button by FLATTENED index (0-3 = Part 1
+    /// Sequence 1-4, 4-7 = Part 2 Sequence 1-4).</summary>
     private void SetButtonText(int index, string msg)
     {
-        if (index < 0 || index >= sequenceButtons.Length) return;
+        if (_allButtons == null || index < 0 || index >= _allButtons.Length) return;
 
-        GameObject textObj = null;
-        
         // Use explicit reference if provided, otherwise fallback to finding it dynamically
-        if (sequenceButtonTexts != null && sequenceButtonTexts.Length > index && sequenceButtonTexts[index] != null)
-        {
-            textObj = sequenceButtonTexts[index];
-        }
-        else if (sequenceButtons != null && sequenceButtons.Length > index && sequenceButtons[index] != null)
-        {
-            textObj = sequenceButtons[index];
-        }
-        
+        GameObject textObj = _allButtonTexts[index] != null ? _allButtonTexts[index] : _allButtons[index];
+
         if (textObj == null) return;
 
         var tmp = textObj.GetComponent<TMPro.TMP_Text>();

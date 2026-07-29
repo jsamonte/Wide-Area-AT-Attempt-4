@@ -299,6 +299,29 @@ public class EyeAndHeadTracker : MonoBehaviour
     private StreamWriter rawNdjsonWriter;
     private string startTimeString;
 
+    // Extra filename component describing the trial's condition, e.g. "Pool3_Seed300". Supplied by the study
+    // through StartNewTrialRecording so the pool and the spawn seed are readable from a DIRECTORY LISTING and
+    // not only from inside the file. Empty for sets that have no pool, like the tutorial.
+    private string conditionTag = "";
+
+    // ==================== incomplete_ / completed_ NAMING ====================
+    //
+    // Every file starts life as "incomplete_..." and is renamed to "completed_..." only once the set has
+    // ended and all three handles are closed. A hard platform reboot or a flat battery mid-trial fires
+    // NEITHER OnApplicationQuit NOR OnApplicationPause, so the prefix is the only trustworthy signal that a
+    // file was closed properly: anything still named incomplete_ on the headset is truncated data.
+    private const string IncompletePrefix = "incomplete_";
+    private const string CompletedPrefix = "completed_";
+
+    // Flips the prefix once the set is finalized, and stops later saves recreating an incomplete_ copy.
+    private bool trialFilesFinalized;
+    private string FilePrefix => trialFilesFinalized ? CompletedPrefix : IncompletePrefix;
+
+    // The in-flight background summary write. SaveSessionData is fire-and-forget, so finalization has to
+    // WAIT on it: a write that lands after the rename would recreate the incomplete_ summary alongside the
+    // completed_ one, and the newest file on disk would then be the wrong one.
+    private System.Threading.Tasks.Task _summaryWriteTask;
+
     private ConcurrentQueue<string> rawLogQueue = new ConcurrentQueue<string>();
     private bool isRawLoggingThreadRunning = false;
     private object rawWriterLock = new object();
@@ -361,7 +384,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
             if (useEfficientRawLogging)
             {
-                string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{startTimeString}.ndjson");
+                string rawPath = Path.Combine(persistentDataPath, BuildFileName("raw_eye_head_tracking", "ndjson"));
                 lock (rawWriterLock)
                 {
                     rawNdjsonWriter = new StreamWriter(rawPath, true);
@@ -407,14 +430,174 @@ public class EyeAndHeadTracker : MonoBehaviour
         Debug.Log("EyeAndHeadTracker: JSON recording PAUSED.");
     }
 
-    public void StartNewTrialRecording(string trialName)
+    /// <summary>
+    /// Builds every output filename from ONE place. All three streams have to agree, because the JSON summary
+    /// stores the other two filenames as cross-references (rawTrackingFileReference / gazeEventsFileReference)
+    /// -- assembling them separately is exactly how a summary ends up pointing at a raw file that does not
+    /// exist under that name.
+    ///
+    /// Shape: {incomplete_|completed_}{prefix}_{participant}_{session}_{trial}[_{condition}]_{MM_dd_HH_mm_ss}.{ext}
+    /// e.g.   incomplete_gaze_session_summary_P002_S001_Trial_3_Pool4_Seed400_07_29_14_32_05.json
+    ///        completed_gaze_session_summary_P002_S001_Trial_3_Pool4_Seed400_07_29_14_32_05.json
+    /// </summary>
+    private string BuildFileName(string prefix, string extension)
     {
-        // Save old data before clearing
+        string condition = string.IsNullOrEmpty(conditionTag) ? "" : $"_{conditionTag}";
+        return $"{FilePrefix}{prefix}_{participantId}_{sessionId}_{currentTrialName}{condition}_{startTimeString}.{extension}";
+    }
+
+    /// <summary>Keeps a caller-supplied tag safe to paste into a filename: letters, digits, underscore and
+    /// dash survive; spaces and dots become underscores; anything else is dropped.</summary>
+    private static string SanitizeForFileName(string tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return "";
+
+        var sb = new System.Text.StringBuilder(tag.Length);
+        foreach (char c in tag)
+        {
+            if (char.IsLetterOrDigit(c) || c == '_' || c == '-') sb.Append(c);
+            else if (c == ' ' || c == '.') sb.Append('_');
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Closes this set's three files and renames them from incomplete_ to completed_. Call it when a set has
+    /// genuinely ENDED (every target destroyed, or ended deliberately from the dashboard) -- never on a
+    /// mid-trial pause, which goes on writing to the same files after it resumes.
+    ///
+    /// The ordering here IS the method; each step exists because the obvious order is broken:
+    ///   1. wait out the fire-and-forget background summary write, or it lands after the rename and
+    ///      recreates the incomplete_ summary;
+    ///   2. close all three handles, because a file open for writing cannot be renamed;
+    ///   3. rename the two ndjson streams while the prefix still reads incomplete_;
+    ///   4. flip the prefix and rewrite the summary SYNCHRONOUSLY, so the filenames it embeds
+    ///      (rawTrackingFileReference / gazeEventsFileReference) name files that exist;
+    ///   5. delete the incomplete_ summary the autosaves left behind.
+    ///
+    /// Idempotent, and a no-op if nothing was ever opened. Never throws: a rename that fails leaves the data
+    /// in place under its incomplete_ name, which is far better than losing the trial.
+    /// </summary>
+    public void FinalizeTrialFiles()
+    {
+        if (trialFilesFinalized || !hasInitializedRecording) return;
+
+        isRecording = false;
+
+        // 1. Let the in-flight background summary write settle before touching any filename.
+        try
+        {
+            _summaryWriteTask?.Wait(5000);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"EyeAndHeadTracker: background summary write did not settle before " +
+                             $"finalizing {currentTrialName}: {ex.Message}");
+        }
+        _summaryWriteTask = null;
+
+        // 2. Release every handle. The raw writer is shared with RawLoggingThreadLoop, which null-checks it
+        // under rawWriterLock, so nulling it here turns any stray queued line into a no-op rather than a
+        // write into a renamed file.
+        CloseCurrentLook(Time.realtimeSinceStartup);
+        CloseGazeEventWriter();
+
+        if (rawNdjsonWriter != null)
+        {
+            lock (rawWriterLock)
+            {
+                rawNdjsonWriter.Flush();
+                rawNdjsonWriter.Close();
+                rawNdjsonWriter = null;
+            }
+        }
+
+        // 3. Names as they are on disk right now (still incomplete_).
+        string rawOld = BuildFileName("raw_eye_head_tracking", "ndjson");
+        string summaryOld = BuildFileName("gaze_session_summary", "json");
+        string eventsOld = gazeEventsFileName;
+
+        // 4. Flip the prefix; every BuildFileName call from here returns the completed_ name.
+        trialFilesFinalized = true;
+
+        if (useEfficientRawLogging)
+            TryRenameInDataPath(rawOld, BuildFileName("raw_eye_head_tracking", "ndjson"));
+
+        if (!string.IsNullOrEmpty(eventsOld))
+        {
+            string eventsNew = BuildFileName("gaze_events", "ndjson");
+            // Only update the cross-reference if the rename actually happened, so the summary never names
+            // a file that is not there.
+            if (TryRenameInDataPath(eventsOld, eventsNew)) gazeEventsFileName = eventsNew;
+        }
+
+        // 5. Rewrite the summary under its completed_ name, synchronously so it cannot race the rename.
+        SaveSessionData(true);
+        TryDeleteInDataPath(summaryOld);
+
+        Debug.Log($"EyeAndHeadTracker: {currentTrialName} finalized; files renamed to {CompletedPrefix}*.");
+    }
+
+    /// <summary>Renames a file inside persistentDataPath. Returns whether it moved. Never throws.</summary>
+    private bool TryRenameInDataPath(string oldFileName, string newFileName)
+    {
+        try
+        {
+            string oldPath = Path.Combine(persistentDataPath, oldFileName);
+            string newPath = Path.Combine(persistentDataPath, newFileName);
+
+            if (!File.Exists(oldPath)) return false;
+            // File.Move throws if the destination exists, which it can after a re-run at the same timestamp.
+            if (File.Exists(newPath)) File.Delete(newPath);
+
+            File.Move(oldPath, newPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"EyeAndHeadTracker: could not rename {oldFileName} -> {newFileName}: " +
+                           $"{ex.Message}. The data is intact under its {IncompletePrefix}name.");
+            return false;
+        }
+    }
+
+    private void TryDeleteInDataPath(string fileName)
+    {
+        try
+        {
+            string path = Path.Combine(persistentDataPath, fileName);
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"EyeAndHeadTracker: could not remove the superseded {fileName}: {ex.Message}");
+        }
+    }
+
+    /// <summary>Starts a new trial's recording with no condition in the filenames. Used for sets that have
+    /// no pool or seed, like the tutorial.</summary>
+    public void StartNewTrialRecording(string trialName) => StartNewTrialRecording(trialName, null);
+
+    /// <summary>
+    /// Starts a new trial's recording. <paramref name="trialConditionTag"/> is folded into all three of this
+    /// trial's output filenames (e.g. "Pool3_Seed300"), so which pool and which spawn seed produced the data
+    /// is visible without opening anything. Pass null or empty for sets with no pool.
+    /// </summary>
+    public void StartNewTrialRecording(string trialName, string trialConditionTag)
+    {
+        // Save old data before clearing. Note this runs while currentTrialName/conditionTag still describe
+        // the OUTGOING trial, so its files close under its own name -- do not reorder these.
         if (destructionEvents.Count > 0)
         {
             SaveSessionData();
         }
 
+        // A new set starts life incomplete_ again. Must come after the save above, which belongs to the
+        // OUTGOING set (and is a no-op if that set was already finalized).
+        trialFilesFinalized = false;
+        _summaryWriteTask = null;
+
+        conditionTag = SanitizeForFileName(trialConditionTag);
         currentTrialName = trialName;
         destructionEvents.Clear();
         destroyCount = 0;
@@ -441,7 +624,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (useEfficientRawLogging)
         {
-            string rawPath = Path.Combine(persistentDataPath, $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson");
+            string rawPath = Path.Combine(persistentDataPath, BuildFileName("raw_eye_head_tracking", "ndjson"));
             lock (rawWriterLock)
             {
                 rawNdjsonWriter = new StreamWriter(rawPath, true);
@@ -1086,7 +1269,7 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         try
         {
-            gazeEventsFileName = $"gaze_events_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson";
+            gazeEventsFileName = BuildFileName("gaze_events", "ndjson");
             string path = Path.Combine(persistentDataPath, gazeEventsFileName);
 
             lock (rawWriterLock)
@@ -1276,8 +1459,19 @@ public class EyeAndHeadTracker : MonoBehaviour
         Debug.Log($"JSON MARKER: {message}");
     }
 
-    public void SaveSessionData()
+    public void SaveSessionData() => SaveSessionData(false);
+
+    /// <summary>
+    /// Writes the JSON summary. <paramref name="synchronous"/> is used only by
+    /// <see cref="FinalizeTrialFiles"/>, which must not leave a write in flight while it renames files.
+    /// </summary>
+    private void SaveSessionData(bool synchronous)
     {
+        // Once a set is finalized its files are closed and renamed, so the routine autosave callers
+        // (OnDestroy, OnApplicationQuit, the next trial's StartNewTrialRecording) must not write again --
+        // they would re-emit a summary for a set that is already sealed.
+        if (trialFilesFinalized && !synchronous) return;
+
         try
         {
             // Finalize numbers (MAIN THREAD)
@@ -1310,10 +1504,10 @@ public class EyeAndHeadTracker : MonoBehaviour
             };
 
             var destructionCopy = new List<DestructionEvent>(destructionEvents);
-            var rawFileRef = useEfficientRawLogging 
-                ? $"raw_eye_head_tracking_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.ndjson" : null;
-            
-            string summaryPath = Path.Combine(persistentDataPath, $"gaze_session_summary_{participantId}_{sessionId}_{currentTrialName}_{startTimeString}.json");
+            var rawFileRef = useEfficientRawLogging
+                ? BuildFileName("raw_eye_head_tracking", "ndjson") : null;
+
+            string summaryPath = Path.Combine(persistentDataPath, BuildFileName("gaze_session_summary", "json"));
 
             // 1. Save Summary (Main Thread serialization)
             var root = new SessionSummaryRoot
@@ -1330,8 +1524,17 @@ public class EyeAndHeadTracker : MonoBehaviour
             };
             string json = JsonUtility.ToJson(root, true);
 
-            // Fire and forget background thread
-            System.Threading.Tasks.Task.Run(() =>
+            // The finalize path writes on the calling thread: it is about to rename these files, so it
+            // cannot leave the write racing behind it on the thread pool.
+            if (synchronous)
+            {
+                WriteTextAtomically(summaryPath, json);
+                Debug.Log($"✅ Summary saved (final): {summaryPath}");
+                return;
+            }
+
+            // Fire and forget background thread. Kept in _summaryWriteTask so FinalizeTrialFiles can wait.
+            _summaryWriteTask = System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
