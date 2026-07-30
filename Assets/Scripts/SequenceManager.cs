@@ -56,12 +56,6 @@ public class SequenceManager : MonoBehaviour
     [Tooltip("Drag the Text child of the Start button here.")]
     public GameObject startButtonText;
 
-    [Header("Pool 9Baseline Objects")]
-    public GameObject pool1_9Baseline;
-    public GameObject pool2_9Baseline;
-    public GameObject pool3_9Baseline;
-    public GameObject pool4_9Baseline;
-
     [Header("Blue Wireframe (12Baseline)")]
     [Tooltip("Drag the blue wireframe GameObject (12Baseline) here. It is enabled/disabled " +
              "each trial depending on whether that trial should show the wireframe.")]
@@ -203,6 +197,35 @@ public class SequenceManager : MonoBehaviour
     private static GameObject ElementOrNull(GameObject[] array, int index) =>
         (array != null && index >= 0 && index < array.Length) ? array[index] : null;
 
+    /// <summary>
+    /// Switches off every Inspector-authored OnClick entry on a button, so only the listener this class
+    /// adds in code can run.
+    ///
+    /// onClick.RemoveAllListeners() clears ONLY runtime listeners; persistent (Inspector) calls survive it
+    /// AND are invoked first. Every sequence button in the scene carried a stale SelectSequence(...) binding
+    /// left over from an earlier layout -- "Seq 4 - Part 1" was bound to 2, "Seq 3 - Part 1" to 1, both
+    /// Part 2 columns to Part 1 indices, and even Start Trial to 3. Because SelectSequence ignores a second
+    /// selection once currentSequenceIndex is set, the stale call won every race and the correct one that
+    /// this class wires silently no-opped: picking Sequence 4 Part 1 actually ran Sequence 3 Part 1, and
+    /// only Sequence 1 looked right (its stale argument happened to be 0).
+    ///
+    /// Disabling them here rather than deleting them in the scene keeps the fix from being undone the next
+    /// time someone re-authors these buttons in the Inspector.
+    /// </summary>
+    private static void DisablePersistentClicks(UnityEngine.UI.Button btn)
+    {
+        for (int p = btn.onClick.GetPersistentEventCount() - 1; p >= 0; p--)
+        {
+            if (btn.onClick.GetPersistentTarget(p) == null) continue;
+
+            Debug.LogWarning($"SequenceManager: disabling stale Inspector OnClick " +
+                             $"'{btn.onClick.GetPersistentMethodName(p)}' on '{btn.name}'. " +
+                             "Click bindings are wired in code; remove it from the Inspector.");
+
+            btn.onClick.SetPersistentListenerState(p, UnityEngine.Events.UnityEventCallState.Off);
+        }
+    }
+
     private void Start()
     {
         if (spawner != null) spawner.spawnOnAwake = false;
@@ -230,6 +253,7 @@ public class SequenceManager : MonoBehaviour
 
             if (btn != null)
             {
+                DisablePersistentClicks(btn);
                 btn.onClick.RemoveAllListeners();
                 btn.onClick.AddListener(() => SelectSequence(index));
             }
@@ -247,6 +271,7 @@ public class SequenceManager : MonoBehaviour
             if (sBtn == null) sBtn = startButton.GetComponentInParent<UnityEngine.UI.Button>(true);
             if (sBtn != null)
             {
+                DisablePersistentClicks(sBtn);
                 sBtn.onClick.RemoveAllListeners();
                 sBtn.onClick.AddListener(() => OnStartButtonClicked());
             }
@@ -503,17 +528,11 @@ public class SequenceManager : MonoBehaviour
         }
 
         // 3. Set Wireframes
-        SetWireframeActive(pool1_9Baseline, false);
-        SetWireframeActive(pool2_9Baseline, false);
-        SetWireframeActive(pool3_9Baseline, false);
-        SetWireframeActive(pool4_9Baseline, false);
-
-        if (poolNum == 1) SetWireframeActive(pool1_9Baseline, useWireframe);
-        if (poolNum == 2) SetWireframeActive(pool2_9Baseline, useWireframe);
-        if (poolNum == 3) SetWireframeActive(pool3_9Baseline, useWireframe);
-        if (poolNum == 4) SetWireframeActive(pool4_9Baseline, useWireframe);
-
-        // Blue wireframe (12Baseline): show/hide for this trial.
+        // The blue wireframe is the only thing the wireframe condition drives. There used to
+        // be four per-pool "9Baseline" slots toggled alongside it, but no per-pool geometry
+        // exists in this scene (pools are prefab lists spawned by RandomSpawner), so all four
+        // had been pointed at 13Baseline itself -- which turned the solid building renderer on
+        // during every wireframe trial. The slots are gone; do not reintroduce them.
         SetBlueWireframeVisible(useWireframe);
 
         // 4. Start JSON Tracker and log marker
@@ -697,15 +716,6 @@ public class SequenceManager : MonoBehaviour
         {
             if (_blueWireframeColliders[i] != null)
                 _blueWireframeColliders[i].enabled = visible;
-        }
-    }
-
-    private void SetWireframeActive(GameObject baselineObj, bool active)
-    {
-        if (baselineObj != null)
-        {
-            MeshRenderer renderer = baselineObj.GetComponent<MeshRenderer>();
-            if (renderer != null) renderer.enabled = active;
         }
     }
 
