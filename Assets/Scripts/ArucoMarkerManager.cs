@@ -22,30 +22,6 @@ public class ArucoMarkerManager : MonoBehaviour
     [SerializeField] private float arucoPhysicalLengthMeters = 0.15f;
     [SerializeField] private bool estimateArucoLength = false;
 
-    /// <summary>
-    /// How each SpacePin's yaw is determined. See MarkerYawOrienter for the full rationale.
-    ///
-    ///  MarkerMeasuredYaw (default) -- take each pin's yaw from its own marker's measured rotation,
-    ///      so a pin's orientation is contemporaneous with its own position measurement.
-    ///  PairwisePositions           -- WLT's stock Orienter: infer yaw from the vector between pin
-    ///      pairs, weighted 1/distance^2. Correct only if all pins share a stable reference frame,
-    ///      which they do not while anchorSubsystem = Null (each pin is recorded in the raw tracking
-    ///      frame as it stood minutes apart), so drift between two scans becomes yaw error.
-    ///
-    /// Kept as a toggle so both can be compared in one build without a scene change.
-    /// </summary>
-    public enum PinOrientationMode
-    {
-        MarkerMeasuredYaw = 0,
-        PairwisePositions = 1
-    }
-
-    [Header("=== Pin Orientation Source ===")]
-    [SerializeField] private PinOrientationMode pinOrientationMode = PinOrientationMode.MarkerMeasuredYaw;
-
-    [Tooltip("Only used when Pin Orientation Mode is MarkerMeasuredYaw. PerPin keeps each marker's own yaw; SharedAverage averages all of them for extra noise rejection at the cost of local correction.")]
-    [SerializeField] private MarkerYawOrienter.YawModeEnum markerYawCombine = MarkerYawOrienter.YawModeEnum.PerPin;
-
     // Throttled detector profile. The Default profile analyses frames at full rate;
     // across the ~26 scans this component performs during alignment that drives CVIP
     // memory growth, and CVIP memory exhaustion is what segfaults pw_service later in
@@ -104,33 +80,13 @@ public class ArucoMarkerManager : MonoBehaviour
 
     public Orienter SharedOrienter { get; private set; }
 
-    /// <summary>
-    /// The shared orienter as a MarkerYawOrienter, or null when running in PairwisePositions mode.
-    /// ArucoPinDriver checks this to decide whether to report its marker's measured yaw.
-    /// </summary>
-    public MarkerYawOrienter SharedMarkerYawOrienter { get; private set; }
-
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
             var orienterObj = new GameObject("ArUcoOrienter");
-            if (pinOrientationMode == PinOrientationMode.MarkerMeasuredYaw)
-            {
-                // MarkerYawOrienter derives from Orienter, so SharedOrienter stays valid for every
-                // existing caller; only the ComputeRotations step differs.
-                var yawOrienter = orienterObj.AddComponent<MarkerYawOrienter>();
-                yawOrienter.YawMode = markerYawCombine;
-                SharedMarkerYawOrienter = yawOrienter;
-                SharedOrienter = yawOrienter;
-            }
-            else
-            {
-                SharedOrienter = orienterObj.AddComponent<Orienter>();
-            }
-            Debug.Log($"[ArucoMarkerManager] Pin orientation mode: {pinOrientationMode}" +
-                      (pinOrientationMode == PinOrientationMode.MarkerMeasuredYaw ? $" ({markerYawCombine})" : ""));
+            SharedOrienter = orienterObj.AddComponent<Orienter>();
         }
         else Destroy(gameObject);
     }

@@ -69,19 +69,6 @@ public class ArucoPinDriver : MonoBehaviour
     // Refinement State
     private float _lastLockTime = -1f;
 
-    // Yaw-from-marker state (see MarkerYawOrienter). The marker axis used to measure yaw is
-    // chosen once, lazily, from this pin's AUTHORED rotation: whichever local axis is most
-    // horizontal there is the best-conditioned one for a rotation about world up. It cannot be
-    // resolved in Start() because ModelingPoseGlobal is only valid after SpacePin.Start() has
-    // cached the modeling pose, and component Start() order within a GameObject is not defined.
-    private bool _yawAxisResolved = false;
-    private Vector3 _yawLocalAxis = Vector3.right;
-    private float _lastMeasuredYawDeg = float.NaN;
-
-    // A marker axis seen nearly edge-on carries almost no yaw information; below this
-    // horizontal length (of a unit vector) the measurement is rejected rather than trusted.
-    private const float MinHorizontalAxisLength = 0.2f;
-
     private void Start()
     {
         _spacePin = GetComponent<SpacePinOrientable>();
@@ -108,13 +95,6 @@ public class ArucoPinDriver : MonoBehaviour
         if (ArucoMarkerManager.Instance != null)
         {
             ArucoMarkerManager.Instance.UnregisterDriver(arucoID);
-
-            // Drop our yaw measurement too, so the orienter's dictionary can't hold a key
-            // referencing a destroyed SpacePin.
-            if (ArucoMarkerManager.Instance.SharedMarkerYawOrienter != null)
-            {
-                ArucoMarkerManager.Instance.SharedMarkerYawOrienter.ClearMeasuredYaw(_spacePin);
-            }
         }
     }
 
@@ -226,13 +206,12 @@ public class ArucoPinDriver : MonoBehaviour
 
         var mgr = WorldLockingManager.GetInstance();
 
-        // These pins are SpacePinOrientable, so the rotation passed to SetFrozenPosition is
-        // discarded -- the managing IOrienter supplies it. ONLY the fed POSITION matters here.
-        // Position is driven in Frozen (Unity global) space, the same space the pin's authored
-        // ModelingPoseGlobal lives in, so the height lock below is a clean same-space assignment
-        // with no coordinate mixing.
-        //
-        // Yaw is supplied separately, just below, via MarkerYawOrienter.
+        // These pins are SpacePinOrientable: WLT derives their orientation from the
+        // RELATIVE POSITIONS of all active pins (yaw-only -- the Orienter flattens Y),
+        // so any rotation passed in is discarded. ONLY the fed POSITION matters. We
+        // therefore drive position only, in Frozen (Unity global) space -- the same
+        // space the pin's authored ModelingPoseGlobal lives in, so the height lock
+        // below is a clean same-space assignment with no coordinate mixing.
         Vector3 frozenPos = mgr.FrozenFromSpongy.Multiply(spongyPose.position);
 
         if (lockElevation)
@@ -252,18 +231,13 @@ public class ArucoPinDriver : MonoBehaviour
             frozenPos.y = _spacePin.ModelingPoseGlobal.position.y;
         }
 
-        // Report this marker's OWN measured yaw before pushing the position. SetFrozenPosition
-        // triggers Orienter.Reorient synchronously, so the measurement has to be in place first.
-        ReportMeasuredYaw(mgr, spongyPose);
-
-        // Position-only feed; the managing IOrienter supplies the (yaw-only) rotation.
+        // Position-only feed; SpacePinOrientable computes the (yaw-only) rotation itself.
         _spacePin.SetFrozenPosition(frozenPos);
 
         _lastLockTime = now;
         _hasLockedThisSession = true;
 
-        Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}, " +
-                  $"markerYaw: {(float.IsNaN(_lastMeasuredYawDeg) ? "n/a" : _lastMeasuredYawDeg.ToString("F2") + " deg")}");
+        Debug.Log($"[WLT v2] Updated SpacePin for ArUco {arucoID}. Elevation Locked: {lockElevation}");
 
         LogHeightDiagnostic(spongyPose);
 
@@ -276,84 +250,6 @@ public class ArucoPinDriver : MonoBehaviour
         {
             enabled = false;
         }
-    }
-
-    /// <summary>
-    /// Measure the yaw this marker's own detected rotation implies, and hand it to the
-    /// MarkerYawOrienter so this pin's orientation is contemporaneous with its own position.
-    /// </summary>
-    /// <remarks>
-    /// The value reported is a model->locked CORRECTION about world up, which is what
-    /// SpacePinOrientable.PushRotation expects (it post-multiplies by ModelingPoseGlobal.rotation).
-    /// Restricting it to a rotation about Vector3.up is what guarantees a mis-measured marker tilt
-    /// can never pitch or roll the world -- which matters because these markers lie flat, so
-    /// out-of-plane tilt is the least reliable part of the detected pose.
-    ///
-    /// No-op in PairwisePositions mode, leaving the stock Orienter behaviour untouched.
-    /// </remarks>
-    private void ReportMeasuredYaw(WorldLockingManager mgr, Pose spongyPose)
-    {
-        MarkerYawOrienter yawOrienter = ArucoMarkerManager.Instance != null
-            ? ArucoMarkerManager.Instance.SharedMarkerYawOrienter
-            : null;
-        if (yawOrienter == null) return;
-
-        Quaternion authoredRot = _spacePin.ModelingPoseGlobal.rotation;
-
-        if (!_yawAxisResolved)
-        {
-            _yawLocalAxis = ChooseMostHorizontalLocalAxis(authoredRot);
-            _yawAxisResolved = true;
-        }
-
-        // Both directions taken to Frozen space so the comparison is same-space.
-        Vector3 authoredDir = authoredRot * _yawLocalAxis;
-        Vector3 measuredDir = (mgr.FrozenFromSpongy.rotation * spongyPose.rotation) * _yawLocalAxis;
-
-        authoredDir.y = 0f;
-        measuredDir.y = 0f;
-
-        if (authoredDir.magnitude < MinHorizontalAxisLength || measuredDir.magnitude < MinHorizontalAxisLength)
-        {
-            // Seen too near edge-on to extract yaw. Keep whatever this pin already had rather
-            // than pushing a rotation derived from almost no signal.
-            Debug.LogWarning($"[WLT v2] ArUco {arucoID}: marker axis too near vertical to measure yaw " +
-                             $"(authored {authoredDir.magnitude:F2}, measured {measuredDir.magnitude:F2}); keeping previous yaw.");
-            return;
-        }
-
-        _lastMeasuredYawDeg = Vector3.SignedAngle(authoredDir.normalized, measuredDir.normalized, Vector3.up);
-        yawOrienter.SetMeasuredYaw(_spacePin, _lastMeasuredYawDeg);
-    }
-
-    // right/up/forward, so ties resolve deterministically. Static to avoid re-allocating.
-    private static readonly Vector3[] LocalAxisCandidates = { Vector3.right, Vector3.up, Vector3.forward };
-
-    /// <summary>
-    /// Pick the marker's local axis that is most horizontal in the authored pose -- the
-    /// best-conditioned one for measuring a rotation about world up.
-    /// </summary>
-    /// <remarks>
-    /// Every pin in this scene is authored horizontal (local +Z points straight up), so the marker
-    /// NORMAL carries no yaw information whatsoever and the in-plane axes carry all of it. Choosing
-    /// the axis from the data rather than hard-coding one keeps this correct if a wall-mounted
-    /// marker is ever added, where the normal becomes the well-conditioned choice instead.
-    /// </remarks>
-    private static Vector3 ChooseMostHorizontalLocalAxis(Quaternion authoredRot)
-    {
-        Vector3 best = Vector3.right;
-        float bestHorizontal = -1f;
-        for (int i = 0; i < LocalAxisCandidates.Length; ++i)
-        {
-            Vector3 world = authoredRot * LocalAxisCandidates[i];
-            float horizontal = new Vector2(world.x, world.z).magnitude;
-            if (horizontal > bestHorizontal)
-            {
-                bestHorizontal = horizontal;
-                best = LocalAxisCandidates[i];
-            }
-        }
-        return best;
     }
 
     /// <summary>
@@ -381,16 +277,10 @@ public class ArucoPinDriver : MonoBehaviour
             float placedY   = mgr.FrozenFromLocked.Multiply(_spacePin.LockedPose.position).y;
             float elevErr   = detectedY - authoredY;
 
-            // markerYaw is the model->locked yaw this marker's own rotation implied. The SPREAD of
-            // this value across the 18 pins is the thing to read: markers on one rigid building
-            // should all report nearly the same yaw, so a wide spread means either per-marker
-            // detection noise or real accumulated tracking drift between scans. If the spread is
-            // large, switch MarkerYawOrienter to SharedAverage; if it is tight, PerPin is safe.
             string line = $"{DateTime.Now:HH:mm:ss.fff}\tAruco {arucoID}\t" +
                           $"authored_Y={authoredY:F4}\tdetected_Y={detectedY:F4}\t" +
                           $"placed_Y={placedY:F4}\televErr={elevErr:+0.0000;-0.0000}\t" +
-                          $"lockElev={lockElevation}\t" +
-                          $"markerYaw={(float.IsNaN(_lastMeasuredYawDeg) ? "n/a" : _lastMeasuredYawDeg.ToString("+0.000;-0.000"))}";
+                          $"lockElev={lockElevation}";
 
             Debug.Log($"[PINDIAG] {line}");
 
