@@ -16,22 +16,31 @@ public class SequenceManager : MonoBehaviour
     [Header("UI References")]
     public GameObject mainInstructionsObject;
     
-    // ==================== SEQUENCE / PART BUTTONS ====================
+    // ==================== GROUP / PART BUTTONS ====================
     //
-    // A session is half a sequence. PART 1 is Trials 1 & 2 (both Dusk) and runs the tutorial first;
-    // PART 2 is Trials 3 & 4 (both Night) and SKIPS the tutorial, because the headset is rebooted
-    // between the two parts and the same participant has already done the tutorial in Part 1.
+    // A participant is assigned to a GROUP (1-4), which fixes their pool and wireframe schedule for all
+    // four trials -- see the counterbalancing tables below.
+    //
+    // A session is half a group. PART 1 is Trials 1 & 2 (the brighter half, labelled Dusk) and runs the
+    // tutorial first; PART 2 is Trials 3 & 4 (the darker half, labelled Night) and SKIPS the tutorial,
+    // because the headset is rebooted between the two parts and the same participant has already done the
+    // tutorial in Part 1.
     //
     // The two parts are authored as two separate arrays rather than one array of eight so the
     // Inspector says which is which. Laid out in the scene as two columns: Part 1 on the LEFT,
-    // Part 2 on the RIGHT, Sequence 1-4 top to bottom in each.
+    // Part 2 on the RIGHT, Group 1-4 top to bottom in each.
 
+    // The serialized field names still say "sequence" only because renaming them would break the existing
+    // scene wiring; "sequence" here means GROUP everywhere in the protocol. Do not rename these without
+    // adding a FormerlySerializedAs for each -- lines further down record what happened last time button
+    // bindings went stale.
+    //
     // FormerlySerializedAs: these two were "sequenceButtons"/"sequenceButtonTexts" back when a session ran a
-    // whole sequence. The old four buttons ARE the Part 1 column, so the attribute migrates the existing
+    // whole group. The old four buttons ARE the Part 1 column, so the attribute migrates the existing
     // scene wiring into Part 1 instead of silently emptying it and leaving a menu with no working buttons.
-    [Header("Sequence Buttons — PART 1  (Trials 1 & 2 · Dusk · runs the tutorial)")]
-    [Tooltip("LEFT column, top to bottom: Sequence 1, 2, 3, 4.\n\n" +
-             "Picking one of these runs the 4-gem tutorial, then Trials 1 and 2 (both Dusk).")]
+    [Header("Group Buttons — PART 1  (Trials 1 & 2 · Dusk · runs the tutorial)")]
+    [Tooltip("LEFT column, top to bottom: Group 1, 2, 3, 4.\n\n" +
+             "Picking one of these runs the 4-gem tutorial, then Trials 1 and 2 (the brighter half).")]
     [UnityEngine.Serialization.FormerlySerializedAs("sequenceButtons")]
     public GameObject[] sequenceButtonsPart1 = new GameObject[SequencesPerPart];
 
@@ -40,10 +49,10 @@ public class SequenceManager : MonoBehaviour
     [UnityEngine.Serialization.FormerlySerializedAs("sequenceButtonTexts")]
     public GameObject[] sequenceButtonTextsPart1 = new GameObject[SequencesPerPart];
 
-    [Header("Sequence Buttons — PART 2  (Trials 3 & 4 · Night · NO tutorial)")]
-    [Tooltip("RIGHT column, top to bottom: Sequence 1, 2, 3, 4.\n\n" +
+    [Header("Group Buttons — PART 2  (Trials 3 & 4 · Night · NO tutorial)")]
+    [Tooltip("RIGHT column, top to bottom: Group 1, 2, 3, 4.\n\n" +
              "Part 2 is run after rebooting the headset, so picking one of these SKIPS the tutorial " +
-             "and goes straight to the wait screen for Trial 3 (both trials are Night).")]
+             "and goes straight to the wait screen for Trial 3 (the darker half).")]
     public GameObject[] sequenceButtonsPart2 = new GameObject[SequencesPerPart];
 
     [Tooltip("The Text child of each PART 2 button, same order. Optional — if left empty the button " +
@@ -55,6 +64,29 @@ public class SequenceManager : MonoBehaviour
     public GameObject startButton;
     [Tooltip("Drag the Text child of the Start button here.")]
     public GameObject startButtonText;
+
+    // ==================== SINGLE-TRIAL RECOVERY ====================
+    //
+    // A rescue path for re-running ONE trial after a crash, a lost map, or a battery death partway
+    // through a part. It is entirely separate from the normal group/part flow: it runs no tutorial, does
+    // not advance to a second trial, and ends the session as soon as its one trial finishes.
+    //
+    // Flow: scan markers -> Wireframe or No Wireframe -> Pool 1-4 -> one trial -> done.
+    //
+    // Recovery trials record under the trial name "Trial_Recovery" rather than a number, so a re-run can
+    // never be mistaken for a clean trial during analysis. The operator records which trial it replaced.
+    //
+    // Nothing here executes unless one of the two buttons below is pressed, and both are hidden the
+    // moment a normal group/part button is used.
+    [Header("Single-Trial Recovery (optional)")]
+    [Tooltip("Button that starts a recovery trial WITH the wireframe. Leave empty to disable recovery mode.")]
+    public GameObject recoveryWireframeButton;
+    [Tooltip("The Text child of the recovery Wireframe button. Optional.")]
+    public GameObject recoveryWireframeButtonText;
+    [Tooltip("Button that starts a recovery trial WITHOUT the wireframe. Leave empty to disable recovery mode.")]
+    public GameObject recoveryNoWireframeButton;
+    [Tooltip("The Text child of the recovery No Wireframe button. Optional.")]
+    public GameObject recoveryNoWireframeButtonText;
 
     [Header("Blue Wireframe (12Baseline)")]
     [Tooltip("Drag the blue wireframe GameObject (12Baseline) here. It is enabled/disabled " +
@@ -73,7 +105,7 @@ public class SequenceManager : MonoBehaviour
     [Tooltip("While a trial (or the tutorial) is running, a heartbeat line is written to the device log (logcat) at this interval. It is deliberately NOT written to the trial JSON: logcat survives a mid-trial reboot (the JSON copy would be buffered in RAM and lost on the very reboot we're trying to diagnose), and it keeps the experimental data clean. Pull it with 'adb logcat' or a bugreport and grep for [HEARTBEAT]. Set 0 to disable.")]
     [SerializeField] private float heartbeatIntervalSeconds = 30f;
 
-    /// <summary>How many sequences there are (1-4). One button per sequence, per part.</summary>
+    /// <summary>How many groups there are (1-4). One button per group, per part.</summary>
     public const int SequencesPerPart = 4;
 
     /// <summary>How many trials each part runs. Part 1 = trial indices 0-1, Part 2 = trial indices 2-3.</summary>
@@ -82,14 +114,21 @@ public class SequenceManager : MonoBehaviour
     // Internal State
     private int currentSequenceIndex = -1;
     private int currentPartIndex = 0;      // 0 = Part 1 (trials 0-1), 1 = Part 2 (trials 2-3)
-    private int currentTrialIndex = 0;     // ABSOLUTE index 0-3 into the sequence tables, never re-based per part
+    private int currentTrialIndex = 0;     // ABSOLUTE index 0-3 into the group tables, never re-based per part
     private bool sequenceComplete = false;
     private bool isTutorialPhase = false;
+
+    // ---- Single-trial recovery state (all false/0 during a normal session) ----
+    private bool recoveryAwaitingPool = false; // the four left buttons are showing as Pool 1-4
+    private bool recoveryMode = false;         // a recovery trial has been configured
+    private bool recoveryTrialDone = false;    // its one trial has finished
+    private bool recoveryWireframe = false;
+    private int recoveryPool = 0;              // 1-4
     private Coroutine _cooldownRoutine;
     private System.Threading.CancellationTokenSource _heartbeatCts;
 
     // Flattened view of the two authored button arrays, built once in Awake: index 0-3 = Part 1
-    // Sequence 1-4, index 4-7 = Part 2 Sequence 1-4. Everything else in this class -- and the trial
+    // Group 1-4, index 4-7 = Part 2 Group 1-4. Everything else in this class -- and the trial
     // server's SequenceBridge -- works in that one index space, so the two-array split stays purely an
     // authoring convenience.
     private GameObject[] _allButtons;
@@ -102,21 +141,48 @@ public class SequenceManager : MonoBehaviour
     private int PartFirstTrialIndex => currentPartIndex * TrialsPerPart;
     private int PartEndTrialIndex => PartFirstTrialIndex + TrialsPerPart;
 
-    // Hardcoded Sequences based on your prompt
-    // True = Wireframe ON. False = Wireframe OFF.
-    // Index 0,1 are Dusk. Index 2,3 are Night.
-    private int[,] sequencePools = new int[4, 4] {
-        { 1, 2, 3, 4 }, // Sequence 1
-        { 2, 1, 3, 4 }, // Sequence 2
-        { 1, 2, 4, 3 }, // Sequence 3
-        { 2, 1, 4, 3 }  // Sequence 4
+    // ==================== COUNTERBALANCING TABLES ====================
+    //
+    // Group 1-4 x trial 0-3. Participants are assigned to a group in equal numbers (6 each at n=24), and a
+    // group fully determines which pool and which wireframe state every one of that participant's four
+    // trials gets.
+    //
+    // The single property these tables exist to guarantee: EACH POOL APPEARS TWICE WITH THE WIREFRAME ON
+    // AND TWICE WITH IT OFF across the four groups. The previous tables did not have this -- Pool 1 was
+    // zero-wireframe in all four sequences and Pool 2 was wireframe in all four -- which meant any
+    // difference in the scenery density or layout of those two pools was indistinguishable from an effect
+    // of the wireframe itself. That confound is what made the pilot's headline result uninterpretable.
+    //
+    // Also balanced: each group sees each pool exactly once; each pool appears once in each trial position;
+    // and each trial position is two wireframe / two zero-wireframe across the four groups.
+    //
+    // The strict ON/OFF alternation within each group is deliberate, not an oversight. Ambient light falls
+    // monotonically through a session (see TimeOfDayForTrial), so alternating samples both wireframe states
+    // evenly across that gradient for every participant. Blocking them (OFF OFF ON ON) would put every
+    // wireframe trial in the darker half of the session. Groups 1/3 and 2/4 run opposite phases so the
+    // small residual imbalance cancels across the sample.
+    //
+    //   Group 1:  Pool 1 Zero | Pool 2 Wire | Pool 3 Zero | Pool 4 Wire
+    //   Group 2:  Pool 2 Wire | Pool 1 Zero | Pool 4 Wire | Pool 3 Zero
+    //   Group 3:  Pool 4 Zero | Pool 3 Wire | Pool 2 Zero | Pool 1 Wire
+    //   Group 4:  Pool 3 Wire | Pool 4 Zero | Pool 1 Wire | Pool 2 Zero
+    //
+    // Lighting is NOT a factor in these tables and must not be added to them: it is real daylight fading
+    // outside, so it cannot be assigned, only observed. Trials 1-2 are simply the brighter half of the
+    // session and 3-4 the darker half. See TimeOfDayForTrial.
+    private int[,] groupPools = new int[4, 4] {
+        { 1, 2, 3, 4 }, // Group 1
+        { 2, 1, 4, 3 }, // Group 2
+        { 4, 3, 2, 1 }, // Group 3
+        { 3, 4, 1, 2 }  // Group 4
     };
 
-    private bool[,] sequenceWireframes = new bool[4, 4] {
-        { false, true, false, true }, // Sequence 1
-        { true, false, false, true }, // Sequence 2
-        { false, true, true, false }, // Sequence 3
-        { true, false, true, false }  // Sequence 4
+    // True = Wireframe ON. False = Wireframe OFF.
+    private bool[,] groupWireframes = new bool[4, 4] {
+        { false, true,  false, true  }, // Group 1
+        { true,  false, true,  false }, // Group 2
+        { false, true,  false, true  }, // Group 3
+        { true,  false, true,  false }  // Group 4
     };
 
     // ==================== PUBLIC READ-ONLY API ====================
@@ -126,7 +192,7 @@ public class SequenceManager : MonoBehaviour
     // not survive the part change at all (a bare trial index no longer tells you which part you are in),
     // so the few things it needs are exposed properly instead. All observation, except EndTrialEarly.
 
-    /// <summary>0-3 once a sequence is picked, -1 while still on the menu.</summary>
+    /// <summary>0-3 once a group is picked, -1 while still on the menu.</summary>
     public int SelectedSequenceIndex => currentSequenceIndex;
 
     /// <summary>0 = Part 1 (Trials 1-2, Dusk), 1 = Part 2 (Trials 3-4, Night). Meaningless until picked.</summary>
@@ -141,8 +207,8 @@ public class SequenceManager : MonoBehaviour
     /// <summary>1-based number of the selected part's LAST trial: 2 for Part 1, 4 for Part 2.</summary>
     public int LastTrialNumber => PartEndTrialIndex;
 
-    /// <summary>Number of sequence/part buttons in the flattened index space: 0-3 = Part 1 Sequence 1-4,
-    /// 4-7 = Part 2 Sequence 1-4.</summary>
+    /// <summary>Number of group/part buttons in the flattened index space: 0-3 = Part 1 Group 1-4,
+    /// 4-7 = Part 2 Group 1-4.</summary>
     public int SequenceButtonCount => _allButtons != null ? _allButtons.Length : 0;
 
     /// <summary>The button at a flattened index (see <see cref="SequenceButtonCount"/>), or null if the
@@ -150,20 +216,32 @@ public class SequenceManager : MonoBehaviour
     public GameObject GetSequenceButton(int flatIndex) =>
         (_allButtons != null && flatIndex >= 0 && flatIndex < _allButtons.Length) ? _allButtons[flatIndex] : null;
 
-    /// <summary>Pool number (1-4) for an absolute trial index, or 0 if the sequence/index is out of range.</summary>
+    /// <summary>Pool number (1-4) for an absolute trial index, or 0 if the group/index is out of range.</summary>
     public int GetPoolForTrial(int sequenceIndex, int trialIndex) =>
-        InTableRange(sequenceIndex, trialIndex) ? sequencePools[sequenceIndex, trialIndex] : 0;
+        InTableRange(sequenceIndex, trialIndex) ? groupPools[sequenceIndex, trialIndex] : 0;
 
-    /// <summary>Whether the given trial shows the wireframe. False if the sequence/index is out of range.</summary>
+    /// <summary>Whether the given trial shows the wireframe. False if the group/index is out of range.</summary>
     public bool GetWireframeForTrial(int sequenceIndex, int trialIndex) =>
-        InTableRange(sequenceIndex, trialIndex) && sequenceWireframes[sequenceIndex, trialIndex];
+        InTableRange(sequenceIndex, trialIndex) && groupWireframes[sequenceIndex, trialIndex];
 
     private static bool InTableRange(int sequenceIndex, int trialIndex) =>
         sequenceIndex >= 0 && sequenceIndex < SequencesPerPart &&
         trialIndex >= 0 && trialIndex < SequencesPerPart;
 
-    /// <summary>"Dusk" for trials 1-2, "Night" for trials 3-4. The part boundary and the lighting boundary
-    /// are the same split by design: Part 1 is the Dusk session, Part 2 the Night session.</summary>
+    /// <summary>
+    /// "Dusk" for trials 1-2, "Night" for trials 3-4.
+    ///
+    /// DESCRIPTIVE ONLY -- this is not an experimental factor and must not be treated as one. Nothing in the
+    /// application controls the lighting: it is real daylight fading outside while the session runs, so it
+    /// cannot be assigned to a trial, only observed. It is therefore inseparable from trial order, from
+    /// fatigue, and from how long the participant took to get there (a slower participant reaches Trial 3
+    /// later, and so in darker conditions). Positional is the honest encoding precisely because the real
+    /// variable is positional: Part 1 is simply the brighter half of the session and Part 2 the darker half.
+    ///
+    /// Record actual illuminance and wall-clock time per trial if you want to say anything about light, and
+    /// keep it out of the primary model -- because session length drives it, adjusting for it can introduce
+    /// bias rather than remove it.
+    /// </summary>
     public static string TimeOfDayForTrial(int trialIndex) => trialIndex < TrialsPerPart ? "Dusk" : "Night";
 
     /// <summary>Ends the running trial through this class's own end-of-trial path (pause recording, clear
@@ -235,7 +313,7 @@ public class SequenceManager : MonoBehaviour
         // Fallback so the map still works if the Inspector reference wasn't wired.
         if (mapTracking == null) mapTracking = FindObjectOfType<MagicLeap.Examples.MapTracking>();
 
-        // Wire every sequence/part button in code and label its face, so the Inspector never has to carry
+        // Wire every group/part button in code and label its face, so the Inspector never has to carry
         // an OnClick binding that could drift out of step with the array order.
         for (int i = 0; i < _allButtons.Length; i++)
         {
@@ -245,8 +323,8 @@ public class SequenceManager : MonoBehaviour
             int seqNumber = (i % SequencesPerPart) + 1;
             int partNumber = (i / SequencesPerPart) + 1;
 
-            // Name the buttons "Seq 1 - Part 1", "Seq 1 - Part 2", etc.
-            SetButtonText(index, $"Seq {seqNumber} - Part {partNumber}");
+            // Name the buttons "Group 1 - Part 1", "Group 1 - Part 2", etc.
+            SetButtonText(index, $"Group {seqNumber} - Part {partNumber}");
 
             var btn = _allButtons[i].GetComponent<UnityEngine.UI.Button>();
             if (btn == null) btn = _allButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
@@ -260,7 +338,7 @@ public class SequenceManager : MonoBehaviour
             else
             {
                 Debug.LogWarning($"SequenceManager: Could not find Button component for " +
-                                 $"Sequence {seqNumber} Part {partNumber} (flat index {i}).");
+                                 $"Group {seqNumber} Part {partNumber} (flat index {i}).");
             }
         }
 
@@ -278,13 +356,15 @@ public class SequenceManager : MonoBehaviour
             startButton.SetActive(false); // Hide until needed
         }
 
+        WireRecoveryButtons();
+
         SetFrameRate(menuFrameRate); // idle menu: run cool
 
         // Build the wireframe cache now, while we're already on the menu, so the one-off
         // hierarchy walk doesn't land in the middle of a trial transition.
         CacheBlueWireframeChildren();
 
-        ShowMenu("Please scan all ArUco Markers, then select a Sequence and Part to start.\n" +
+        ShowMenu("Please scan all ArUco Markers, then select a Group and Part to start.\n" +
                  "Part 1 = Trials 1 & 2 (Dusk).   Part 2 = Trials 3 & 4 (Night).");
     }
 
@@ -297,12 +377,23 @@ public class SequenceManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles a click on any of the eight sequence/part buttons. <paramref name="flatIndex"/> is the
-    /// flattened index: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4.
+    /// Handles a click on any of the eight group/part buttons. <paramref name="flatIndex"/> is the
+    /// flattened index: 0-3 = Part 1 Group 1-4, 4-7 = Part 2 Group 1-4.
     /// </summary>
     private void SelectSequence(int flatIndex)
     {
-        if (currentSequenceIndex != -1) return; // Prevent double-fire on sequence selection
+        // Recovery mode borrows these same four buttons as a Pool 1-4 picker rather than adding four more
+        // GameObjects to the scene. Inert during a normal session: recoveryAwaitingPool is only ever true
+        // between a recovery button press and a pool being chosen.
+        if (recoveryAwaitingPool)
+        {
+            SelectRecoveryPool((flatIndex % SequencesPerPart) + 1);
+            return;
+        }
+
+        if (currentSequenceIndex != -1) return; // Prevent double-fire on group selection
+
+        HideRecoveryButtons(); // a normal group/part was chosen; recovery is no longer reachable
 
         currentSequenceIndex = flatIndex % SequencesPerPart;
         currentPartIndex = flatIndex / SequencesPerPart;
@@ -331,7 +422,7 @@ public class SequenceManager : MonoBehaviour
             // Part 1, so it goes straight to the wait screen for Trial 3. Nothing else needs priming:
             // EyeAndHeadTracker.StartNewTrialRecording opens its own writers and starts its own clock,
             // so the first numbered trial bootstraps recording on its own.
-            Debug.Log($"SequenceManager: Sequence {currentSequenceIndex + 1} Part 2 selected; " +
+            Debug.Log($"SequenceManager: Group {currentSequenceIndex + 1} Part 2 selected; " +
                       "skipping the tutorial and queueing Trial 3.");
             UpdateMenuForNextTrial();
         }
@@ -351,8 +442,146 @@ public class SequenceManager : MonoBehaviour
         }
     }
 
+    // ==================== SINGLE-TRIAL RECOVERY ====================
+
+    /// <summary>Binds the two recovery buttons and labels their faces. A null button simply disables
+    /// recovery mode, so a scene that has not authored them behaves exactly as before.</summary>
+    private void WireRecoveryButtons()
+    {
+        BindRecoveryButton(recoveryWireframeButton, recoveryWireframeButtonText, "Recover: WIREFRAME", true);
+        BindRecoveryButton(recoveryNoWireframeButton, recoveryNoWireframeButtonText, "Recover: NO Wireframe", false);
+    }
+
+    private void BindRecoveryButton(GameObject buttonObj, GameObject textObj, string label, bool useWireframe)
+    {
+        if (buttonObj == null) return;
+
+        SetButtonTextSingle(textObj, buttonObj, label);
+
+        var btn = buttonObj.GetComponent<UnityEngine.UI.Button>();
+        if (btn == null) btn = buttonObj.GetComponentInParent<UnityEngine.UI.Button>(true);
+        if (btn == null)
+        {
+            Debug.LogWarning($"SequenceManager: recovery button '{label}' has no Button component; recovery via that button is unavailable.");
+            return;
+        }
+
+        DisablePersistentClicks(btn);
+        btn.onClick.RemoveAllListeners();
+        btn.onClick.AddListener(() => SelectRecoveryWireframe(useWireframe));
+    }
+
+    private void HideRecoveryButtons()
+    {
+        if (recoveryWireframeButton != null) recoveryWireframeButton.SetActive(false);
+        if (recoveryNoWireframeButton != null) recoveryNoWireframeButton.SetActive(false);
+    }
+
     /// <summary>
-    /// Brings down both CV detectors. Space pins have served their purpose once a sequence is picked
+    /// Step 1 of recovery: the wireframe state is chosen, and the four Part 1 buttons are relabelled as a
+    /// Pool 1-4 picker. Refuses to start once a normal group/part is running, so a stray press mid-session
+    /// cannot derail a real trial.
+    /// </summary>
+    private void SelectRecoveryWireframe(bool useWireframe)
+    {
+        if (currentSequenceIndex != -1 || recoveryMode || recoveryAwaitingPool) return;
+
+        recoveryWireframe = useWireframe;
+        recoveryAwaitingPool = true;
+
+        HideRecoveryButtons();
+        if (startButton != null) startButton.SetActive(false);
+
+        // Markers are scanned by this point, exactly as in the normal path.
+        TearDownScanningDetectors();
+
+        // Hide the Part 2 column; relabel the Part 1 column as the pool picker.
+        for (int i = 0; i < _allButtons.Length; i++)
+        {
+            if (_allButtons[i] == null) continue;
+
+            var btn = _allButtons[i].GetComponent<UnityEngine.UI.Button>();
+            if (btn == null) btn = _allButtons[i].GetComponentInParent<UnityEngine.UI.Button>(true);
+            var go = btn != null ? btn.gameObject : _allButtons[i];
+
+            if (i < SequencesPerPart)
+            {
+                go.SetActive(true);
+                SetButtonText(i, $"Pool {i + 1}");
+            }
+            else
+            {
+                go.SetActive(false);
+            }
+        }
+
+        ShowMenu($"RECOVERY — {(useWireframe ? "Wireframe" : "Zero Wireframe")}.\n" +
+                 "Now choose the pool for the trial you are re-running.");
+
+        Debug.Log($"SequenceManager: recovery mode armed ({(useWireframe ? "Wireframe" : "Zero Wireframe")}); awaiting pool.");
+    }
+
+    /// <summary>
+    /// Step 2 of recovery: the pool is chosen and a single trial is queued. currentSequenceIndex is set to
+    /// 0 purely to satisfy the "something is selected" guards elsewhere -- no group table is ever read in
+    /// recovery mode, so the value is not used to look anything up.
+    /// </summary>
+    private void SelectRecoveryPool(int poolNumber)
+    {
+        if (!recoveryAwaitingPool) return;
+
+        recoveryAwaitingPool = false;
+        recoveryMode = true;
+        recoveryTrialDone = false;
+        recoveryPool = Mathf.Clamp(poolNumber, 1, SequencesPerPart);
+
+        currentSequenceIndex = 0;
+        currentPartIndex = 0;
+        currentTrialIndex = 0;
+        sequenceComplete = false;
+        isTutorialPhase = false;
+
+        HideAllSequenceButtons();
+
+        Debug.Log($"SequenceManager: recovery trial queued — Pool {recoveryPool}, " +
+                  $"{(recoveryWireframe ? "Wireframe" : "Zero Wireframe")}. No tutorial; ends after this trial.");
+
+        UpdateMenuForNextTrial();
+    }
+
+    /// <summary>The wait screen and the completion screen for a recovery trial. Replaces the normal
+    /// per-part menu entirely, because there is no part, no trial numbering and no next trial.</summary>
+    private void UpdateMenuForRecoveryTrial()
+    {
+        gameObject.SetActive(true);
+        SetFrameRate(menuFrameRate);
+
+        string label = $"Pool {recoveryPool} + {(recoveryWireframe ? "Wireframe" : "Zero Wireframe")}";
+
+        if (recoveryTrialDone)
+        {
+            sequenceComplete = true;
+            ShowMenu($"Recovery trial complete ({label}).\nPlease close the application.");
+            if (startButton != null) startButton.SetActive(false);
+            if (tracker != null) tracker.PauseRecording();
+            return;
+        }
+
+        ShowMenu($"RECOVERY trial ready: {label}.\n\nPlease wait until the researcher approves the trial.");
+
+        if (startButton != null)
+        {
+            startButton.SetActive(true);
+            SetButtonTextSingle(startButtonText, startButton, "Start Recovery Trial");
+
+            // No cooldown here: recovery follows a crash or a restart, so the device has already been idle.
+            if (_cooldownRoutine != null) { StopCoroutine(_cooldownRoutine); _cooldownRoutine = null; }
+            SetButtonInteractable(startButton, true);
+        }
+    }
+
+    /// <summary>
+    /// Brings down both CV detectors. Space pins have served their purpose once a group is picked
     /// (the building is locked), and map tracking is stopped defensively in case a prior trial's cleanup
     /// failed — together that guarantees neither detector is running while we sit on a menu or in the
     /// tutorial. Both calls are idempotent, so this is safe to call from any state.
@@ -430,6 +659,8 @@ public class SequenceManager : MonoBehaviour
 
     private void UpdateMenuForNextTrial()
     {
+        if (recoveryMode) { UpdateMenuForRecoveryTrial(); return; }
+
         gameObject.SetActive(true); // Show HUD
         SetFrameRate(menuFrameRate); // idle menu: run cool and let the device cool down
 
@@ -439,18 +670,18 @@ public class SequenceManager : MonoBehaviour
             string whatNext = (currentPartIndex == 0)
                 ? "Please reboot the headset before running Part 2."
                 : "Please close the application.";
-            ShowMenu($"Sequence {currentSequenceIndex + 1} Part {currentPartIndex + 1} Complete!\n{whatNext}");
+            ShowMenu($"Group {currentSequenceIndex + 1} Part {currentPartIndex + 1} Complete!\n{whatNext}");
             if (startButton != null) startButton.SetActive(false);
             if (tracker != null) tracker.PauseRecording();
             return;
         }
 
         string timeOfDay = TimeOfDayForTrial(currentTrialIndex);
-        int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
+        int poolNum = groupPools[currentSequenceIndex, currentTrialIndex];
 
         if (currentTrialIndex == PartFirstTrialIndex)
         {
-            ShowMenu($"Sequence {currentSequenceIndex + 1} Part {currentPartIndex + 1} Selected.\n\nPlease wait until the researcher approves Trial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
+            ShowMenu($"Group {currentSequenceIndex + 1} Part {currentPartIndex + 1} Selected.\n\nPlease wait until the researcher approves Trial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
         }
         else
         {
@@ -515,8 +746,10 @@ public class SequenceManager : MonoBehaviour
         if (ArucoMarkerManager.Instance != null) ArucoMarkerManager.Instance.DestroyMarkerTrackers();
         if (mapTracking != null) mapTracking.StartTracking();
 
-        int poolNum = sequencePools[currentSequenceIndex, currentTrialIndex];
-        bool useWireframe = sequenceWireframes[currentSequenceIndex, currentTrialIndex];
+        // Recovery reads its pool and wireframe state from the operator's two button presses; the group
+        // tables are never consulted, because a recovery run has no group and no trial position.
+        int poolNum = recoveryMode ? recoveryPool : groupPools[currentSequenceIndex, currentTrialIndex];
+        bool useWireframe = recoveryMode ? recoveryWireframe : groupWireframes[currentSequenceIndex, currentTrialIndex];
         string timeOfDay = TimeOfDayForTrial(currentTrialIndex);
 
         // 2. Clear old objects and spawn new ones
@@ -536,15 +769,22 @@ public class SequenceManager : MonoBehaviour
         SetBlueWireframeVisible(useWireframe);
 
         // 4. Start JSON Tracker and log marker
+        // "Trial_Recovery" rather than a number, deliberately: a re-run trial follows a crashed attempt at
+        // the same pool, so the participant has partial prior exposure to that layout. Naming it distinctly
+        // means it can never be silently analysed as a clean trial.
+        string trialName = recoveryMode ? "Trial_Recovery" : $"Trial_{currentTrialIndex + 1}";
+
         if (tracker != null)
         {
             tracker.RefreshTargetList();
-            tracker.StartNewTrialRecording($"Trial_{currentTrialIndex + 1}", BuildConditionTag(poolNum));
+            tracker.StartNewTrialRecording(trialName, BuildConditionTag(poolNum));
             string wireframeText = useWireframe ? "Wireframe" : "Zero Wireframe";
-            tracker.LogMarker($"Trial {currentTrialIndex + 1} ({timeOfDay}): Pool {poolNum} + {wireframeText}");
+            tracker.LogMarker(recoveryMode
+                ? $"RECOVERY trial: Pool {poolNum} + {wireframeText}"
+                : $"Trial {currentTrialIndex + 1} ({timeOfDay}): Pool {poolNum} + {wireframeText}");
         }
 
-        StartHeartbeat($"Trial_{currentTrialIndex + 1}");
+        StartHeartbeat(trialName);
     }
 
     /// <summary>
@@ -580,6 +820,24 @@ public class SequenceManager : MonoBehaviour
             }
 
             UpdateMenuForNextTrial(); // Show the menu for Trial 1
+            return;
+        }
+
+        if (recoveryMode)
+        {
+            if (tracker != null)
+            {
+                tracker.LogMarker("Recovery trial ended.");
+                tracker.PauseRecording();
+                tracker.FinalizeTrialFiles();
+            }
+
+            if (mapTracking != null) mapTracking.StopTracking();
+            if (spawner != null) spawner.DestroyAllSpawnedObjects();
+
+            // One trial only: do not advance currentTrialIndex, do not queue anything else.
+            recoveryTrialDone = true;
+            UpdateMenuForNextTrial();
             return;
         }
 
@@ -732,8 +990,8 @@ public class SequenceManager : MonoBehaviour
         }
     }
 
-    /// <summary>Sets the face text of a sequence/part button by FLATTENED index (0-3 = Part 1
-    /// Sequence 1-4, 4-7 = Part 2 Sequence 1-4).</summary>
+    /// <summary>Sets the face text of a group/part button by FLATTENED index (0-3 = Part 1
+    /// Group 1-4, 4-7 = Part 2 Group 1-4).</summary>
     private void SetButtonText(int index, string msg)
     {
         if (_allButtons == null || index < 0 || index >= _allButtons.Length) return;

@@ -11,7 +11,7 @@ namespace TrialServer
         Armed,       // the operator approved the trial; the device Start button is live for the participant
         Recording,   // a numbered trial is live
         Paused,      // a numbered trial is live but its recording is paused from the dashboard
-        Done         // the sequence's four trials are finished
+        Done         // the group's four trials are finished
     }
 
     /// <summary>
@@ -24,10 +24,10 @@ namespace TrialServer
     /// </summary>
     public static class ServerState
     {
-        /// <summary>1-4 once a sequence is picked, 0 while still on the menu.</summary>
+        /// <summary>1-4 once a group is picked, 0 while still on the menu.</summary>
         public static int SelectedSequence;
 
-        /// <summary>1 or 2 once a sequence is picked, 0 while still on the menu. A session runs HALF a
+        /// <summary>1 or 2 once a group is picked, 0 while still on the menu. A session runs HALF a
         /// sequence: Part 1 is Trials 1-2 (Dusk, preceded by the tutorial), Part 2 is Trials 3-4 (Night,
         /// no tutorial — the headset is rebooted between the parts and the participant has already done
         /// it). Trials are never renumbered, so Part 2 really does start at "Trial 3".</summary>
@@ -37,7 +37,7 @@ namespace TrialServer
         public static int TrialNumber;
 
         /// <summary>1-based number of the selected part's FIRST trial: 1 for Part 1, 3 for Part 2. Set when
-        /// a sequence is picked; this is what TrialNumber starts at, not a hardcoded 1.</summary>
+        /// a group is picked; this is what TrialNumber starts at, not a hardcoded 1.</summary>
         public static int FirstTrialNumber = 1;
 
         /// <summary>1-based number of the selected part's LAST trial: 2 for Part 1, 4 for Part 2. Reaching

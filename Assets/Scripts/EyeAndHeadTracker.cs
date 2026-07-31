@@ -47,6 +47,14 @@ public class EyeAndHeadTracker : MonoBehaviour
     [Tooltip("Safety cap on how many individual look events are kept in memory for the JSON summary. Only applies when the option above is on; the aggregate dwell totals, percentages and the NDJSON event stream are unaffected by this cap.")]
     [SerializeField] private int maxStoredLookEvents = 1500;
 
+    [Header("Data Quality")]
+    [Tooltip("Trials whose valid-gaze percentage falls below this are flagged in the summary's dataQuality " +
+             "notes. Set it to the SAME number as the exclusion criterion in your protocol, or the flag stops " +
+             "meaning anything. 50 was calibrated on outdoor pilot data (31 Jul 2026: 62.1% and 70.4%); " +
+             "indoor sessions run around 89%, so a lower bar is not laxness, it is what ambient IR outdoors " +
+             "actually permits.")]
+    [SerializeField] [Range(0f, 100f)] private float gazeValidityScreeningPercent = 50f;
+
     [Header("Logging")]
     [Tooltip("If true, starts recording immediately. If false, wait until ResumeRecording() is called.")]
     public bool recordOnAwake = true;
@@ -77,7 +85,19 @@ public class EyeAndHeadTracker : MonoBehaviour
         public string condition;
         public string device = "Magic Leap 2";
         public string environment;
-        public int samplingRateHz = 90;
+
+        // MEASURED from this trial's actual frame intervals, not a nominal figure. Gaze is sampled on the
+        // render loop, so this is the rate the data was really captured at. This field used to be a hardcoded
+        // 90 while the files it described were recorded at ~59 Hz.
+        public float measuredSampleRateHz;
+        public int targetFrameRateSetting;
+
+        // What the per-eye fields in the raw stream actually contain. The Magic Leap OpenXR path in use here
+        // (EyeTrackingUsages.gazePosition/gazeRotation) returns ONE combined gaze pose: there is no separate
+        // left/right stream and no pupillometry. leftEye/rightEye are that combined pose offset by half an
+        // assumed IPD, so they must not be analyzed as independent eyes, and pupilDiameterMm/openness are
+        // written as -1 (unavailable) rather than as plausible-looking constants.
+        public string eyeDataSource = "MagicLeap combined gaze; per-eye fields derived from it, no pupillometry";
     }
 
     [System.Serializable]
@@ -188,8 +208,16 @@ public class EyeAndHeadTracker : MonoBehaviour
         public float totalTimeOnNothingSeconds;
         public float percentTimeOnObjects;
         public float percentTimeOnNothing;
+        // These four count different things and used to be reported in a way that made them look
+        // contradictory (distinctObjectsLookedAt could exceed totalLookEvents, which reads as impossible).
+        // totalLookEvents  : looks long enough to clear minLookDurationToLogSeconds and reach the event stream.
+        // totalLookSegments: EVERY contiguous look, including the sub-threshold ones that still add dwell time.
+        // distinctObjectsLookedAt   : objects that accumulated any dwell at all.
+        // distinctObjectsInLookEvents: objects that produced at least one logged look event.
         public int totalLookEvents;
+        public int totalLookSegments;
         public int distinctObjectsLookedAt;
+        public int distinctObjectsInLookEvents;
         public List<GazeObjectStat> perCategory = new List<GazeObjectStat>();
         public List<GazeObjectStat> perObject = new List<GazeObjectStat>();
     }
@@ -207,8 +235,55 @@ public class EyeAndHeadTracker : MonoBehaviour
     [System.Serializable]
     public class DataQualityInfo
     {
+        // Share of gaze samples where the tracker returned a FRESH pose. This is the field the preregistered
+        // exclusion criterion is read from. It sat at 0 on every file ever recorded because nothing assigned
+        // it; a trial cannot be screened without it.
         public float estimatedValidGazeSamplesPercent;
+        public int validGazeSamples;
+        public int totalGazeSamples;
+
+        // Share of valid samples where the gaze ray hit any collider. A trial that is 100% valid but near-0%
+        // hits usually means the ray is mis-transformed, not that the participant stared at empty sky.
+        public float gazeRaycastHitPercent;
+
+        // Frame pacing, reported as a condition check. Gaze is sampled on the render loop, so a condition that
+        // costs frame rate also costs gaze samples -- the pilot's wireframe trials ran ~0.6 Hz slower than the
+        // zero-wireframe ones. That bias is why the primary outcome is a proportion of TIME, not of frames.
+        public float measuredFrameRateHz;
+        public float meanFrameIntervalMs;
+        public float longestFrameIntervalMs;
+        public int framesOver50ms;
+        public float percentFramesOver50ms;
+
         public string notes;
+    }
+
+    /// <summary>
+    /// The preregistered outcomes, computed here so the analysis never re-derives them from the raw stream
+    /// and the numbers in the file are the numbers that get analyzed.
+    ///
+    /// Primary: share of valid tracked time the gaze rested on non-target scene geometry (category "Other").
+    /// Time-weighted -- a sum of per-sample dt, not a frame count -- so it is immune to the frame-rate
+    /// difference between the wireframe and zero-wireframe conditions.
+    ///
+    /// Secondary: how many DISTINCT pieces of scenery were fixated per minute of tracked time. The raw
+    /// distinct-object count is uninterpretable alone because trials differ in length.
+    /// </summary>
+    [System.Serializable]
+    public class PrimaryOutcomeData
+    {
+        public float proportionTimeOnOtherScenery;   // primary DV, 0..1
+        public float percentTimeOnOtherScenery;      // same number, readable
+        public float secondsOnOtherScenery;
+        public float trackedSeconds;
+
+        public int distinctOtherObjectsFixated;
+        public float distinctOtherObjectsPerMinute;  // secondary DV
+
+        // Carried alongside so the primary can be checked against the broader measure that barely moved in
+        // the pilot: the signal is specifically in Other, not in on-object time overall.
+        public float percentTimeOnTargets;
+        public float percentTimeOnRecallObjects;
     }
 
     [System.Serializable]
@@ -216,6 +291,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         public SessionMeta metadata;
         public SessionPerformanceData sessionData;
+        public PrimaryOutcomeData primaryOutcome;
         public List<DestructionEvent> destructionEvents = new List<DestructionEvent>();
         public GazeAttentionSummary gazeAttention;
         public List<GazeLookEvent> gazeLookEvents = new List<GazeLookEvent>();
@@ -279,6 +355,22 @@ public class EyeAndHeadTracker : MonoBehaviour
     private float lastGazeSampleTime = -1f;
     private int gazeSampleFrameCounter;
     private int gazeLookEventCounter;
+    private int gazeLookSegmentCounter;
+    private readonly HashSet<int> objectsWithLoggedLookEvents = new HashSet<int>();
+
+    // ---- Data-quality counters (feed DataQualityInfo) ----
+    private int gazeSamplesTotal;   // every time SampleGazeObjects ran
+    private int gazeSamplesValid;   // ...and the tracker had a fresh pose for us
+    private int gazeSamplesWithHit; // ...and the gaze ray landed on a collider
+
+    // ---- Frame pacing counters (feed DataQualityInfo + metadata.measuredSampleRateHz) ----
+    private int frameIntervalCount;
+    private float frameIntervalSumMs;
+    private float frameIntervalMaxMs;
+    private int framesOver50ms;
+
+    /// <summary>Sentinel for a per-eye metric the Magic Leap gaze path does not expose at all.</summary>
+    private const float EyeMetricUnavailable = -1f;
 
     private string currentHitCategory = "None";
     private string currentHitTag = "None";
@@ -604,6 +696,11 @@ public class EyeAndHeadTracker : MonoBehaviour
         performanceData = new SessionPerformanceData();
         ResetGazeLogging();
 
+        // Per TRIAL, not per app run. This counter used to run continuously across every trial in a session
+        // (trial 2 opening at frameId 26734), so frameId could not be used to index into a trial's own stream
+        // and silently reset to 0 whenever the app was relaunched mid-session.
+        currentFrameId = 0;
+
         appStartTime = Time.realtimeSinceStartup;
         lastFrameTimestamp = appStartTime;
         startTimeString = DateTime.Now.ToString("MM_dd_HH_mm_ss");
@@ -695,6 +792,8 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (isRecording)
         {
+            TrackFramePacing();
+
             if (enableGazeObjectLogging) SampleGazeObjects();
 
             CaptureTrackingFrame();
@@ -828,8 +927,19 @@ public class EyeAndHeadTracker : MonoBehaviour
         var gazePos = GazeInputManager.Instance.GazePosition;
         var gazeRot = GazeInputManager.Instance.GazeRotation;
         Vector3 gazeDir = gazeRot * Vector3.forward;
-        bool isValid = GazeInputManager.Instance.EyeTrackingPermissionGranted;
 
+        // isValid now means "the tracker returned a fresh sample this frame", not "the participant granted
+        // permission at startup". The old meaning was a session-long constant, which is exactly why every
+        // file recorded 100% validity on every channel. Frames where this is false carry the LAST GOOD pose
+        // and must be treated as missing data downstream.
+        bool isValid = GazeInputManager.Instance.EyeTrackingPermissionGranted &&
+                       GazeInputManager.Instance.IsGazeTracked;
+
+        // The left/right blocks are the combined gaze pose offset by half an assumed 64 mm IPD. They are
+        // kept so the schema stays stable, but they are DERIVED -- the Magic Leap path exposes one combined
+        // gaze and no per-eye stream, so treating them as two eyes would be measuring the constant 0.064.
+        // pupilDiameterMm/openness are unavailable entirely; they were previously written as 3.4/3.5 and
+        // 0.95/0.96, constants that read as genuine measurements across all 100k logged frames.
         data.leftEye.isValid = isValid;
         data.leftEye.gazeOrigin.x = gazePos.x - 0.032f;
         data.leftEye.gazeOrigin.y = gazePos.y;
@@ -837,8 +947,8 @@ public class EyeAndHeadTracker : MonoBehaviour
         data.leftEye.gazeDirection.x = gazeDir.x;
         data.leftEye.gazeDirection.y = gazeDir.y;
         data.leftEye.gazeDirection.z = gazeDir.z;
-        data.leftEye.pupilDiameterMm = isValid ? 3.4f : 0f;
-        data.leftEye.openness = isValid ? 0.95f : 0f;
+        data.leftEye.pupilDiameterMm = EyeMetricUnavailable;
+        data.leftEye.openness = EyeMetricUnavailable;
 
         data.rightEye.isValid = isValid;
         data.rightEye.gazeOrigin.x = gazePos.x + 0.032f;
@@ -847,8 +957,8 @@ public class EyeAndHeadTracker : MonoBehaviour
         data.rightEye.gazeDirection.x = gazeDir.x;
         data.rightEye.gazeDirection.y = gazeDir.y;
         data.rightEye.gazeDirection.z = gazeDir.z;
-        data.rightEye.pupilDiameterMm = isValid ? 3.5f : 0f;
-        data.rightEye.openness = isValid ? 0.96f : 0f;
+        data.rightEye.pupilDiameterMm = EyeMetricUnavailable;
+        data.rightEye.openness = EyeMetricUnavailable;
 
         data.combinedGaze.isValid = isValid;
         data.combinedGaze.gazeDirection.x = gazeDir.x;
@@ -863,15 +973,29 @@ public class EyeAndHeadTracker : MonoBehaviour
     /// Returns false when eye tracking isn't available this frame.
     /// </summary>
     private bool TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation)
+        => TryGetGazeRay(out gazePosition, out gazeRotation, out _);
+
+    /// <summary>
+    /// As above, and additionally reports whether the pose is a FRESH sample from the tracker
+    /// (<paramref name="isFresh"/>) or the last good one being held through a blink or a tracking drop.
+    ///
+    /// The distinction is the whole point: GazeInputManager keeps serving the previous pose when tracking
+    /// lapses, so a caller that cannot tell the difference will happily raycast a stale ray and bank the
+    /// result as dwell time on whatever it happened to be aimed at. Every consumer here now either skips
+    /// stale frames or counts them as missing data.
+    /// </summary>
+    private bool TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh)
     {
         gazePosition = Vector3.zero;
         gazeRotation = Quaternion.identity;
+        isFresh = false;
 
         if (GazeInputManager.Instance == null || !GazeInputManager.Instance.EyeTrackingPermissionGranted)
             return false;
 
         gazePosition = GazeInputManager.Instance.GazePosition;
         gazeRotation = GazeInputManager.Instance.GazeRotation;
+        isFresh = GazeInputManager.Instance.IsGazeTracked;
 
         if (Camera.main != null && Camera.main.transform.parent != null)
         {
@@ -885,7 +1009,10 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void RunEyeDwellDestruction()
     {
-        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation))
+        // Stale poses are skipped rather than raycast: returning early neither advances nor resets the dwell
+        // timer, so a blink coasts through instead of either banking free progress on a frozen ray or
+        // cancelling a dwell the participant is still holding.
+        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh) || !isFresh)
             return;
 
         // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log.
@@ -979,9 +1106,8 @@ public class EyeAndHeadTracker : MonoBehaviour
                         if (isRecording && autoSaveWhenAllTargetsDestroyed)
                         {
                             performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
-                            performanceData.totalObjectsDestroyed = destroyCount;
-                            performanceData.meanInterDestroyInterval = destructionEvents.Count > 1 
-                                ? destructionEvents.Skip(1).Average(e => e.timeSincePreviousDestroy) : 0f;
+                            performanceData.totalObjectsDestroyed = CountRealDestroys();
+                            performanceData.meanInterDestroyInterval = ComputeMeanInterDestroyInterval();
 
                             SaveSessionData();
                         }
@@ -1062,12 +1188,18 @@ public class EyeAndHeadTracker : MonoBehaviour
         if (dt < 0f || dt > 1f) dt = 0f;
         lastGazeSampleTime = now;
 
-        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation))
+        gazeSamplesTotal++;
+
+        // A stale pose is missing data, not a look. Raycasting it would keep banking dwell time on whatever
+        // the last good ray happened to point at -- through every blink, for the whole trial.
+        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh) || !isFresh)
         {
             CloseCurrentLook(now);
             SetCurrentHitFields(null, 0f);
             return;
         }
+
+        gazeSamplesValid++;
 
         Vector3 gazeDirection = gazeRotation * Vector3.forward;
         gazeTrackedSeconds += dt;
@@ -1078,6 +1210,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         {
             hitObject = ResolveGazeObject(hit.collider);
             hitDistance = hit.distance;
+            gazeSamplesWithHit++;
         }
 
         if (hitObject == null)
@@ -1103,11 +1236,12 @@ public class EyeAndHeadTracker : MonoBehaviour
         if (hitObject.transform != null)
             currentLookObjectPosition = hitObject.transform.position;
 
+        // Dwell accrues per sample; longestLookSeconds is recorded when the look CLOSES, in CloseCurrentLook.
+        // Updating it here recorded 0 for any look that only ever received one sample, because BeginLook
+        // stamps currentLookStartTime on that same frame -- which is how a category ended up reporting a
+        // longest look of 0.0 alongside a non-zero mean.
         var stat = GetOrCreateStat(hitObject);
         stat.totalDwellSeconds += dt;
-        float currentLookDuration = now - currentLookStartTime;
-        if (currentLookDuration > stat.longestLookSeconds)
-            stat.longestLookSeconds = currentLookDuration;
 
         SetCurrentHitFields(hitObject, hitDistance);
     }
@@ -1200,6 +1334,8 @@ public class EyeAndHeadTracker : MonoBehaviour
         currentLookDirections.Clear();
         currentLookObjectPosition = info.transform != null ? info.transform.position : Vector3.zero;
 
+        gazeLookSegmentCounter++;
+
         var stat = GetOrCreateStat(info);
         stat.lookCount++;
         if (stat.firstLookTime < 0f)
@@ -1217,8 +1353,13 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         float duration = Mathf.Max(0f, now - currentLookStartTime);
 
+        // The completed look's real duration -- the only place longestLookSeconds can be measured correctly.
+        var closingStat = GetOrCreateStat(currentGazeInfo);
+        if (duration > closingStat.longestLookSeconds) closingStat.longestLookSeconds = duration;
+
         if (duration >= minLookDurationToLogSeconds)
         {
+            objectsWithLoggedLookEvents.Add(currentGazeInfo.objectId);
             var ev = new GazeLookEvent
             {
                 lookOrder = ++gazeLookEventCounter,
@@ -1364,8 +1505,19 @@ public class EyeAndHeadTracker : MonoBehaviour
             percentTimeOnObjects = Percent(gazeOnObjectSeconds, gazeTrackedSeconds),
             percentTimeOnNothing = Percent(gazeOnNothingSeconds, gazeTrackedSeconds),
             totalLookEvents = gazeLookEventCounter,
-            distinctObjectsLookedAt = gazeStatsByObjectId.Count
+            totalLookSegments = gazeLookSegmentCounter,
+            distinctObjectsLookedAt = gazeStatsByObjectId.Count,
+            distinctObjectsInLookEvents = objectsWithLoggedLookEvents.Count
         };
+
+        // Fold the look currently in progress into its object's longest-look, so a summary written mid-trial
+        // by an autosave doesn't understate a look that simply hasn't ended yet.
+        if (currentGazeInfo != null &&
+            gazeStatsByObjectId.TryGetValue(currentGazeInfo.objectId, out var openStat))
+        {
+            float openDuration = Mathf.Max(0f, Time.realtimeSinceStartup - currentLookStartTime);
+            if (openDuration > openStat.longestLookSeconds) openStat.longestLookSeconds = openDuration;
+        }
 
         foreach (var stat in gazeStatsByObjectId.Values)
         {
@@ -1415,6 +1567,147 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private static float Percent(float part, float whole) => whole > 0f ? (part / whole) * 100f : 0f;
 
+    /// <summary>
+    /// Computes the preregistered primary and secondary outcomes. Everything here is derived from the
+    /// time-weighted dwell totals (sums of per-sample dt), never from frame counts, so a condition that
+    /// costs frame rate cannot move the outcome by itself.
+    /// </summary>
+    private PrimaryOutcomeData BuildPrimaryOutcome()
+    {
+        float otherSeconds = 0f, targetSeconds = 0f, recallSeconds = 0f;
+        int distinctOther = 0;
+
+        foreach (var stat in gazeStatsByObjectId.Values)
+        {
+            switch (stat.category)
+            {
+                case "Target":
+                    targetSeconds += stat.totalDwellSeconds;
+                    break;
+                case "RecallObject":
+                    recallSeconds += stat.totalDwellSeconds;
+                    break;
+                default: // "Other" and any custom category: non-target scene geometry
+                    otherSeconds += stat.totalDwellSeconds;
+                    if (stat.totalDwellSeconds > 0f) distinctOther++;
+                    break;
+            }
+        }
+
+        float trackedMinutes = gazeTrackedSeconds / 60f;
+
+        return new PrimaryOutcomeData
+        {
+            proportionTimeOnOtherScenery = gazeTrackedSeconds > 0f ? otherSeconds / gazeTrackedSeconds : 0f,
+            percentTimeOnOtherScenery = Percent(otherSeconds, gazeTrackedSeconds),
+            secondsOnOtherScenery = otherSeconds,
+            trackedSeconds = gazeTrackedSeconds,
+            distinctOtherObjectsFixated = distinctOther,
+            distinctOtherObjectsPerMinute = trackedMinutes > 0f ? distinctOther / trackedMinutes : 0f,
+            percentTimeOnTargets = Percent(targetSeconds, gazeTrackedSeconds),
+            percentTimeOnRecallObjects = Percent(recallSeconds, gazeTrackedSeconds)
+        };
+    }
+
+    /// <summary>
+    /// Builds the data-quality block the exclusion criterion is screened on. Nothing here is cosmetic:
+    /// with no valid-sample percentage there is no objective, preregisterable basis for dropping a trial.
+    /// </summary>
+    private DataQualityInfo BuildDataQualityInfo()
+    {
+        float meanIntervalMs = frameIntervalCount > 0 ? frameIntervalSumMs / frameIntervalCount : 0f;
+
+        return new DataQualityInfo
+        {
+            estimatedValidGazeSamplesPercent = Percent(gazeSamplesValid, gazeSamplesTotal),
+            validGazeSamples = gazeSamplesValid,
+            totalGazeSamples = gazeSamplesTotal,
+            gazeRaycastHitPercent = Percent(gazeSamplesWithHit, gazeSamplesValid),
+            measuredFrameRateHz = meanIntervalMs > 0f ? 1000f / meanIntervalMs : 0f,
+            meanFrameIntervalMs = meanIntervalMs,
+            longestFrameIntervalMs = frameIntervalMaxMs,
+            framesOver50ms = framesOver50ms,
+            percentFramesOver50ms = Percent(framesOver50ms, frameIntervalCount),
+            notes = BuildDataQualityNotes()
+        };
+    }
+
+    /// <summary>
+    /// Flags the failure modes that otherwise pass silently -- a trial with no gaze, a ray that never hits
+    /// anything, a denied permission -- so they are visible in the file itself rather than only in a log.
+    /// </summary>
+    private string BuildDataQualityNotes()
+    {
+        var notes = new List<string>();
+
+        if (gazeSamplesTotal == 0)
+        {
+            notes.Add("No gaze samples recorded.");
+        }
+        else
+        {
+            float validPercent = Percent(gazeSamplesValid, gazeSamplesTotal);
+            if (validPercent < gazeValidityScreeningPercent)
+                notes.Add($"Valid gaze {validPercent:F1}% is below the {gazeValidityScreeningPercent:F0}% screening threshold.");
+            if (gazeSamplesValid > 0 && Percent(gazeSamplesWithHit, gazeSamplesValid) < 1f)
+                notes.Add("Gaze ray almost never hit a collider; check the ray transform and gazeLogLayers.");
+        }
+
+        if (GazeInputManager.Instance == null)
+            notes.Add("GazeInputManager missing from the scene.");
+        else if (!GazeInputManager.Instance.EyeTrackingPermissionGranted)
+            notes.Add("Eye tracking permission not granted.");
+
+        return notes.Count == 0 ? "OK" : string.Join(" ", notes);
+    }
+
+    /// <summary>
+    /// Accumulates frame-interval statistics for the trial. Reported because gaze is sampled on the render
+    /// loop: if a condition costs frame rate it also costs gaze samples, and that difference would otherwise
+    /// be invisible while sitting directly on the primary outcome.
+    /// </summary>
+    private void TrackFramePacing()
+    {
+        float ms = Time.unscaledDeltaTime * 1000f;
+        if (ms <= 0f || ms > 1000f) return; // ignore the first frame and scene-load hitches
+
+        frameIntervalCount++;
+        frameIntervalSumMs += ms;
+        if (ms > frameIntervalMaxMs) frameIntervalMaxMs = ms;
+        if (ms > 50f) framesOver50ms++;
+    }
+
+    /// <summary>
+    /// Gems destroyed this trial. Markers live in the same list with destroyOrder -1, so counting the list
+    /// itself is what made every completed trial report 22 destructions for 20 gems.
+    /// </summary>
+    private int CountRealDestroys()
+    {
+        int n = 0;
+        foreach (var e in destructionEvents)
+            if (e.destroyOrder > 0) n++;
+        return n;
+    }
+
+    /// <summary>
+    /// Mean gap between consecutive gem destructions. Excludes markers, and excludes the first destroy --
+    /// its timeSincePreviousDestroy is 0 by definition, not a real interval. With 20 gems this averages the
+    /// 19 real intervals; the old code averaged 21 values, two of which were markers sitting at zero, which
+    /// pulled the reported mean about 10% low on every trial.
+    /// </summary>
+    private float ComputeMeanInterDestroyInterval()
+    {
+        float sum = 0f;
+        int n = 0;
+        foreach (var e in destructionEvents)
+        {
+            if (e.destroyOrder <= 1) continue; // skip markers (-1) and the first destroy (1)
+            sum += e.timeSincePreviousDestroy;
+            n++;
+        }
+        return n > 0 ? sum / n : 0f;
+    }
+
     private void ResetGazeLogging()
     {
         CloseCurrentLook(Time.realtimeSinceStartup);
@@ -1423,12 +1716,24 @@ public class EyeAndHeadTracker : MonoBehaviour
         gazeLookEvents.Clear();
         currentLookDirections.Clear();
         currentGazeInfo = null;
+        objectsWithLoggedLookEvents.Clear();
         gazeTrackedSeconds = 0f;
         gazeOnObjectSeconds = 0f;
         gazeOnNothingSeconds = 0f;
         lastGazeSampleTime = -1f;
         gazeSampleFrameCounter = 0;
         gazeLookEventCounter = 0;
+        gazeLookSegmentCounter = 0;
+
+        gazeSamplesTotal = 0;
+        gazeSamplesValid = 0;
+        gazeSamplesWithHit = 0;
+
+        frameIntervalCount = 0;
+        frameIntervalSumMs = 0f;
+        frameIntervalMaxMs = 0f;
+        framesOver50ms = 0;
+
         SetCurrentHitFields(null, 0f);
     }
 
@@ -1477,11 +1782,13 @@ public class EyeAndHeadTracker : MonoBehaviour
             // Finalize numbers (MAIN THREAD)
             if (destructionEvents.Count > 0)
             {
-                performanceData.totalObjectsDestroyed = destructionEvents.Count;
+                // Both of these must filter out the markers that share this list -- see the helpers.
+                performanceData.totalObjectsDestroyed = CountRealDestroys();
                 performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
-                performanceData.meanInterDestroyInterval = destructionEvents.Count > 1 
-                    ? destructionEvents.Skip(1).Average(e => e.timeSincePreviousDestroy) : 0f;
+                performanceData.meanInterDestroyInterval = ComputeMeanInterDestroyInterval();
             }
+
+            var dataQuality = BuildDataQualityInfo();
 
             // Copy data for background thread to prevent race conditions
             var metaCopy = new SessionMeta
@@ -1491,7 +1798,9 @@ public class EyeAndHeadTracker : MonoBehaviour
                 condition = sessionMeta.condition,
                 device = sessionMeta.device,
                 environment = sessionMeta.environment,
-                samplingRateHz = sessionMeta.samplingRateHz
+                measuredSampleRateHz = dataQuality.measuredFrameRateHz,
+                targetFrameRateSetting = Application.targetFrameRate,
+                eyeDataSource = sessionMeta.eyeDataSource
             };
 
             var perfCopy = new SessionPerformanceData
@@ -1500,7 +1809,7 @@ public class EyeAndHeadTracker : MonoBehaviour
                 totalTimeToComplete = performanceData.totalTimeToComplete,
                 totalObjectsDestroyed = performanceData.totalObjectsDestroyed,
                 meanInterDestroyInterval = performanceData.meanInterDestroyInterval,
-                dataQuality = performanceData.dataQuality
+                dataQuality = dataQuality
             };
 
             var destructionCopy = new List<DestructionEvent>(destructionEvents);
@@ -1514,6 +1823,7 @@ public class EyeAndHeadTracker : MonoBehaviour
             {
                 metadata = metaCopy,
                 sessionData = perfCopy,
+                primaryOutcome = BuildPrimaryOutcome(),
                 destructionEvents = destructionCopy,
                 gazeAttention = BuildGazeAttentionSummary(),
                 gazeLookEvents = includeLookEventsInSummary

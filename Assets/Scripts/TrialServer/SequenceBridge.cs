@@ -16,8 +16,8 @@ namespace TrialServer
     /// that button; the participant then starts the trial themselves on the device. The bridge notices the
     /// start by watching the tracker's trial clock and flips its phase to Recording.
     ///
-    /// PARTS. A session runs HALF a sequence, so there are eight selectable buttons, addressed here by the
-    /// flattened index SequenceManager exposes: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4. Part 1
+    /// PARTS. A session runs HALF a group, so there are eight selectable buttons, addressed here by the
+    /// flattened index SequenceManager exposes: 0-3 = Part 1 Group 1-4, 4-7 = Part 2 Group 1-4. Part 1
     /// (Trials 1-2, Dusk) runs the tutorial first, so picking it moves to phase Tutorial. Part 2 (Trials 3-4,
     /// Night) is run after a headset reboot and SKIPS the tutorial, so picking it moves STRAIGHT to Ready with
     /// trial 3 queued. Trials are never renumbered, which is why the flow runs on ServerState's
@@ -213,7 +213,7 @@ namespace TrialServer
                     {
                         ServerState.Phase = TrialPhase.Done;
                         ServerState.Report($"Trial {ServerState.TrialNumber} {how}. " +
-                                           $"Sequence {ServerState.SelectedSequence} Part {ServerState.SelectedPart} finished.");
+                                           $"Group {ServerState.SelectedSequence} Part {ServerState.SelectedPart} finished.");
                     }
                     else
                     {
@@ -262,12 +262,12 @@ namespace TrialServer
                 return;
             }
 
-            // Flattened index: 0-3 = Part 1 Sequence 1-4, 4-7 = Part 2 Sequence 1-4.
+            // Flattened index: 0-3 = Part 1 Group 1-4, 4-7 = Part 2 Group 1-4.
             int buttonCount = _sm.SequenceButtonCount;
             if (!int.TryParse((body ?? "").Trim(), out int index) || index < 0 || index >= buttonCount)
             {
                 ServerState.Report($"Sequence command needs an index 0-{buttonCount - 1} " +
-                                   $"(0-3 = Part 1 Seq 1-4, 4-7 = Part 2 Seq 1-4); got \"{body}\".", "error");
+                                   $"(0-3 = Part 1 Group 1-4, 4-7 = Part 2 Group 1-4); got \"{body}\".", "error");
                 return;
             }
 
@@ -277,13 +277,13 @@ namespace TrialServer
             var button = _sm.GetSequenceButton(index);
             if (button == null)
             {
-                ServerState.Report($"Sequence {seqNumber} Part {partNumber} button is not wired in the scene.", "error");
+                ServerState.Report($"Group {seqNumber} Part {partNumber} button is not wired in the scene.", "error");
                 return;
             }
 
             if (!ClickButton(button))
             {
-                ServerState.Report($"Sequence {seqNumber} Part {partNumber} button has no Button component to click.", "error");
+                ServerState.Report($"Group {seqNumber} Part {partNumber} button has no Button component to click.", "error");
                 return;
             }
 
@@ -299,7 +299,7 @@ namespace TrialServer
                 // loud phase rather than looking like a trial.
                 ServerState.TrialNumber = 0;
                 ServerState.Phase = TrialPhase.Tutorial;
-                ServerState.Report($"Sequence {seqNumber} Part 1 selected (Trials 1-2, Dusk). The tutorial " +
+                ServerState.Report($"Group {seqNumber} Part 1 selected (Trials 1-2, Dusk). The tutorial " +
                                    "(4 practice gems) is running; recording starts with it by the study's design.");
             }
             else
@@ -309,7 +309,7 @@ namespace TrialServer
                 // to Ready; the arm gate takes over from here and holds the device Start button.
                 ServerState.TrialNumber = ServerState.FirstTrialNumber;
                 ServerState.Phase = TrialPhase.Ready;
-                ServerState.Report($"Sequence {seqNumber} Part 2 selected (Trials 3-4, Night). No tutorial: " +
+                ServerState.Report($"Group {seqNumber} Part 2 selected (Trials 3-4, Night). No tutorial: " +
                                    $"Trial {ServerState.TrialNumber} is queued; arm it when ready.");
             }
         }
@@ -321,7 +321,7 @@ namespace TrialServer
             switch (ServerState.Phase)
             {
                 case TrialPhase.Menu:
-                    ServerState.Report("Select a sequence first.", "error");
+                    ServerState.Report("Select a group first.", "error");
                     return;
                 case TrialPhase.Tutorial:
                     ServerState.Report("Tutorial in progress. Wait for it to finish before arming a trial.", "warn");

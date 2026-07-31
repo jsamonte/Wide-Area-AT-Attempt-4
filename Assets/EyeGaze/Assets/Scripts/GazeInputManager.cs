@@ -14,7 +14,22 @@ public class GazeInputManager : Singleton<GazeInputManager>
     public bool EyeTrackingPermissionGranted { get; private set; }
     public Vector3 GazePosition { get; private set; }
     public Quaternion GazeRotation { get; private set; }
-    
+
+    /// <summary>
+    /// Whether the tracker returned a FRESH gaze sample this frame.
+    ///
+    /// Deliberately distinct from <see cref="EyeTrackingPermissionGranted"/>, which only records that the
+    /// participant allowed eye tracking at startup and then stays true for the whole session. When tracking
+    /// actually drops -- a blink, a headset slip, eyes outside the tracked box -- GazePosition/GazeRotation
+    /// HOLD their last good value rather than snapping to zero, so a consumer reading only the permission
+    /// flag cannot tell a live sample from a stale one. Anything logging gaze, or gating dwell on it, must
+    /// read this instead. It is the flag the data-quality exclusion criterion is computed from.
+    /// </summary>
+    public bool IsGazeTracked { get; private set; }
+
+    /// <summary>Time.realtimeSinceStartup of the last fresh sample; -1 before the first one arrives.</summary>
+    public float LastGazeUpdateTime { get; private set; } = -1f;
+
     void Start()
     {
         MagicLeap.Android.Permissions.RequestPermission(MagicLeap.Android.Permissions.EyeTracking, OnPermissionGranted, 
@@ -23,8 +38,12 @@ public class GazeInputManager : Singleton<GazeInputManager>
 
     private void Update()
     {
-        if (!EyeTrackingPermissionGranted) return;
-       
+        if (!EyeTrackingPermissionGranted)
+        {
+            IsGazeTracked = false;
+            return;
+        }
+
         if (!eyeTrackingDevice.isValid)
         {
             InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.EyeTracking, inputDeviceList);
@@ -36,10 +55,11 @@ public class GazeInputManager : Singleton<GazeInputManager>
             if (!eyeTrackingDevice.isValid)
             {
                 // Logger.Instance.LogWarning($"Unable to get eye tracking information");
+                IsGazeTracked = false;
                 return;
             }
         }
-        
+
         bool hasData = eyeTrackingDevice.TryGetFeatureValue(CommonUsages.isTracked, out bool isTracked);
         hasData &= eyeTrackingDevice.TryGetFeatureValue(EyeTrackingUsages.gazePosition, out Vector3 position);
         hasData &= eyeTrackingDevice.TryGetFeatureValue(EyeTrackingUsages.gazeRotation, out Quaternion rotation);
@@ -48,6 +68,14 @@ public class GazeInputManager : Singleton<GazeInputManager>
         {
             GazePosition = position;
             GazeRotation = rotation;
+            IsGazeTracked = true;
+            LastGazeUpdateTime = Time.realtimeSinceStartup;
+        }
+        else
+        {
+            // Leave GazePosition/GazeRotation on their last good value -- a consumer mid-dwell should coast
+            // through a blink rather than have the ray snap to the origin -- but stop claiming it is live.
+            IsGazeTracked = false;
         }
     }
 
