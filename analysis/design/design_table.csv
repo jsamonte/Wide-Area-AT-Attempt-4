@@ -1,0 +1,17 @@
+group,trial_order,pool,wireframe,condition,part,part_label,set_id
+1,1,1,0,no_wireframe,1,Dusk,1
+1,2,2,1,wireframe,1,Dusk,2
+1,3,3,0,no_wireframe,2,Night,3
+1,4,4,1,wireframe,2,Night,4
+2,1,2,1,wireframe,1,Dusk,2
+2,2,1,0,no_wireframe,1,Dusk,1
+2,3,4,1,wireframe,2,Night,4
+2,4,3,0,no_wireframe,2,Night,3
+3,1,4,0,no_wireframe,1,Dusk,4
+3,2,3,1,wireframe,1,Dusk,3
+3,3,2,0,no_wireframe,2,Night,2
+3,4,1,1,wireframe,2,Night,1
+4,1,3,1,wireframe,1,Dusk,3
+4,2,4,0,no_wireframe,1,Dusk,4
+4,3,1,1,wireframe,2,Night,1
+4,4,2,0,no_wireframe,2,Night,2

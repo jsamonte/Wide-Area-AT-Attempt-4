@@ -201,6 +201,7 @@ namespace MagicLeap.Examples
                 {
                     currentCustomInstance = Instantiate(customMarkerPrefab);
                     currentCustomInstance.SetActive(true);
+                    LabelForGazeLogging(currentCustomInstance);
                 }
 
                 if (currentCustomInstance != null)
@@ -236,6 +237,30 @@ namespace MagicLeap.Examples
                         Time.deltaTime * followSpeed);
                 }
             }
+        }
+
+        /// <summary>
+        /// Stamps the spawned map with the gaze category the analysis expects.
+        ///
+        /// Done in code rather than left on the prefab on purpose. The map is the only UI panel in the
+        /// scene that the gaze ray can hit, it accumulates very long dwells, and until P001 it was
+        /// classified as "Other" -- i.e. as scenery -- which made it 96% of the primary DV in trial 1.
+        /// A missing component on a prefab is invisible until the data comes back; this is not.
+        /// The category is forced even if the prefab already carries a GazeLoggableObject -- the whole
+        /// point is that it cannot be mislabelled. Only the display name defers to the prefab.
+        /// </summary>
+        private static void LabelForGazeLogging(GameObject mapInstance)
+        {
+            if (mapInstance == null) return;
+
+            // The root specifically, not GetComponentInChildren: the tracker resolves a collider by
+            // walking UP with GetComponentInParent, so a label sitting on a sibling child would never
+            // be found by the map's own collider.
+            var loggable = mapInstance.GetComponent<GazeLoggableObject>();
+            if (loggable == null) loggable = mapInstance.AddComponent<GazeLoggableObject>();
+
+            loggable.category = EyeAndHeadTracker.MapCategory;
+            if (string.IsNullOrEmpty(loggable.displayName)) loggable.displayName = "NavigationMap";
         }
 
         private Pose ToWorld(Pose tracking)

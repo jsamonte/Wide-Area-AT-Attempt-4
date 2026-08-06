@@ -268,6 +268,12 @@ public class EyeAndHeadTracker : MonoBehaviour
     ///
     /// Secondary: how many DISTINCT pieces of scenery were fixated per minute of tracked time. The raw
     /// distinct-object count is uninterpretable alone because trials differ in length.
+    ///
+    /// The navigation map is scored under its own category and is NOT part of "Other". It is a
+    /// head-locked UI panel, not part of the environment, and it dominated the Other total in P001
+    /// (33.9 s of 35.3 s in trial 1, 46.5 s of 56.0 s in trial 2). Leaving it in makes the primary DV
+    /// read "time spent consulting the map", which is a different construct and moves in the opposite
+    /// direction: looking AT the map is time spent NOT looking at the world.
     /// </summary>
     [System.Serializable]
     public class PrimaryOutcomeData
@@ -284,6 +290,11 @@ public class EyeAndHeadTracker : MonoBehaviour
         // the pilot: the signal is specifically in Other, not in on-object time overall.
         public float percentTimeOnTargets;
         public float percentTimeOnRecallObjects;
+
+        // Map consultation, reported separately rather than discarded: how much a participant leaned on
+        // the map is a plausible covariate for how much of the environment they looked at.
+        public float secondsOnMap;
+        public float percentTimeOnMap;
     }
 
     [System.Serializable]
@@ -404,6 +415,13 @@ public class EyeAndHeadTracker : MonoBehaviour
     // file was closed properly: anything still named incomplete_ on the headset is truncated data.
     private const string IncompletePrefix = "incomplete_";
     private const string CompletedPrefix = "completed_";
+
+    /// <summary>
+    /// Category string for the navigation map. Public because MapTracking stamps it onto the map instance
+    /// at spawn time, and the two must not be allowed to disagree via a copied string literal: if they do,
+    /// the map silently falls through to "Other" again and the primary DV goes back to being wrong.
+    /// </summary>
+    public const string MapCategory = "Map";
 
     // Flips the prefix once the set is finalized, and stops later saves recreating an incomplete_ copy.
     private bool trialFilesFinalized;
@@ -926,6 +944,14 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         var gazePos = GazeInputManager.Instance.GazePosition;
         var gazeRot = GazeInputManager.Instance.GazeRotation;
+
+        // The SDK reports the gaze pose in TRACKING space; headTransform in the same logged row is in
+        // WORLD space. Through P001 this block wrote the raw pose, so gazeOrigin sat a median 104 m (trial
+        // 1) and 177 m (trial 2) from the head position it was supposed to originate at, and no offline
+        // consumer could relate the two. The dwell data was never affected -- the raycasts go through
+        // TryGetGazeRay, which converts -- but the logged vectors were unusable. Same conversion, one place.
+        TrackingToWorld(ref gazePos, ref gazeRot);
+
         Vector3 gazeDir = gazeRot * Vector3.forward;
 
         // isValid now means "the tracker returned a fresh sample this frame", not "the participant granted
@@ -997,14 +1023,27 @@ public class EyeAndHeadTracker : MonoBehaviour
         gazeRotation = GazeInputManager.Instance.GazeRotation;
         isFresh = GazeInputManager.Instance.IsGazeTracked;
 
-        if (Camera.main != null && Camera.main.transform.parent != null)
-        {
-            var trackingOrigin = Camera.main.transform.parent;
-            gazePosition = trackingOrigin.TransformPoint(gazePosition);
-            gazeRotation = trackingOrigin.rotation * gazeRotation;
-        }
+        TrackingToWorld(ref gazePosition, ref gazeRotation);
 
         return true;
+    }
+
+    /// <summary>
+    /// Converts a gaze pose from XR tracking space into world space, in place.
+    ///
+    /// Factored out so the raycast path and the logging path cannot disagree about which space they are
+    /// in. They did disagree through P001, and the symptom -- a gazeOrigin 100+ m from the head position
+    /// recorded on the same frame -- is only visible if you go looking for it in the raw file.
+    /// A no-op when there is no tracking origin, which is what the Editor sees.
+    /// </summary>
+    private static void TrackingToWorld(ref Vector3 position, ref Quaternion rotation)
+    {
+        var cam = Camera.main;
+        if (cam == null || cam.transform.parent == null) return;
+
+        var trackingOrigin = cam.transform.parent;
+        position = trackingOrigin.TransformPoint(position);
+        rotation = trackingOrigin.rotation * rotation;
     }
 
     private void RunEyeDwellDestruction()
@@ -1574,7 +1613,7 @@ public class EyeAndHeadTracker : MonoBehaviour
     /// </summary>
     private PrimaryOutcomeData BuildPrimaryOutcome()
     {
-        float otherSeconds = 0f, targetSeconds = 0f, recallSeconds = 0f;
+        float otherSeconds = 0f, targetSeconds = 0f, recallSeconds = 0f, mapSeconds = 0f;
         int distinctOther = 0;
 
         foreach (var stat in gazeStatsByObjectId.Values)
@@ -1587,7 +1626,13 @@ public class EyeAndHeadTracker : MonoBehaviour
                 case "RecallObject":
                     recallSeconds += stat.totalDwellSeconds;
                     break;
-                default: // "Other" and any custom category: non-target scene geometry
+                case MapCategory:
+                    // Carved out explicitly rather than left to the default arm. The map is a UI panel
+                    // the participant consults, not scenery they noticed, and it is a single object with
+                    // very long dwells -- it swamped the primary DV in P001.
+                    mapSeconds += stat.totalDwellSeconds;
+                    break;
+                default: // "Other" and any other custom category: non-target scene geometry
                     otherSeconds += stat.totalDwellSeconds;
                     if (stat.totalDwellSeconds > 0f) distinctOther++;
                     break;
@@ -1605,7 +1650,9 @@ public class EyeAndHeadTracker : MonoBehaviour
             distinctOtherObjectsFixated = distinctOther,
             distinctOtherObjectsPerMinute = trackedMinutes > 0f ? distinctOther / trackedMinutes : 0f,
             percentTimeOnTargets = Percent(targetSeconds, gazeTrackedSeconds),
-            percentTimeOnRecallObjects = Percent(recallSeconds, gazeTrackedSeconds)
+            percentTimeOnRecallObjects = Percent(recallSeconds, gazeTrackedSeconds),
+            secondsOnMap = mapSeconds,
+            percentTimeOnMap = Percent(mapSeconds, gazeTrackedSeconds)
         };
     }
 

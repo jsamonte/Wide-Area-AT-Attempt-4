@@ -561,7 +561,9 @@ public class SequenceManager : MonoBehaviour
         if (recoveryTrialDone)
         {
             sequenceComplete = true;
-            ShowMenu($"Recovery trial complete ({label}).\nPlease close the application.");
+            ShowMenu($"Recovery trial complete ({label}).\n" +
+                     "You may now remove the headset. Thank you!\n" +
+                     "Please close the application.");
             if (startButton != null) startButton.SetActive(false);
             if (tracker != null) tracker.PauseRecording();
             return;
@@ -664,13 +666,20 @@ public class SequenceManager : MonoBehaviour
         gameObject.SetActive(true); // Show HUD
         SetFrameRate(menuFrameRate); // idle menu: run cool and let the device cool down
 
+        // The headset cue is spelled out on every between-trial screen, because a participant left to guess
+        // whether to take the device off will do it at the wrong moment: mid-part removal costs the eye
+        // calibration and the fit, and sitting through the reboot wearing it is uncomfortable for nothing.
+        // The two branches below happen to line up exactly with the two cues -- a part ends after Trials 2
+        // and 4 (headset off), and the only mid-part screens are after Trials 1 and 3 (headset stays on).
         if (currentTrialIndex >= PartEndTrialIndex)
         {
             sequenceComplete = true;
             string whatNext = (currentPartIndex == 0)
                 ? "Please reboot the headset before running Part 2."
                 : "Please close the application.";
-            ShowMenu($"Group {currentSequenceIndex + 1} Part {currentPartIndex + 1} Complete!\n{whatNext}");
+            ShowMenu($"Group {currentSequenceIndex + 1} Part {currentPartIndex + 1} Complete!\n" +
+                     "You may now remove the headset. Thank you!\n" +
+                     $"{whatNext}");
             if (startButton != null) startButton.SetActive(false);
             if (tracker != null) tracker.PauseRecording();
             return;
@@ -685,7 +694,7 @@ public class SequenceManager : MonoBehaviour
         }
         else
         {
-            ShowMenu($"Trial {currentTrialIndex} Complete!\n\nPlease wait until the researcher approves the next trial:\nTrial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
+            ShowMenu($"Trial {currentTrialIndex} Complete!\n\nPlease keep the headset on until instructed otherwise.\n\nPlease wait until the researcher approves the next trial:\nTrial {currentTrialIndex + 1} ({timeOfDay} - Pool {poolNum}).");
         }
 
         if (startButton != null)
