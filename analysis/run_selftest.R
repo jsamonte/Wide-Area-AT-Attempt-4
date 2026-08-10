@@ -128,7 +128,24 @@ check("gaze confidence floor read from the trial file header",
 check("head yaw travel handles the 360-degree wrap",
       all(is.finite(gaze$head_yaw_travel_deg)) && all(gaze$head_yaw_travel_deg > 0))
 
-# 12. Looks survived the merge/floor filters.
+# 12. The hardware exposes no pupillometry and the logger writes -1. That sentinel must
+#     reach the modelling table as NA: averaged as a number it becomes a stable -1.00 mm
+#     per trial, which looks like a measurement and is not one.
+check("pupil sentinel (-1) is read as missing, not averaged",
+      all(is.na(gaze$pupil_mean_mm)) && all(is.na(gaze$pupil_l_mean_mm)),
+      sprintf("(%d of %d trials have a non-NA pupil mean)",
+              sum(!is.na(gaze$pupil_mean_mm)), nrow(gaze)))
+
+# 13. The planar head path is the efficiency-ratio numerator, so it has to be a real
+#     subset of the 3D path: equal only if the participant never changed height, and
+#     never larger. A swapped axis or a copied formula shows up here immediately.
+check("planar head path is positive and never exceeds the 3D path",
+      all(gaze$head_path_xz_m > 0, na.rm = TRUE) &&
+        all(gaze$head_path_xz_m <= gaze$head_path_m + 1e-6, na.rm = TRUE),
+      sprintf("(median xz/3d = %.3f)",
+              stats::median(gaze$head_path_xz_m / gaze$head_path_m, na.rm = TRUE)))
+
+# 13. Looks survived the merge/floor filters.
 check("AOI looks were extracted", all(gaze$n_looks > 0) && nrow(aoi) > 0)
 
 cat("---------------------------------------------------------------------\n")

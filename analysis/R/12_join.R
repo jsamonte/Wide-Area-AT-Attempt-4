@@ -49,10 +49,57 @@ verify_design <- function(design = load_design()) {
 }
 
 # ---------------------------------------------------------------------------------
+# Ideal collection route per pool (the efficiency-ratio denominator).
+# ---------------------------------------------------------------------------------
+# Written by the Unity editor tool GemOptimalPathCalculator, one row per pool: the exact
+# Held-Karp open tour over that pool's 20 target positions, straight-line, in the ground
+# plane. It is an authoring-time constant, not measured data -- the same 4 numbers apply
+# to every participant -- which is why it lives in analysis/design/ next to the design
+# table rather than being derived per trial.
+#
+# Returns NULL when the file is absent so build_trial_table() can carry on without it.
+load_ideal_paths <- function(path = cfg$ideal_path_path) {
+  if (is.null(path) || !file.exists(path)) {
+    message("No ideal-path file at '", path, "'. path_ratio will be NA. ",
+            "Run GemOptimalPathCalculator once per pool in the Unity editor.")
+    return(NULL)
+  }
+
+  d <- readr::read_csv(path, na = c("", "NA"), progress = FALSE,
+                       col_types = readr::cols(
+                         pool = "i", n_targets = "i", seed = "i",
+                         ideal_path_xz_m = "d", ideal_path_3d_m = "d",
+                         method = "c", computed_utc = "c"))
+
+  dup <- d %>% count(pool) %>% filter(n > 1)
+  if (nrow(dup) > 0)
+    stop("ideal_paths.csv has ", nrow(dup), " duplicated pool row(s). One row per pool, ",
+         "or the join will duplicate every trial in that pool.")
+
+  missing <- setdiff(as.character(1:4), as.character(d$pool))
+  if (length(missing) > 0)
+    warning("ideal_paths.csv is missing pool(s): ", paste(missing, collapse = ", "),
+            ". Trials in those pools get path_ratio = NA.", call. = FALSE)
+
+  # A tour computed over the wrong object set is the failure mode that matters here: it
+  # produces a plausible number rather than an error. 20 targets is what RandomSpawner
+  # spawns, so anything else means the tool picked up recall objects or a partial layout.
+  odd <- d %>% filter(!is.na(n_targets), n_targets != 20L)
+  if (nrow(odd) > 0)
+    warning(nrow(odd), " pool(s) in ideal_paths.csv were computed over a target count ",
+            "other than 20: ", paste0("pool ", odd$pool, " n=", odd$n_targets,
+                                      collapse = "; "),
+            ". Re-run the calculator on a freshly spawned pool.", call. = FALSE)
+
+  d %>% mutate(pool = factor(pool))
+}
+
+# ---------------------------------------------------------------------------------
 # The trial-level modelling table. One row per participant x trial.
 # ---------------------------------------------------------------------------------
 build_trial_table <- function(post_trial, recall_trials = NULL, gaze = NULL,
-                              pre_study = NULL, design = load_design()) {
+                              pre_study = NULL, design = load_design(),
+                              ideal_paths = load_ideal_paths()) {
 
   out <- post_trial %>%
     mutate(group = as.integer(group), trial_order = as.integer(trial_order)) %>%
@@ -86,8 +133,25 @@ build_trial_table <- function(post_trial, recall_trials = NULL, gaze = NULL,
     out <- out %>% left_join(
       gaze %>% select(participant_id = participant, trial_order = trial,
                       any_of(c("prop_gaze_on_aoi", "n_looks", "mean_look_s",
-                               "head_path_m", "head_yaw_travel_deg", "use_for_gaze"))),
+                               "head_path_m", "head_path_xz_m",
+                               "head_yaw_travel_deg", "use_for_gaze"))),
       by = c("participant_id", "trial_order"))
+  }
+
+  # Efficiency ratio: distance actually walked over the shortest route that would have
+  # visited all 20 targets. Both terms are planar (see head_path_xz_m). The ratio is
+  # ALWAYS well above 1 -- the ideal route assumes the target positions are known, and
+  # finding them is the task -- so it is read as a relative index across conditions
+  # within a pool, never as an absolute detour factor. Because the denominator is
+  # constant within a pool, it is a per-pool rescaling of head_path_xz_m: it changes what
+  # the number means and makes it comparable across pools, but adds no information to a
+  # model that already carries pool.
+  if (!is.null(ideal_paths)) {
+    out <- out %>%
+      left_join(ideal_paths %>% select(pool, ideal_path_xz_m), by = "pool")
+    if ("head_path_xz_m" %in% names(out)) {
+      out <- out %>% mutate(path_ratio = head_path_xz_m / ideal_path_xz_m)
+    }
   }
 
   if (!is.null(pre_study)) {

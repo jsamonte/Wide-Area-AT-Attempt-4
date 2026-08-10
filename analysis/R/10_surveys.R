@@ -76,7 +76,10 @@ tlx_patterns <- c(
   mental     = "mentally demanding",
   physical   = "physically demanding",
   temporal   = "hurried or rushed",
-  perform    = "successful were you",
+  # "successful were you" alone ALSO matches the post-trial memory item "How successful
+  # were you overall at the memory (object-recall) task?", so this pattern must stay
+  # narrow. Two matches would make find_col() take whichever column comes first.
+  perform    = "successful were you in accomplishing",
   effort     = "hard did you have to work",
   frustration = "insecure, discouraged"
 )
@@ -101,14 +104,14 @@ score_tlx <- function(df) {
 }
 
 # ---------------------------------------------------------------------------------
-# Perceived mental clutter (Post-Trial, section 3) -- single item, 1-7, higher = worse
+# Perceived mental clutter (Post-Trial, section 5) -- single item, 1-7, higher = worse
 # ---------------------------------------------------------------------------------
 score_clutter <- function(df) {
   tibble(clutter = num_item(df, "visual clutter", "Clutter"))
 }
 
 # ---------------------------------------------------------------------------------
-# MEC-SPQ Spatial Situational Model (Post-Trial, section 4) -- 5 items, 1-5
+# MEC-SPQ Spatial Situational Model (Post-Trial, section 6) -- 5 items, 1-5
 # ---------------------------------------------------------------------------------
 # All five are positively worded: higher = stronger spatial model. No reversals.
 mec_patterns <- c(
@@ -125,6 +128,97 @@ score_mec <- function(df) {
   raw %>%
     rename_with(~ paste0("mec_", .x)) %>%
     mutate(mec_ssm = scale_mean(mec_arrangement, mec_precise, mec_size, mec_image, mec_behind))
+}
+
+# ---------------------------------------------------------------------------------
+# Trial-level situation awareness (Post-Trial, section 3) -- 10 items, 1-7
+# ---------------------------------------------------------------------------------
+# THIS IS NOT THE SART, despite the heading the form gives it. Taylor's (1990) SART
+# needs all ten of his dimensions. This section shares only five of them -- complexity,
+# spare capacity, concentration, division of attention, familiarity -- and omits
+# instability, variability, arousal, information quantity, and information quality.
+# The other five items here (anticipation effort, clarity of the mental picture,
+# identifying important aspects, meaning and significance, prediction) are not SART
+# dimensions at all; they follow Endsley's perception/comprehension/projection framing.
+#
+# CONSEQUENCE: sart_total (post-study) and sa_index (here) are different measures on
+# different scales. Never compare them, pool them, or share an axis between them.
+#
+# Why score it at all: the post-study SART is collected once per participant and cannot
+# enter the condition model. This section is the ONLY situation-awareness measure that
+# varies with wireframe state, so every trial-level SA claim rests on it. Until now it
+# was read in and silently dropped.
+#
+# DIRECTIONS. All ten run 1 = Low to 7 = High as printed on the form.
+#   D (higher = worse):  divided attention, anticipation effort, complexity
+#   S (higher = better): spare capacity, attention devoted
+#   U (higher = better): familiarity, mental picture, important aspects, meaning,
+#                        prediction
+# Subscales are MEANS, not sums like the post-study SART, because these three hold
+# 3/2/5 items; summing would let Understanding outweigh Demand on item count alone.
+sa_items <- tribble(
+  ~key,         ~pattern,                               ~dim,
+  "divided",    "divide your attention",                 "D",
+  "anticipate", "mental effort was required",            "D",
+  "complex",    "How complex was the situation",         "D",
+  "spare",      "spare mental capacity",                 "S",
+  "devote",     "attention could you devote",            "S",
+  "familiar",   "familiar were you with the situation",  "U",
+  "picture",    "clear was your mental picture",         "U",
+  "important",  "identify and focus on important",       "U",
+  "meaning",    "meaning and significance",              "U",
+  "predict",    "predict what would happen",             "U"
+)
+
+score_trial_sa <- function(df) {
+  vals <- lapply(seq_len(nrow(sa_items)), function(i)
+    num_item(df, sa_items$pattern[i], paste("Trial SA", sa_items$key[i])))
+  names(vals) <- paste0("sa_", sa_items$key)
+  v <- as_tibble(vals)
+
+  sub_mean <- function(dim)
+    do.call(scale_mean, as.list(v[paste0("sa_", sa_items$key[sa_items$dim == dim])]))
+
+  v %>% mutate(
+    sa_demand        = sub_mean("D"),
+    sa_supply        = sub_mean("S"),
+    sa_understanding = sub_mean("U"),
+    # Taylor-style contrast computed on the subscale means. Ranges -5 to 13, and zero
+    # carries no meaning -- treat it as an interval score, not a ratio one.
+    sa_index         = sa_understanding - (sa_demand - sa_supply),
+    # Exploratory. The three items with no SART counterpart, i.e. Endsley's levels.
+    # sa_picture is the item that most directly targets this study's hypothesis.
+    sa_endsley       = scale_mean(sa_picture, sa_meaning, sa_predict)
+  )
+}
+
+# ---------------------------------------------------------------------------------
+# Trial-level memory and brightness (Post-Trial, section 4) -- 4 items, 1-7
+# ---------------------------------------------------------------------------------
+# The post-study form asks these same four questions about the session as a whole, and
+# score_poststudy_impressions() already owns the names mem_* and bright_*. These are the
+# per-trial versions, prefixed pt_ so both survive the same join.
+#
+# BRIGHTNESS IS BIPOLAR, midpoint 4 = "about right", so it is scored signed (which way
+# it was off) and as absolute deviation (how far off), exactly as at post-study.
+# pt_mem_trend is bipolar too (1 = got worse, 7 = got better, 4 = unchanged) but is kept
+# raw to match the post-study treatment of the same item.
+score_trial_memory <- function(df) {
+  bright_abs <- num_item(df, "overall brightness of the virtual", "Trial brightness overall")
+  bright_rel <- num_item(df, "brightness of the virtual objects compared",
+                         "Trial brightness relative")
+
+  tibble(
+    pt_mem_success = num_item(df, "successful were you overall at the memory",
+                              "Trial memory success"),
+    pt_mem_trend   = num_item(df, "performance on the memory .{0,20}task over time",
+                              "Trial memory trend"),
+
+    pt_bright_overall_signed = bright_abs - 4,
+    pt_bright_overall_dev    = abs(bright_abs - 4),
+    pt_bright_rel_signed     = bright_rel - 4,
+    pt_bright_rel_dev        = abs(bright_rel - 4)
+  )
 }
 
 # ---------------------------------------------------------------------------------
@@ -309,7 +403,8 @@ load_post_trial <- function(path = cfg$survey_trial_path) {
       group          = num_item(df, "Group Number", "Group"),
       trial_order    = num_item(df, "Trial number", "Trial")
     ),
-    score_tlx(df), score_clutter(df), score_mec(df)
+    score_tlx(df), score_clutter(df), score_mec(df),
+    score_trial_sa(df), score_trial_memory(df)
   )
 }
 

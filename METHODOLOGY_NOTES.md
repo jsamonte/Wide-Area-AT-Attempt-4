@@ -501,7 +501,17 @@ the darker half (*Night*). Report it as a measured covariate, never as a manipul
   contrast the JSON summary is rewritten *in full* on every autosave, so embedding a
   growing event list there costs a main-thread hitch every few seconds — it is therefore
   off by default. Aggregate percentages appear in the summary either way.
-- **Task mechanic:** targets are destroyed by eye dwell (4.0 s over the target).
+- **Task mechanic:** targets are destroyed by eye dwell (4.0 s over the target). All 20
+  are identical and present from the start, so collection order is the participant's
+  choice — which is what makes the ideal route an open TSP tour rather than a fixed
+  sequence.
+- **The wrist map is scored on its own.** The navigation map rides a printed ArUco 88
+  marker worn on the wrist, and `MapTracking` stamps `GazeLoggableObject.category = "Map"`
+  onto the spawned instance so map dwell can never fall through into the "Other scenery"
+  bucket. It swamped that bucket in P001 (33.9 s of 35.3 s in trial 1, 46.5 s of 56.0 s in
+  trial 2), which would have turned the primary DV into "time spent consulting the map" —
+  a measure that moves the opposite way, since looking at the map is time not looking at
+  the world. Reported separately as a covariate.
 - **Heartbeat to logcat**, every 30 s during a trial, deliberately *not* into the trial
   JSON: logcat survives a mid-trial reboot, whereas the JSON copy would be buffered in
   RAM and lost in exactly the event being diagnosed. It also keeps the experimental data
@@ -567,13 +577,21 @@ window, the 0.10 s minimum look duration.
   item-level GLMM. The **loglinear correction is applied to every trial, not only ceiling
   ones**, which is the defensible choice.
 
-### Limitation to state explicitly: pupil diameter
-`pupil_mean_mm` is computed because it is cheap and conventionally cited as a workload
-proxy. **It tracks scene luminance far more strongly than cognitive effort.** The
-conditions here differ in exactly how much they light up the display — an AR wireframe
-overlay is additive light — so a pupil difference between conditions cannot be
-interpreted as a workload difference. **Raw TLX is the workload measure.** Report the
-pupil data if at all only with this caveat attached.
+### Limitation to state explicitly: there is no pupillometry
+**Pupil diameter is not measured in this study at all** — this supersedes the earlier
+note that framed it as a computed-but-caveated proxy. The Magic Leap OpenXR path in use
+(`EyeTrackingUsages.gazePosition` / `gazeRotation`) returns a single combined gaze pose:
+no per-eye stream, no pupil diameter, no eye openness. `EyeAndHeadTracker` writes
+`pupilDiameterMm = -1` for both eyes, and the reduction maps that sentinel to NA so it
+can never be averaged into a plausible-looking number. An earlier build wrote hardcoded
+3.4/3.5 mm across all ~100k logged frames, which is the more dangerous failure: it reads
+as a genuine measurement.
+
+The same limit applies to the `leftEye` / `rightEye` blocks — they are the combined pose
+offset by half an assumed 64 mm IPD, so no vergence or left-vs-right analysis is
+possible. **Raw TLX is the workload measure.** State the hardware limit in the paper
+rather than caveating a number that does not exist; a reviewer asking for pupillometry
+is asking for something the device does not expose.
 
 ---
 
@@ -583,6 +601,11 @@ Carry these as an explicit checklist, not as prose:
 
 - [ ] **Recall answer key** — `item_label` and `present` for all 120 rows.
 - [ ] **Recall transcriptions** — paper sheets typed into `recall_responses.csv`.
+- [ ] **Ideal paths** — run `GemOptimalPathCalculator` once per pool in the Unity editor
+      (set the pool on `RandomSpawner` → *Preview Spawn In Editor* → *Calculate Exact
+      Shortest Path*). It writes `analysis/design/ideal_paths.csv`, which `12_join.R`
+      divides `head_path_xz_m` by to get the search efficiency ratio. Until the file
+      exists, `path_ratio` is NA and the run log says so.
 - [ ] **NDJSON reduction** — the gaze reduction currently targets the disabled
       `DataLogger` CSV path; the live writer is `EyeAndHeadTracker`. This must be
       retargeted before any real reduction run.

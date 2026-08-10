@@ -269,18 +269,21 @@ angle_diff_deg <- function(a, b) {
 
 summarise_head <- function(df) {
   if (nrow(df) < 2L) {
-    return(tibble(head_path_m = NA_real_, head_speed_mean_mps = NA_real_,
+    return(tibble(head_path_m = NA_real_, head_path_xz_m = NA_real_,
+                  head_speed_mean_mps = NA_real_,
                   head_yaw_travel_deg = NA_real_, head_yaw_rate_mean_dps = NA_real_))
   }
 
   n <- nrow(df)
   keep <- !df$is_gap[-n]     # intervals that are not gaps
 
-  step <- sqrt(diff(df$head_x)^2 + diff(df$head_y)^2 + diff(df$head_z)^2)
+  step   <- sqrt(diff(df$head_x)^2 + diff(df$head_y)^2 + diff(df$head_z)^2)
+  step_h <- sqrt(diff(df$head_x)^2 + diff(df$head_z)^2)
   yaw  <- abs(angle_diff_deg(df$head_yaw[-1], df$head_yaw[-n]))
   dt   <- df$dt[-n]
 
-  path <- sum(step[keep], na.rm = TRUE)
+  path <- sum(step[keep],   na.rm = TRUE)
+  path_h <- sum(step_h[keep], na.rm = TRUE)
   turn <- sum(yaw[keep],  na.rm = TRUE)
   time <- sum(dt[keep],   na.rm = TRUE)
 
@@ -288,6 +291,13 @@ summarise_head <- function(df) {
     # Locomotion. In a wide-area study this is a first-class outcome, not a covariate:
     # how much ground someone covered to build the same mental map is the point.
     head_path_m            = path,
+    # Ground-plane distance travelled, ignoring vertical head movement. This is the
+    # numerator of the efficiency ratio: the ideal-route denominator authored by
+    # GemOptimalPathCalculator is a planar tour, so the two have to be measured in the
+    # same plane. It is also the more honest locomotion number on its own -- head_path_m
+    # accumulates a few centimetres of head bob per step at 60 Hz, which is gait, not
+    # route choice, and it inflates with trial duration rather than with distance covered.
+    head_path_xz_m         = path_h,
     head_speed_mean_mps    = if (time > 0) path / time else NA_real_,
     # Cumulative yaw: how much visual search the participant did by turning.
     head_yaw_travel_deg    = turn,
@@ -338,15 +348,16 @@ reduce_trial <- function(path,
 
   aoi_time_s <- sum(looks$duration_s)
 
-  # Pupil diameter, time-weighted over usable-gaze frames only. Reported because it is
-  # cheap to compute and conventionally used as a workload proxy -- but see README:
-  # it tracks scene luminance far more strongly than it tracks effort, and it is not
-  # interpretable across conditions that differ in brightness.
   wmean <- function(x, w) {
     ok <- is.finite(x) & is.finite(w) & w > 0
     if (!any(ok)) return(NA_real_)
     sum(x[ok] * w[ok]) / sum(w[ok])
   }
+
+  # The logger writes -1 for an eye metric the hardware does not expose. A negative
+  # diameter or openness is physically impossible, so the sentinel is unambiguous and is
+  # mapped to NA here rather than being averaged into a number.
+  drop_sentinel <- function(x) if_else(!is.na(x) & x < 0, NA_real_, x)
 
   ev_type <- tolower(events$type %||% character(0))
   is_fix  <- str_detect(ev_type, "fixation")
@@ -400,8 +411,17 @@ reduce_trial <- function(path,
     blink_rate_per_min  = if (minutes > 0) sum(is_blk) / minutes else NA_real_,
 
     # ---- Pupil ----------------------------------------------------------------
-    pupil_l_mean_mm     = wmean(df$pupil_l_mm[gaze_ok], df$dt_eff[gaze_ok]),
-    pupil_r_mean_mm     = wmean(df$pupil_r_mm[gaze_ok], df$dt_eff[gaze_ok]),
+    # NOT A MEASURE IN THIS STUDY, and these columns exist only to prove it stayed
+    # missing. The Magic Leap OpenXR path in use (EyeTrackingUsages.gazePosition/
+    # gazeRotation) returns one combined gaze pose and no pupillometry at all, so
+    # EyeAndHeadTracker writes pupilDiameterMm = -1 for both eyes. drop_sentinel turns
+    # that -1 into NA: averaged as a number it would produce a stable, plausible-looking
+    # -1.00 mm per trial, which is exactly the kind of value that survives into a table.
+    # An earlier build wrote a hardcoded 3.4/3.5 mm instead, which is worse -- it is
+    # indistinguishable from a real reading. Anything non-NA in these columns means the
+    # logger changed and the claim in the Methods section needs revisiting.
+    pupil_l_mean_mm     = wmean(drop_sentinel(df$pupil_l_mm)[gaze_ok], df$dt_eff[gaze_ok]),
+    pupil_r_mean_mm     = wmean(drop_sentinel(df$pupil_r_mm)[gaze_ok], df$dt_eff[gaze_ok]),
 
     # ---- Provenance -----------------------------------------------------------
     n_markers           = nrow(markers),

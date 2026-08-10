@@ -79,11 +79,20 @@ before looking at real data.
 
 ## Caveats worth knowing
 
-**Pupil diameter** is computed (`pupil_mean_mm`) because it is cheap, and it is
-conventionally cited as a workload proxy. It tracks scene luminance far more strongly
-than it tracks cognitive effort. If your conditions differ in how much they light up the
-display — and an AR overlay condition does — do not interpret a pupil difference as a
-workload difference. Raw TLX is the workload measure.
+**Pupil diameter is not measured.** The Magic Leap OpenXR path in use returns one
+combined gaze pose and no pupillometry, so `EyeAndHeadTracker` writes
+`pupilDiameterMm = -1` for both eyes, and the reduction maps that sentinel to NA.
+`pupil_l_mean_mm` / `pupil_r_mean_mm` / `pupil_mean_mm` therefore exist only as evidence
+that the value stayed missing: **anything non-NA in them means the logger changed**, and
+the Methods section's claim needs revisiting before those numbers go anywhere. Raw TLX
+is the workload measure. Even if pupillometry were available it would be uninterpretable
+here, because an AR overlay condition lights up the display and pupil size tracks scene
+luminance far more strongly than cognitive effort.
+
+By the same token the `leftEye` / `rightEye` blocks in the raw stream are the combined
+gaze pose offset by half an assumed 64 mm IPD, not two measured eyes. Do not compute
+vergence, IPD, or any left-vs-right contrast from them: the answer is the constant
+0.064.
 
 **Behaviour strings** (`Fixation` / `Saccade` / `Blink`) come from stringifying a Magic
 Leap enum, and the spelling has changed across SDK versions. Matching is a

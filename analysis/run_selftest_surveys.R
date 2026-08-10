@@ -38,6 +38,26 @@ verify_design(design)
 
 tt <- build_trial_table(trialq, recall_trials = recall, pre_study = pre, design = design)
 readr::write_csv(tt, file.path(cfg$out_dir, "trial_table.csv"))
+
+# ---- Efficiency ratio ------------------------------------------------------------
+# The real denominator comes out of the Unity editor (GemOptimalPathCalculator) and the
+# real numerator out of the gaze reduction, so neither exists in a surveys-only run.
+# Both are stubbed here, with values chosen so a broken join shows up as a wrong number
+# rather than an error: pool 1's ideal route is 200 m and every trial walks 500 m, so
+# every path_ratio must be exactly 2.5 if and only if the pool key lined up.
+ideal_stub <- tibble::tibble(
+  pool = 1:4, n_targets = 20L, seed = c(100L, 200L, 300L, 400L),
+  ideal_path_xz_m = c(200, 250, 400, 500), ideal_path_3d_m = c(202, 253, 404, 505),
+  method = "stub", computed_utc = "2026-01-01T00:00:00Z")
+readr::write_csv(ideal_stub, file.path(sim, "ideal_paths.csv"))
+
+gaze_stub <- tt %>%
+  dplyr::transmute(participant = as.character(participant_id), trial = trial_order,
+                   head_path_xz_m = 500, use_for_gaze = TRUE)
+
+tt_ratio <- build_trial_table(trialq, recall_trials = recall, pre_study = pre,
+                              design = design, gaze = gaze_stub,
+                              ideal_paths = load_ideal_paths(file.path(sim, "ideal_paths.csv")))
 readr::write_csv(post, file.path(cfg$out_dir, "post_study_scored.csv"))
 
 # =====================================================================================
@@ -50,7 +70,8 @@ cat("\n--- SURVEY / RECALL SELF TEST ---------------------------------------\n")
 
 # ---- Column matching ------------------------------------------------------------
 check("every survey column matched (no NA-only scored columns)",
-      all(!is.na(trialq$tlx_raw)) && all(!is.na(pre$sbsod)) && all(!is.na(post$sart_total)))
+      all(!is.na(trialq$tlx_raw)) && all(!is.na(pre$sbsod)) && all(!is.na(post$sart_total)) &&
+        all(!is.na(trialq$sa_index)) && all(!is.na(trialq$pt_mem_success)))
 
 # ---- SBSOD reversal -------------------------------------------------------------
 # P01 answered 7 to all 15. Seven items are positive (stay 7) and eight are negative
@@ -110,16 +131,30 @@ check("loglinear correction keeps a ceiling participant finite",
 check("ceiling case really is at ceiling",
       all(ceil$hits_strict == ceil$n_target) && all(ceil$false_alarms_strict == 0))
 
+# ---- Trial-level SA is scored on MEANS, not sums ---------------------------------
+# The post-study SART sums its dimensions; this one averages them, because its three
+# dimensions hold 3/2/5 items. If someone "harmonises" the two by switching to rowSums,
+# Demand would range 3-21 instead of 1-7 and sa_index would silently change meaning.
+check("trial-level SA subscales are means on the 1-7 item scale",
+      all(trialq$sa_demand >= 1 & trialq$sa_demand <= 7, na.rm = TRUE) &&
+        all(trialq$sa_supply >= 1 & trialq$sa_supply <= 7, na.rm = TRUE) &&
+        all(trialq$sa_understanding >= 1 & trialq$sa_understanding <= 7, na.rm = TRUE),
+      sprintf("(demand range %.2f-%.2f)",
+              min(trialq$sa_demand, na.rm = TRUE), max(trialq$sa_demand, na.rm = TRUE)))
+
 # ---- The planted effect must be recovered ---------------------------------------
 eff <- tt %>% dplyr::group_by(wireframe) %>%
   dplyr::summarise(d = mean(d_prime, na.rm = TRUE), tlx = mean(tlx_raw, na.rm = TRUE),
-                   .groups = "drop")
+                   sa = mean(sa_index, na.rm = TRUE), .groups = "drop")
 d_on  <- eff$d[eff$wireframe == "on"];  d_off  <- eff$d[eff$wireframe == "off"]
 t_on  <- eff$tlx[eff$wireframe == "on"]; t_off <- eff$tlx[eff$wireframe == "off"]
+s_on  <- eff$sa[eff$wireframe == "on"];  s_off <- eff$sa[eff$wireframe == "off"]
 check("planted memory effect recovered (wireframe ON has higher d')",
       d_on > d_off, sprintf("(on %.2f vs off %.2f)", d_on, d_off))
 check("planted workload effect recovered (wireframe ON has lower TLX)",
       t_on < t_off, sprintf("(on %.1f vs off %.1f)", t_on, t_off))
+check("planted SA effect recovered (wireframe ON has higher sa_index)",
+      s_on > s_off, sprintf("(on %.2f vs off %.2f)", s_on, s_off))
 
 # ---- Strict vs lenient both available --------------------------------------------
 check("both response policies scored",
@@ -135,6 +170,25 @@ check("recall sheet matches the pool the design table specifies",
       all(tt$set_id_sheet == tt$set_id, na.rm = TRUE))
 check("trial table has one row per participant x trial",
       nrow(tt) == dplyr::n_distinct(tt$participant_id) * 4)
+
+# ---- Efficiency ratio -------------------------------------------------------------
+# Wrong-key joins are the failure mode: joining on a factor whose levels differ from the
+# CSV's integers silently yields all-NA, which reads downstream as "no data" rather than
+# as a bug. Every stub trial walks 500 m, so the ratio is pinned per pool.
+expected_ratio <- c(`1` = 2.5, `2` = 2.0, `3` = 1.25, `4` = 1.0)
+check("ideal-path join keyed on pool (ratio matches the stub exactly)",
+      "path_ratio" %in% names(tt_ratio) && !any(is.na(tt_ratio$path_ratio)) &&
+        all(abs(tt_ratio$path_ratio -
+                  expected_ratio[as.character(tt_ratio$pool)]) < 1e-9),
+      if ("path_ratio" %in% names(tt_ratio))
+        sprintf("(%d NA of %d)", sum(is.na(tt_ratio$path_ratio)), nrow(tt_ratio)) else
+          "(no path_ratio column)")
+
+# A pipeline that dies because an optional authoring step has not been run yet is a
+# pipeline nobody can run early. Absent file -> no column, no error.
+check("missing ideal-path file degrades to no ratio, not an error",
+      is.null(suppressMessages(load_ideal_paths(file.path(sim, "does_not_exist.csv")))) &&
+        !("path_ratio" %in% names(tt)))
 
 cat("---------------------------------------------------------------------\n")
 if (length(fails) == 0) {

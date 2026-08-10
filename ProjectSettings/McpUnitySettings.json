@@ -1,6 +1,6 @@
 {
-    "Port": 8088,
-    "RequestTimeoutSeconds": 10,
+    "Port": 8888,
+    "RequestTimeoutSeconds": 40,
     "AutoStartServer": true,
     "EnableInfoLogs": true,
     "NpmExecutablePath": "C:\\Program Files\\nodejs\\npm.cmd",

@@ -1,0 +1,5 @@
+pool,n_targets,seed,ideal_path_xz_m,ideal_path_3d_m,straight_line_xz_m,method,computed_utc
+1,20,100,504.2412,506.2076,449.8762,held_karp_open_tour_walkable_grid_0.5m_xz,2026-08-07T21:17:33Z
+2,20,200,534.7117,536.2227,488.1318,held_karp_open_tour_walkable_grid_0.5m_xz,2026-08-07T21:17:34Z
+3,20,300,535.7178,538.4902,481.4182,held_karp_open_tour_walkable_grid_0.5m_xz,2026-08-07T21:17:35Z
+4,20,444,508.9899,511.2950,450.4328,held_karp_open_tour_walkable_grid_0.5m_xz,2026-08-07T21:17:36Z

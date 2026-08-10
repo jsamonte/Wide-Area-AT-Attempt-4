@@ -1,0 +1,451 @@
+% =====================================================================================
+% Methods -- consolidated. This file holds TWO top-level sections:
+%   \section{User Study Methodology}                  (participants .. procedure)
+%   \section{Analytical Strategy and Evaluation Metrics}  (telemetry .. modeling)
+%
+% It is the single source of truth for both. Earlier drafts pasted into chat or other
+% files are stale; edit here.
+%
+% The methodology section reflects the following decisions, all of which reverse
+% earlier drafts:
+%   * n = 24, not 40. Sensitivity analysis replaces the a priori power calculation.
+%   * The counterbalancing table is the real one from METHODOLOGY_NOTES.md and
+%     analysis/design/design_table.csv, NOT the earlier placeholder, which was itself
+%     confounded (it held pool constant with condition -- the exact pilot defect).
+%   * The OPTT, the SAGAT display-blanking freezes, and the tablet map reconstruction
+%     task are OUT. They are absent from the administered forms, so they are absent here.
+%   * The post-trial section 3 battery is NOT the SART and is never called that; see
+%     score_trial_sa() in analysis/R/10_surveys.R.
+% =====================================================================================
+
+\section{User Study Methodology}
+
+\subsection{Participants and Ethical Context}
+
+A total of 24 participants were recruited from a university campus and
+surrounding community for a within-subjects, repeated-measures experiment.
+Sample size was constrained by the field-deployment logistics of the wide-area
+outdoor apparatus: each session required a supervised two-part evening slot
+within a narrow dusk-to-night lighting window, at a fixed physical site. We
+therefore report a sensitivity analysis in place of an a priori power
+calculation. With $N=24$ and the within-subjects contrast of primary interest
+(wireframe ON vs.\ OFF), G*Power 3.1 indicates 80\% power ($\alpha=.05$,
+two-tailed) to detect effects of $d_z \geq 0.60$, corresponding to $f \approx
+0.30$ in the repeated-measures ANOVA parameterization. This study is thus
+powered for medium-to-large effects of the kind reported in analogous
+wide-area AR spatial cognition work \cite{kim_investigating_2022,
+kumaran_impact_2023}; smaller effects may go undetected, and we treat null
+results accordingly in Section~\ref{sec:discussion}. Because each participant
+contributes four trials (two per wireframe state), trial-level mixed-effects
+models over the resulting 96 trials retain more precision than the
+participant-mean contrast this sensitivity analysis assumes.
+
+Participant screening and physical safety procedures were strictly governed by
+an approved Institutional Review Board (IRB) protocol. Screening covered
+uncorrected sight conditions, history of motion sickness or balance disorders,
+photosensitive epilepsy, and pregnancy. To control for baseline spatial
+ability, participants completed the Santa Barbara Sense of Direction Scale
+(SBSOD) prior to trials.
+
+\subsection{Task Design and Counterbalancing}
+
+Participants navigated the physical courtyard to locate 20 virtual targets
+embedded among distractor objects. All 20 targets were identical, present from
+the start of the trial, and collectable in any order; the task was therefore
+free search rather than a prescribed route. Target collection required a
+4.0-second gaze dwell time. Targets spawned only within authored walkable
+areas. Each of the four object layout pools carries a fixed generation seed, so
+every participant assigned to a given pool encounters an identical layout, and
+the recall objects for that pool are spawned alongside the targets. Those
+recall objects are the distractors: they are everyday scene objects stratified
+by physical size, and they serve double duty as visual clutter during the
+trial and as the studied items of the recognition test that follows it
+(Section~\ref{sec:recall}).
+
+Participants also wore a printed ArUco marker on the wrist, on which the system
+renders a wrist-mounted navigation map of the site. The map is a deliberate
+element of the apparatus rather than an incidental display: consulting it is
+time spent not looking at the environment, so it is measured separately
+throughout (Section~\ref{sec:metrics}).
+
+The independent variable (wireframe ON vs.\ OFF) was evaluated using a
+rigorously counterbalanced within-subjects design. A previous pilot perfectly
+confounded object layout pools with the wireframe condition, rendering initial
+results uninterpretable. To fix this, we structured a four-group Latin square
+matrix utilizing four distinct object layouts (Pools 1--4), shown in
+Table~\ref{tab:counterbalance}. Participants were allocated equally across the
+four groups ($n=6$ per group), and group assignment fully determines every
+trial's pool and wireframe state. The design satisfies four balance
+properties: each pool appears twice with the wireframe and twice without; each
+group encounters each pool exactly once; each pool appears exactly once in
+each trial position; and each trial position is two ON and two OFF across
+groups. Pool is therefore orthogonal to both condition and order.
+
+Daylight cannot be randomized; it falls monotonically through the evening
+sessions. Therefore, the wireframe state strictly alternated within a group
+(e.g., ON/OFF/ON/OFF), evenly sampling both wireframe states across the
+lighting gradient. Groups 1 and 3 run the opposite phase to Groups 2 and 4, so
+the small residual association between condition and elapsed session time
+cancels across the sample. Lighting is reported strictly as a measured
+covariate, never as a manipulation.
+
+\begin{table}[t]
+  \caption{Four-group Latin square counterbalancing matrix. Each cell gives the
+    object pool and wireframe state for that trial. Trials 1--2 fall in the
+    Dusk block and trials 3--4 in the Night block.}
+  \label{tab:counterbalance}
+  \begin{tabular}{lllll}
+    \toprule
+    Group & Trial 1 & Trial 2 & Trial 3 & Trial 4\\
+    \midrule
+    G1 & P1 / OFF & P2 / ON  & P3 / OFF & P4 / ON\\
+    G2 & P2 / ON  & P1 / OFF & P4 / ON  & P3 / OFF\\
+    G3 & P4 / OFF & P3 / ON  & P2 / OFF & P1 / ON\\
+    G4 & P3 / ON  & P4 / OFF & P1 / ON  & P2 / OFF\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Object Recall Task}
+\label{sec:recall}
+
+Each pool carries two fixed lists: 15 recall objects, which are spawned
+alongside that pool's targets during the trial, and 15 lures, which are never
+spawned in that pool. Immediately after each trial, participants completed a
+30-item confidence-graded recognition test comprising exactly those two lists,
+the 15 objects present in that trial and the 15 absent from it. For each item,
+participants selected one of three responses: confident they saw the object,
+unsure whether they saw it, or confident they did not see it. The answer key
+is therefore defined per pool and item position, yielding 120 keyed rows
+across the four pools.
+
+\paragraph{Size classes.} Every object in the recall inventory belongs to one
+of three size classes: small, medium, or large. Classes were assigned by
+direct comparison rather than by a numeric threshold. All 128 candidate props
+were instantiated together in a single staging scene at the scale at which
+they render during a trial, and arranged there in three parallel rows, one per
+class, so that each object was judged against the full set of alternatives at
+true size and the resulting assignment is preserved as a property of the scene
+rather than as an undocumented decision. A threshold on a single dimension was
+rejected because apparent size in the headset follows an object's whole
+silhouette rather than any one axis. A slender object such as a light stand or
+a structural beam is long but presents very little of itself at the distances
+this site affords, and a rule keyed to its longest dimension would file it
+alongside vending machines. Comparison in the staging scene resolves those
+cases as the participant sees them, which is also why two variants of the same
+kind of asset can fall in different classes.
+
+\paragraph{Matching the lures on size.} Each pool's recall list holds five
+objects of each class, and each pool's lure list holds five of each class, so
+within every pool the present and absent items are matched on size. The four
+recall lists and four lure lists together draw 120 objects from the staging
+scene, 40 in each class, evenly split between present and absent; the
+remaining candidates were held as unused spares.
+
+That matching is a deliberate control rather than a by-product of sampling.
+Size governs whether an object is resolvable at the distances this site
+affords, so an inventory in which the present objects were systematically the
+larger ones would let a participant discriminate seen from unseen on size
+alone. Hits and false alarms would then follow a property of the stimulus set
+rather than memory for the environment, and $d'$ would overstate recognition
+in both conditions. Stratifying both lists closes that route to a correct
+answer. It also makes size an analysable factor rather than a nuisance, since
+hits and false alarms can be tabulated per class, and any effect of the
+wireframe on encoding can be examined separately for objects that are easy and
+hard to see from a distance.
+
+Both lists are therefore authored under this constraint rather than sampled at
+random. The pool seed fixes \emph{where} a pool's objects are placed
+(Section~\ref{sec:layouts}); it does not choose \emph{which} objects the pool
+contains, and the size composition of both lists is identical across the four
+pools.
+
+Two scoring rules were preregistered and both are computed. Under the
+\emph{strict} rule, which is primary, only an unambiguous ``confident saw''
+counts as an affirmative response; under the \emph{lenient} rule, ``unsure''
+is folded into the affirmative. Reporting both demonstrates that the
+conclusion does not hinge on how uncertainty is treated. Recognition
+performance is summarised using signal detection theory---$d'$, criterion $c$,
+and $A'$---with the loglinear correction \cite{hautus_corrections_1995}
+applied to every trial rather than only to degenerate cells. With 30 items a
+hit rate of 1.00 is common and the uncorrected $d'$ would be infinite;
+correcting only the broken cells would bias exactly those cells. An item-level
+generalised linear mixed-effects model complements the aggregate SDT measures.
+
+\paragraph{Incidental encoding on Trial 1.} Participants were not informed of
+the recall task before their first trial. Encoding on Trial 1 is therefore
+\emph{incidental}, whereas encoding on Trials 2--4 is \emph{intentional}, as
+participants then know a recognition test follows. To capture this asymmetry,
+participants additionally rated their confidence in their first recall test on
+a 7-point scale. This distinction is a property of trial position rather than
+of condition, and the counterbalancing matrix
+(Table~\ref{tab:counterbalance}) places two wireframe-ON and two wireframe-OFF
+groups in trial position 1, so encoding intentionality is orthogonal to the
+independent variable. We nevertheless model trial position explicitly and
+report Trial 1 recall separately, since collapsing incidental and intentional
+encoding into a single recall score would inflate within-participant variance.
+
+\subsection{Measures}
+
+\textbf{Pre-study (once, before trials).} Demographics (age band, gender),
+self-rated AR/VR comfort (5-point), prior AR/VR experience, cumulative usage
+band, and the safety screening described above. Baseline spatial ability was
+measured with the 15-item SBSOD (7-point), of which 8 items are reverse-coded.
+
+\textbf{Post-trial (after each of the four trials).} Raw NASA-TLX (six items,
+0--100 in increments of 5; the Performance item is \emph{not} reverse-coded,
+as it is already worded higher-is-worse); a 10-item trial-level situation
+awareness battery (7-point) combining a subset of SART dimensions
+(complexity, spare mental capacity, concentration, division of attention,
+familiarity) with items probing perception, comprehension, and projection of
+the environment; a four-item memory and brightness block covering self-rated
+recall success, perceived change in recall performance over time, and two
+bipolar brightness items scored as deviation from the scale midpoint; a
+purpose-designed 7-point item assessing perceived visual clutter; and the
+five-item MEC-SPQ Spatial Situational Model subscale (5-point).
+
+\textbf{Post-study (once, after all trials).} The 10-item SART in Taylor's
+three-factor form (Demand, Supply, Understanding), scored as $U - (D - S)$;
+the 16-symptom Simulator Sickness Questionnaire (SSQ); a five-item wireframe
+helpfulness block (7-point); a repeat of the memory and brightness block at
+study level; a four-item spatial awareness block covering disorientation
+during and after headset use and perceived collision risk; and open-ended
+items on perceived study purpose, noticed layout patterns, and how the
+wireframe did or did not help.
+
+Because the post-study measures are collected once per participant, they
+cannot enter the condition model and are reported as descriptive and
+correlational context only. The trial-level situation awareness battery is
+consequently the only situation-awareness measure that varies with wireframe
+state, and it is reported both as its three subscale means and at the level of
+individual items. We report it separately from the post-study SART throughout;
+the two are distinct instruments on different scales and are never pooled or
+compared.
+
+\subsection{Experimental Procedure}
+
+To mitigate the CVIP memory exhaustion crash identified in hardware testing,
+the study was physically split into two parts separated by a headset reboot.
+
+\begin{enumerate}
+  \item \textbf{Onboarding:} Informed consent, safety screening, and the
+    pre-study survey (demographics and SBSOD). Participants were briefed on
+    the target search task only; the object recall task was deliberately not
+    disclosed, preserving incidental encoding for Trial 1.
+  \item \textbf{Part 1 (Dusk):} Trials 1 and 2. After each trial,
+    participants completed the 30-item recall test followed by the post-trial
+    battery (NASA-TLX, situation awareness, memory and brightness, visual
+    clutter, MEC-SPQ). The Trial 1 recall test additionally included the
+    7-point confidence rating described above.
+  \item \textbf{Inter-part break:} Participants relocated indoors while the
+    headset was rebooted and recharged.
+  \item \textbf{Part 2 (Night):} Following the reboot, markers were
+    re-scanned and participants completed Trials 3 and 4, each again followed
+    by the recall test and the post-trial battery.
+  \item \textbf{Post-study and debrief:} The post-study survey (SART, SSQ,
+    wireframe helpfulness, memory and brightness, spatial awareness, and
+    open-ended items), followed by debrief.
+\end{enumerate}
+
+% =====================================================================================
+% Analytical Strategy -- corrected against the implemented pipeline.
+%
+% REMOVED, because the pipeline does not produce them and no task collects them:
+%   * egocentric pointing angular error
+%   * relative object location recall distance
+%   * feature-binding accuracy
+%   * "fixations within 2 degrees of rendered edges" (AOI attribution is collider-based)
+%   * OPTT as a covariate
+%   * pupil diameter, in every form -- as a workload measure, as a caveated secondary,
+%     and as a stated hardware limitation. The section does not mention it at all, by
+%     decision. It is not measured: the ML2 OpenXR path returns one combined gaze pose
+%     and no pupillometry, so EyeAndHeadTracker writes pupilDiameterMm = -1 (see the
+%     comment at ~line 967) and the reduction maps that sentinel to NA. Do not reinstate
+%     the topic because a reviewer asks for pupillometry; the reasoning is kept in
+%     METHODOLOGY_NOTES.md and analysis/README.md, not in the paper.
+%
+% RESTORED, now that it is actually implemented: the trajectory / ideal-path efficiency
+% ratio. GemOptimalPathCalculator.cs writes analysis/design/ideal_paths.csv (exact
+% Held-Karp open tour per pool) and 12_join.R divides head_path_xz_m by it. Both terms
+% are planar so they are measured in the same plane.
+%
+% The denominator is now WALKABLE, not straight-line: distances come from Dijkstra over a
+% 0.5 m grid ray-sampled from the site geometry (DistanceMode.WalkableGrid), so the tour no
+% longer passes through buildings. The old "straight-line, therefore a lower bound" caveat
+% is GONE from the text because it is no longer true -- do not reinstate it. Three limits
+% replace it and must stay: the 0.5 m / 8-connected grid approximation, the hand-authored
+% gap-bridging planes, and known target positions. If the mode is ever switched back to
+% StraightLine, this paragraph has to change with it; the CSV's `method` column records
+% which mode produced each row, so the two can always be checked against each other.
+%
+% The walkable region and the spawn region are DELIBERATELY separate objects in the scene:
+% RandomSpawner.targetPlanes is frozen (its area and list length feed the layout seeds --
+% changing it regenerates every pool), and walk-only surfaces live on a WalkableAreaSet
+% component. Do not merge them.
+%
+% UNRESOLVED -- decide before any real reduction run. The gaze screening threshold is
+% stated as 50% valid in METHODOLOGY_NOTES.md but implemented as "exclude above 20%
+% missing" in 00_config.R (max_missing_gaze = 0.20). They are not compatible: 20%
+% missing requires 80% valid, and the outdoor pilots returned 62.1% and 70.4% valid --
+% so as configured, both pilot sessions would be excluded from every gaze model. The
+% text below uses the PREREGISTERED 20% because that is what the code does. If the 50%
+% floor is what is intended, change cfg$max_missing_gaze to 0.50 and this paragraph
+% together; do not change the prose alone.
+% =====================================================================================
+
+\section{Analytical Strategy and Evaluation Metrics}
+
+To isolate scaffolding effects from spatial-ability variance and
+object-property confounds, we structured a mixed-methods statistical pipeline
+using the R programming language (\texttt{lme4}, \texttt{lmerTest}, and
+\texttt{emmeans} packages). Every threshold below is fixed in a single
+configuration file, written into the run log, and applied automatically; the
+reduction pipeline is validated end-to-end on simulated data before real data
+is touched.
+
+\subsection{Telemetry and Gaze Processing}
+
+Eye and head telemetry was logged at approximately 60\,Hz via a non-blocking
+dual-stream logging architecture. To ensure data survival against crashes,
+look events were streamed append-only to their own \texttt{.ndjson} file,
+while the JSON summary is rewritten in full on each autosave. Durations were
+summed from inter-row intervals rather than counted in rows, so that dropped
+frames are not silently rescaled: a 59-row second is not $59/60$ of a second.
+Inter-row intervals exceeding 0.2\,s---twelve dropped frames at 60\,Hz---are
+treated as unobserved time, excluded from every duration and breaking any
+dwell or eye event that spans them. This matters because no rows are written
+while a trial is operator-paused, so a pause appears as one enormous interval;
+counting it would credit the participant with minutes of dwell on whatever
+they happened to be looking at when the trial stopped. Quantities that were
+not measured are written as empty cells rather than zeros, so that, for
+example, saccade peak velocity during a fixation cannot drag a study-wide mean
+toward zero.
+
+Gaze is attributed to an area of interest only when eye tracking is active,
+the gaze sample is valid, and confidence meets the floor recorded in that
+trial's own file header. Looks at the same AOI separated by less than 0.10\,s
+are merged, so that a single blink mid-look is not scored as two looks, and
+looks shorter than 0.10\,s are discarded as ray-crossings. These three
+values---the exclusion threshold, the merge window, and the minimum look
+duration---were preregistered before any real data was examined.
+
+Trials in which more than 20\% of trial time lacked usable gaze were excluded
+from eye-tracking models but expressly retained for survey and recall
+analyses, since eye-tracker quality is uninformative about whether a
+participant completed a questionnaire. Exclusions are reported as an
+automatically generated CONSORT-style flow. Ambient infrared interference
+outdoors is the limiting factor on tracking quality: indoor sessions run
+around 89\% valid gaze, whereas outdoor pilot sessions returned 62.1\% and
+70.4\%. We report that gap as a finding in its own right, as it constrains
+what wide-area outdoor eye-tracking studies on this hardware can measure.
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+Measures are grouped by the level at which they vary, because that determines
+which may enter a condition model at all.
+
+\begin{itemize}
+  \item \textbf{Task performance (per trial):} target acquisition counts and
+    inter-object time deltas.
+  \item \textbf{Locomotion and scanning (per trial):} ground-plane head path
+    length, cumulative yaw travel, and a search efficiency ratio---distance
+    actually walked divided by the length of the shortest route that would
+    have visited all 20 targets. Because the targets are identical and
+    collectable in any order, that ideal route is an open travelling-salesman
+    tour over the pool's 20 generated positions (Section~\ref{sec:layouts}),
+    solved exactly by Held--Karp at authoring time and stored per pool.
+
+    The tour is measured across the walkable surface rather than in straight
+    lines, so it does not pass through buildings. Inter-target distances are
+    shortest paths over a 0.5\,m grid sampled from the site geometry by
+    downward ray cast---the same test that constrains where objects may
+    spawn---giving 22\,117 traversable cells covering
+    5529\,m\textsuperscript{2}. Shortest paths between cells are computed by
+    Dijkstra's algorithm on an 8-connected lattice, and the resulting distance
+    matrix is what Held--Karp then optimises over. The traversable region is
+    the union of the spawn surface with a small number of hand-placed planes
+    bridging gaps left by the scan: places a participant can walk but where no
+    object is ever placed. Those bridging surfaces are authored rather than
+    measured, which we note as a limitation; they shorten the ideal tour by
+    8\% in Pool 1 and 6\% in Pool 3 and leave Pools 2 and 4 unchanged.
+    Constraining the route to walkable ground lengthens the tour by 10--13\%
+    relative to a straight-line tour over the same visiting order
+    (Table~\ref{tab:pools}), and it reorders the pools by tour length, so the
+    constraint is not a per-pool rescaling of the straight-line measure.
+
+    Three properties govern how the ratio is read. The grid discretises the
+    surface at 0.5\,m and connects cells in eight directions, so a diagonal
+    run is measured up to roughly 8\% long; this bias is identical for every
+    trial in a pool and therefore cancels in the between-condition comparison
+    the ratio is used for. The denominator assumes the target positions are
+    known in advance, which the participant's are not, since finding them is
+    the task---so the ratio is always well above unity and is interpreted as a
+    relative index compared across conditions within a pool, never as an
+    absolute claim about how far a participant overshot. Finally, path length
+    is measured in the ground plane so that numerator and denominator share a
+    plane, and because the vertical component of a head-mounted sensor's
+    trajectory accumulates gait rather than route choice; the same tours
+    measured in three dimensions are within 0.5\% of their planar lengths,
+    confirming that the routes are effectively flat.
+  \item \textbf{Gaze dynamics (per trial):} the primary visual-attention
+    outcome is the share of usable gaze time resting on non-target scene
+    geometry, time-weighted from per-sample intervals rather than frame
+    counts, so that the frame-rate cost of rendering the wireframe cannot move
+    it by itself. The secondary outcome is the number of distinct pieces of
+    scenery fixated per minute of tracked time, since a raw distinct-object
+    count is uninterpretable when trials differ in length. Reported alongside:
+    time attributed to no AOI, number of switches between AOIs, and the
+    per-AOI dwell breakdown.
+  \item \textbf{Map consultation (per trial):} dwell on the wrist-mounted
+    navigation map is scored under its own category and is deliberately
+    \emph{excluded} from the scenery outcome above rather than pooled into it.
+    The map is a UI panel the participant chooses to consult, not scenery they
+    noticed, and it is a single object attracting very long dwells: in pilot
+    data it accounted for 33.9\,s of the 35.3\,s of non-target dwell in one
+    trial and 46.5\,s of 56.0\,s in the next. Left in, the primary outcome
+    would read as ``time spent consulting the map,'' a different construct
+    that moves in the opposite direction, since looking at the map is time
+    spent not looking at the world. It is reported separately as a covariate
+    on how much of the environment a participant examined.
+  \item \textbf{Recognition memory (per trial):} $d'$, criterion $c$, and
+    $A'$ from the 30-item recall test, under both the strict and lenient
+    response policies.
+  \item \textbf{Subjective, per trial:} NASA-TLX, the trial-level situation
+    awareness battery, perceived visual clutter, MEC-SPQ, and the trial-level
+    memory and brightness items.
+  \item \textbf{Subjective, per participant:} SART, SSQ total severity,
+    wireframe helpfulness, and the study-level spatial awareness items. These
+    are collected once and therefore \emph{cannot} enter the condition model;
+    they are reported descriptively and correlationally.
+\end{itemize}
+
+\subsection{Statistical Modeling}
+
+Recall accuracy was scored using signal detection theory ($d'$, criterion,
+$A'$) applying a loglinear correction across all trials rather than only to
+degenerate cells. Item-level recognition responses were modeled using binomial
+generalized linear mixed models (GLMMs) with crossed random effects for
+participant and item. Continuous per-trial metrics were analyzed using linear
+mixed models (LMMs). For visual attention (H4), an LMM regressed the
+time-weighted proportion of usable gaze resting on non-target scene geometry
+against wireframe state, with map dwell excluded from that proportion and
+entered separately, and with distinct scenery objects fixated per minute as
+the secondary outcome. The per-AOI breakdown separates attention to
+scaffolding geometry from attention to task objects. Search efficiency was
+modeled on the same terms, using the ratio of walked to ideal path length;
+note that since the denominator is constant within a pool, the ratio is a
+per-pool rescaling of path length and is reported for comparability rather
+than as an independent test. Subjective perceived clutter ($H_{D3}$) was
+evaluated using ordinal logistic regression on the 7-point visual clutter
+item, with the NASA-TLX Mental Demand item acting as a secondary convergent
+measure.
+
+Across all models, wireframe state was the fixed effect of interest; SBSOD
+score was included as a covariate to control for baseline spatial ability;
+object pool and trial position were included as design factors; and
+participant was a random intercept. Trial position additionally carries the
+incidental-versus-intentional encoding distinction described in
+Section~\ref{sec:recall}, which is why it is modeled explicitly rather than
+absorbed. Significance was assessed via Type-II likelihood-ratio tests with
+Bonferroni-corrected post-hoc comparisons.

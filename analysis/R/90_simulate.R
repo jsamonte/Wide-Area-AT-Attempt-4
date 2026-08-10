@@ -145,8 +145,12 @@ simulate_trial_rows <- function(duration_s   = 300,
   fix_z  <- ifelse(is_fix, head_z + 2, NA_real_)
   openness <- ifelse(behavior == "Blink", 0.05, 0.95)
   gaze_o_x <- head_x; gaze_o_y <- head_y; gaze_o_z <- head_z
-  pupil_l <- ifelse(eye_tracking == 1, rnorm(n, 3.4, 0.25), NA_real_)
-  pupil_r <- ifelse(eye_tracking == 1, rnorm(n, 3.4, 0.25), NA_real_)
+  # -1, matching the real logger: the Magic Leap OpenXR path exposes no pupillometry, so
+  # EyeAndHeadTracker writes the unavailable-sentinel every frame. Simulating plausible
+  # ~3.4 mm readings here would have hidden the one thing this column needs to prove --
+  # that a sentinel never becomes a number.
+  pupil_l <- rep(-1, n)
+  pupil_r <- rep(-1, n)
 
   tibble(
     t_sec        = fmt(t, 4),

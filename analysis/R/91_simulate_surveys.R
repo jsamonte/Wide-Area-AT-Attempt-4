@@ -30,6 +30,32 @@ Q_MEC <- c(
   "I still have a concrete mental image of the space.",
   "I could accurately point to the locations of objects behind me without seeing them."
 )
+
+# Post-Trial section 3. Ten items, but NOT the SART -- see score_trial_sa() in
+# 10_surveys.R. Order matters here: items 1-3 are Demand, 4-5 Supply, 6-10 Understanding,
+# and the simulator below relies on that grouping.
+Q_TRIAL_SA <- c(
+  "How much were you having to divide your attention between multiple things?",
+  "How much mental effort was required to anticipate what would happen next?",
+  "How complex was the situation, with many interrelated factors?",
+  "How much spare mental capacity did you have to take on additional tasks?",
+  "How much attention could you devote to the situation, rather than being preoccupied?",
+  "How familiar were you with the situation?",
+  "How clear was your mental picture of the environment's layout?",
+  "How well were you able to identify and focus on important aspects of the situation?",
+  "To what degree could you identify the meaning and significance of what was happening?",
+  "How well were you able to predict what would happen in the environment next?"
+)
+
+# Post-Trial section 4. Note "task?" singular -- the post-study form asks "tasks?" plural
+# about the session as a whole. The wording differs, so the two are matched separately.
+Q_PT_MEM <- c(
+  "How successful were you overall at the memory (object-recall) task?",
+  "How would you rate your performance on the memory (object-recall) task over time?",
+  "How would you rate the overall brightness of the virtual objects?",
+  "How would you rate the brightness of the virtual objects compared to the physical objects?"
+)
+
 Q_SBSOD <- c(
   " I am very good at giving directions.",
   "I have a poor memory for where I left things.",
@@ -135,12 +161,26 @@ simulate_surveys <- function(dir = "analysis/sim/surveys",
     load <- if (tr$wireframe == "on") 38 else 52     # planted: wireframe lowers workload
     tlx <- pmin(100, pmax(0, round(rnorm(6, load, 12) / 5) * 5))
     mecm <- if (tr$wireframe == "on") 4.0 else 3.2
+
+    # Planted: wireframe ON lowers Demand and raises Supply and Understanding, so
+    # sa_index must come out higher under ON. Generated blockwise in Q_TRIAL_SA order.
+    sa <- c(lik(3, if (tr$wireframe == "on") 3.2 else 4.3),   # D, higher = worse
+            lik(2, if (tr$wireframe == "on") 4.6 else 3.8),   # S, higher = better
+            lik(5, if (tr$wireframe == "on") 5.1 else 4.1))   # U, higher = better
+
+    # Recall self-rating tracks the planted recognition effect. Both brightness items sit
+    # near the midpoint, so the signed and deviation scorings stay small and distinct.
+    ptm <- c(lik(1, if (tr$wireframe == "on") 4.8 else 4.0),
+             lik(1, 4.2), lik(1, 4.1), lik(1, 4.3))
+
     out <- c(list(
       "Timestamp" = "2026/09/14 3:15:22 PM",
       "Participant ID" = tr$participant_id,
       "Group Number" = tr$group,
       "Trial number" = tr$trial_order
     ), setNames(as.list(tlx), Q_TLX),
+    setNames(as.list(sa), Q_TRIAL_SA),
+    setNames(as.list(ptm), Q_PT_MEM),
     list("How much did visual clutter in the environment interfere with your ability to focus on the search task?  " =
            lik(1, if (tr$wireframe == "on") 4.2 else 3.1)),
     setNames(as.list(lik(5, mecm, 0.8, 1, 5)), Q_MEC))

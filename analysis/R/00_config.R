@@ -78,6 +78,17 @@ cfg <- list(
   # records participant, group and trial number, never the condition.
   design_path = "analysis/design/design_table.csv",
 
+  # Per-pool ideal collection route, written by the Unity editor tool
+  # GemOptimalPathCalculator (Held-Karp open tour over that pool's 20 target positions,
+  # straight-line, ground plane). One row per pool. It is the denominator of the
+  # locomotion efficiency ratio; head_path_xz_m is the numerator.
+  #
+  # Optional by design: if the file is absent the join leaves path_ratio as NA and says
+  # so in the run log, rather than failing a reduction over an authoring step that has
+  # not been run yet. A missing efficiency ratio costs one metric; a fabricated one
+  # costs the paper.
+  ideal_path_path = "analysis/design/ideal_paths.csv",
+
   # ---- Recall -------------------------------------------------------------------
   recall_key_path       = "analysis/design/recall_key.csv",
   recall_responses_path = "analysis/design/recall_responses.csv",
