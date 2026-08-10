@@ -1,23 +1,5 @@
 {
   "dependencies": {
-    "ai.muna.muna": {
-      "version": "0.0.49",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1"
-      },
-      "url": "https://registry.npmjs.com"
-    },
-    "ai.videokit.videokit": {
-      "version": "1.0.10",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "ai.muna.muna": "0.0.49"
-      },
-      "url": "https://registry.npmjs.com"
-    },
     "com.gamelovers.mcp-unity": {
       "version": "https://github.com/CoderGamester/mcp-unity.git",
       "depth": 0,
@@ -88,13 +70,6 @@
       },
       "url": "https://packages.unity.com"
     },
-    "com.unity.collab-proxy": {
-      "version": "2.12.4",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
     "com.unity.collections": {
       "version": "2.2.1",
       "depth": 1,
@@ -119,24 +94,6 @@
       "depth": 2,
       "source": "registry",
       "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.ide.rider": {
-      "version": "3.0.36",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.ext.nunit": "1.0.6"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.ide.visualstudio": {
-      "version": "2.0.22",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.test-framework": "1.1.9"
-      },
       "url": "https://packages.unity.com"
     },
     "com.unity.ide.vscode": {
@@ -278,18 +235,6 @@
       },
       "url": "https://packages.unity.com"
     },
-    "com.unity.timeline": {
-      "version": "1.7.7",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.modules.audio": "1.0.0",
-        "com.unity.modules.director": "1.0.0",
-        "com.unity.modules.animation": "1.0.0",
-        "com.unity.modules.particlesystem": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
     "com.unity.ugui": {
       "version": "1.0.0",
       "depth": 0,
@@ -298,16 +243,6 @@
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
       }
-    },
-    "com.unity.visualscripting": {
-      "version": "1.9.4",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.ugui": "1.0.0",
-        "com.unity.modules.jsonserialize": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
     },
     "com.unity.xr.arfoundation": {
       "version": "5.2.2",
@@ -394,14 +329,6 @@
         "com.unity.xr.legacyinputhelpers": "2.1.2"
       },
       "url": "https://packages.unity.com"
-    },
-    "com.xgrids.lccsdk": {
-      "version": "file:C:/Users/yujnkm/Documents/LCCSDK(v2.0.14)",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.unity.mathematics": "1.2.6"
-      }
     },
     "fr.liris.plume.recorder": {
       "version": "https://github.com/liris-xr/PLUME-Recorder.git",
