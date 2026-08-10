@@ -855,10 +855,6 @@ MonoBehaviour:
       guid: 3fc5cc758080de14abf056e4955bcd38
       assetBundlePath: Custom:UnityEngine.Material, UnityEngine.CoreModule:Assets/Props/Other
         Folders/caution-tapes/Materials/caution-tapes.mat:caution-tapes
-    - object: {fileID: 4800000, guid: fe393ace9b354375a9cb14cdbbc28be4, type: 3}
-      guid: fe393ace9b354375a9cb14cdbbc28be4
-      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Assets/TextMesh
-        Pro/Shaders/TMP_SDF-Mobile.shader:TextMeshPro/Mobile/Distance Field
     - object: {fileID: -8222663108995763549, guid: 3d178550cb0394746b8373787f7984d1,
         type: 3}
       guid: 3d178550cb0394746b8373787f7984d1
@@ -6273,6 +6269,10 @@ MonoBehaviour:
         type: 3}
       guid: 3d178550cb0394746b8373787f7984d1
       assetBundlePath: Custom:UnityEngine.GameObject, UnityEngine.CoreModule:Assets/tall_house_plant/scene.gltf:Plane.048
+    - object: {fileID: 4800000, guid: fe393ace9b354375a9cb14cdbbc28be4, type: 3}
+      guid: fe393ace9b354375a9cb14cdbbc28be4
+      assetBundlePath: Custom:UnityEngine.Shader, UnityEngine.CoreModule:Assets/Assets/TextMesh
+        Pro/Shaders/TMP_SDF-Mobile.shader:TextMeshPro/Mobile/Distance Field
     - object: {fileID: -3495046499181944266, guid: fb17176074bcaa54fb85df22ad1f15ad,
         type: 3}
       guid: fb17176074bcaa54fb85df22ad1f15ad
