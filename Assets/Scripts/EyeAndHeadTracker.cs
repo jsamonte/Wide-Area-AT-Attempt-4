@@ -454,10 +454,12 @@ public class EyeAndHeadTracker : MonoBehaviour
     {
         Instance = this;
 
-        // Cap the framerate to 30fps to reduce heat generation on Magic Leap.
-        // Set here as well as TrialManager/SequenceManager so it can't be missed if
-        // this tracker runs in a scene without them.
-        Application.targetFrameRate = 30;
+        // Fallback cap only, for a scene that has no TrialManager/SequenceManager. Where
+        // SequenceManager exists it owns the frame rate and sets it per phase, and it runs
+        // trials at 60. This used to be a hard 30 set in Awake, which -- combined with the
+        // 30 fps ceiling then in SequenceManager -- silently held the study at 30 fps and
+        // therefore held the log rate at 30 Hz, whatever the Inspector said.
+        Application.targetFrameRate = 60;
 
         persistentDataPath = Application.persistentDataPath;
         Directory.CreateDirectory(persistentDataPath);

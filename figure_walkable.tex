@@ -1,0 +1,51 @@
+% =====================================================================================
+% Figure -- the walkable region of the site, top-down.
+% Belongs in \subsection{Object Layout Generation} (\label{sec:layouts}), after the
+% sentence ending "...defines where an object may appear."
+%
+% No extra packages required.
+%
+% Expected image file, relative to the main .tex:
+%     figures/walkable-area.jpg
+%
+% CAPTION CAVEAT -- read before using. methodology_section.tex (lines 281--284) records
+% that the walkable region and the spawn region are deliberately SEPARATE objects in the
+% scene: spawning uses RandomSpawner.targetPlanes, walk-only surfaces live on a
+% WalkableAreaSet component. If the green region rendered here is the WalkableAreaSet and
+% not targetPlanes, the caption must NOT call it the spawn domain -- use the alternate
+% caption at the bottom of this file instead. Confirm which object produced the render.
+% =====================================================================================
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/walkable-area}
+  \caption{The walkable region of the study site (green), seen from above over the site
+    reconstruction. The region was derived from the site scan by reducing the mesh to the
+    traversable ground surface alone, removing buildings, vegetation, planting beds, and
+    the central lawn, and totals 5854\,m\textsuperscript{2}. This trimmed geometry, rather
+    than a bounding box or an authored polygon, defines where an object may appear:
+    candidate positions falling outside it are discarded, so the mesh acts directly as the
+    acceptance mask during layout generation.}
+  \Description{A top-down orthographic view of a long rectangular campus courtyard,
+    reconstructed from a photographic scan, with the walkable ground shaded in translucent
+    green and outlined in dark green. The shaded region covers the paved walkways that run
+    the length of the courtyard, a wide paved plaza at the left end surrounding a circular
+    planting bed, and a paved area at the upper right. It excludes the buildings along both
+    long edges, the large rectangular lawn in the middle of the courtyard, the planting beds
+    and rows of shrubs and trees that separate the walkways, and the parking area with cars
+    at the top. A legend in the lower right reads "Walkable area".}
+  \label{fig:walkable}
+\end{figure}
+
+% -------------------------------------------------------------------------------------
+% ALTERNATE CAPTION -- use this one if the green region is the WalkableAreaSet (the
+% surface participants may traverse) and NOT RandomSpawner.targetPlanes (the surface
+% objects spawn on). It describes the region without claiming it is the spawn domain.
+% -------------------------------------------------------------------------------------
+%
+%   \caption{The walkable region of the study site (green), seen from above over the site
+%     reconstruction. The region was derived from the site scan by reducing the mesh to the
+%     traversable ground surface alone, removing buildings, vegetation, planting beds, and
+%     the central lawn, and totals 5854\,m\textsuperscript{2}. It bounds where
+%     participants may move, and supplies the surface over which shortest-path tours are
+%     measured.}

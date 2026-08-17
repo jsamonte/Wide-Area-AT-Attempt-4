@@ -1,0 +1,100 @@
+% =====================================================================================
+% Figure -- the occlusion layer beside the photoreal twin it was derived from.
+% Belongs in \subsection{Capturing and Rendering the Digital Twin}, or in the occlusion
+% paragraph of the system description, wherever depth occlusion is first introduced.
+%
+% Requires in the preamble (acmart does not load it by default):
+%     \usepackage{subcaption}
+%
+% Expected image files, relative to the main .tex:
+%     figures/occluder-mesh.jpg    (grey untextured collision/occlusion mesh)
+%     figures/occluder-splat.jpg   (same site, Gaussian-splat reconstruction)
+%
+% ASPECT RATIO -- the two sources do not match out of the renderer:
+%     occluder-mesh   1462 x 983   ~= 3:2
+%     occluder-splat  1221 x 929   ~= 4:3
+% Side by side at equal width they render at unequal heights. Crop both to 3:2 first;
+% that costs the splat 115 px of empty foreground pavement and the mesh almost nothing:
+%
+%     magick figures/occluder-mesh.jpg  -gravity center -crop 1462x974+0+0 +repage \
+%            figures/occluder-mesh.jpg
+%     magick figures/occluder-splat.jpg -gravity north  -crop 1221x814+0+0 +repage \
+%            figures/occluder-splat.jpg
+%
+% (-gravity north on the splat keeps the sky line and the buildings, and takes the crop
+% out of the paved foreground.) After cropping, the \includegraphics calls below need no
+% height or trim arguments.
+%
+% Reference in text as Figure~\ref{fig:occlusion}.
+% A single-panel fallback is commented at the bottom of this file.
+% =====================================================================================
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\linewidth]{figures/occluder-mesh}
+    \caption{Occlusion layer.}
+    \label{fig:occlusion-mesh}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \includegraphics[width=\linewidth]{figures/occluder-splat}
+    \caption{Photoreal twin.}
+    \label{fig:occlusion-splat}
+  \end{subfigure}
+  \caption{The occlusion layer and the reconstruction it was derived from.
+    (\subref{fig:occlusion-mesh}) The occluder: a decimated triangle mesh covering the
+    buildings, trees, shrubs, and raised planting beds of the site. It is rendered here in
+    grey for illustration only. In the deployed application it carries a depth-only
+    material that writes to the depth buffer and outputs no color, so the layer is itself
+    invisible while every virtual target and recall object behind it is hidden. Without
+    it, targets on the far side of a building or a planting bed would remain visible
+    through the geometry, and distance would carry no occlusion cue.
+    (\subref{fig:occlusion-splat}) The same viewpoint in the Gaussian-splat
+    reconstruction, from which the occluder was built. Because an occluder needs only the
+    correct silhouette and not the correct surface, the mesh was reduced aggressively:
+    geometry that occluded nothing was deleted, and buildings that did not reconstruct
+    cleanly were replaced with boxes matching their footprint. Fidelity is spent on shape
+    alone.}
+  \Description{Two views of the same campus courtyard, side by side and at matching
+    aspect ratio. The left image shows an untextured grey three-dimensional mesh on a dark
+    background, its surface visibly faceted into coarse triangles: a long paved walkway
+    runs from the lower left into the distance, with a raised curb along it, three rounded
+    clumps of geometry standing in for shrubs in a planting bed, and a low ragged band of
+    geometry across the background standing in for trees and buildings. Large flat areas
+    are made of very few large triangles. The right image shows the same scene as a
+    photorealistic reconstruction under a blue sky: a paved walkway and stone curb in the
+    foreground, a green lawn, a bed of small shrubs and young trees, a red brick building
+    with rows of windows along the right, a glass-fronted building at the left, and parked
+    vehicles at the far right. The grey mesh on the left reproduces the silhouettes of the
+    curb, shrubs, and buildings on the right, but none of their color or detail.}
+  \label{fig:occlusion}
+\end{figure*}
+
+% -------------------------------------------------------------------------------------
+% Single-column fallback, if the two panels crowd the layout. Same file names; stack the
+% panels instead of placing them side by side. Delete the block above.
+% -------------------------------------------------------------------------------------
+%
+% \begin{figure}[t]
+%   \centering
+%   \begin{subfigure}[b]{\linewidth}
+%     \includegraphics[width=\linewidth]{figures/occluder-mesh}
+%     \caption{Occlusion layer.}
+%     \label{fig:occlusion-mesh}
+%   \end{subfigure}
+%   \\[2pt]
+%   \begin{subfigure}[b]{\linewidth}
+%     \includegraphics[width=\linewidth]{figures/occluder-splat}
+%     \caption{Photoreal twin.}
+%     \label{fig:occlusion-splat}
+%   \end{subfigure}
+%   \caption{The occlusion layer (\subref{fig:occlusion-mesh}) and the Gaussian-splat
+%     reconstruction it was derived from (\subref{fig:occlusion-splat}). The occluder
+%     carries a depth-only material in the deployed application: it writes depth and
+%     outputs no color, so the layer is invisible while hiding every virtual object behind
+%     it. Because only the silhouette matters, the mesh is decimated aggressively,
+%     geometry that occluded nothing is deleted, and poorly reconstructed buildings are
+%     replaced with footprint-matched boxes.}
+%   \label{fig:occlusion}
+% \end{figure}

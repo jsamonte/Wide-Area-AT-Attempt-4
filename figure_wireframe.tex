@@ -1,0 +1,93 @@
+% =====================================================================================
+% Figure 1 -- wireframe authoring against the Gaussian-splat twin. Three panels, so the
+% figure covers BOTH authoring techniques the section describes: scaled primitives for
+% straight edges, and extruded splines for curves and trees.
+%
+% Drop-in replacement for the "TODO: insert Figure 1" block in
+% \subsection{Capturing and Rendering the Digital Twin}.
+%
+% Requires in the preamble (acmart does not load it by default):
+%     \usepackage{subcaption}
+%
+% Expected image files, relative to the main .tex:
+%     figures/wireframe-authoring-exterior.jpg   (brick building, three-quarter view)
+%     figures/wireframe-authoring-steps.jpg      (steps and columns, eye level)
+%     figures/wireframe-authoring-tree.jpg       (tree limbs traced as splines)
+%
+% The three sources have different aspect ratios (roughly 4:3, 3:2, 5:3). Side by side at
+% equal width they will render at unequal heights. Crop all three to a common ratio before
+% exporting -- 3:2 loses the least from each.
+%
+% Reference in text as Figure~\ref{fig:wireframe}. Suggested spot: end of the paragraph
+% beginning "With the Gaussian reconstruction loaded as a live tracing target...".
+% A single-panel fallback is commented at the bottom of this file.
+% =====================================================================================
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/wireframe-authoring-exterior}
+    \caption{Building exterior.}
+    \label{fig:wireframe-exterior}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/wireframe-authoring-steps}
+    \caption{Steps and columns.}
+    \label{fig:wireframe-steps}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/wireframe-authoring-tree}
+    \caption{Tree limbs.}
+    \label{fig:wireframe-tree}
+  \end{subfigure}
+  \caption{Authoring views: the blue wireframe traced by hand against the photoreal
+    Gaussian-splat twin loaded as a tracing target in the Unity scene view. The splat is a
+    development artifact and is destroyed in non-Editor builds; the participant sees only
+    the blue lines. (\subref{fig:wireframe-exterior}) Straight features are built from
+    Unity primitive cylinders and capsules, scaled thin along two axes so each reads as a
+    line: roof line, wall corners, window frames, and railings.
+    (\subref{fig:wireframe-steps}) The same technique at close range on steps, low walls,
+    column edges, handrails, and door frames. (\subref{fig:wireframe-tree}) Curved features
+    have no matching primitive and are drawn as splines swept into tube mesh; the blue
+    loops over the canopy are the traced trunk and limbs, and the curb crossing the
+    foreground is a further spline. Throughout, only edges that carry the structure of the
+    space are authored, and broad areas of brick, pavement, and foliage are left untraced.}
+  \Description{Three screenshots from a Unity scene view, each showing a photorealistic
+    three-dimensional scan of a campus site overlaid with thin blue lines of uniform color
+    and brightness. The first shows a red brick building from a three-quarter angle, with
+    blue lines along the roof line, the vertical corners of the walls, the frames of tall
+    narrow windows, a metal railing, and the curved edge of the sidewalk. The second, taken
+    at eye level, shows a flight of concrete steps rising to a covered entrance, with blue
+    lines along each step edge, the low walls flanking the steps, the square columns
+    supporting the roof, the metal handrails, and the frames of the glass doors and windows
+    behind. The third shows a large leafy tree in a planting bed in front of a brick
+    building, with long curving blue lines tracing the trunk and the spreading limbs through
+    the canopy, and a further blue line following the raised concrete curb that separates
+    the planting bed from a lawn in the foreground. In all three images, large areas of
+    brick, pavement, grass, and foliage carry no lines at all.}
+  \label{fig:wireframe}
+\end{figure*}
+
+% -------------------------------------------------------------------------------------
+% Single-panel fallback, if three panels crowd the layout. Delete the block above.
+% -------------------------------------------------------------------------------------
+%
+% \begin{figure}[t]
+%   \centering
+%   \includegraphics[width=\linewidth]{figures/wireframe-authoring-exterior}
+%   \caption{Authoring view: the blue wireframe traced by hand against the photoreal
+%     Gaussian-splat twin loaded as a tracing target in the Unity scene view. The splat is a
+%     development artifact and is destroyed in non-Editor builds; the participant sees only
+%     the blue lines. Only edges that carry the structure of the space are authored: the
+%     roof line, wall corners, window frames, and railings, with the curved sidewalk curb
+%     drawn as an extruded spline. Broad areas of brick and pavement are left untraced.}
+%   \Description{A screenshot from a Unity scene view showing a photorealistic
+%     three-dimensional scan of a red brick building, seen from a three-quarter angle,
+%     overlaid with thin blue lines of uniform color and brightness. The lines follow the
+%     roof line, the vertical corners of the walls, the frames of tall narrow windows, a
+%     metal railing beside a planted area, and the curved edge of the sidewalk in the
+%     foreground. Large areas of brick wall and pavement carry no lines at all.}
+%   \label{fig:wireframe}
+% \end{figure}

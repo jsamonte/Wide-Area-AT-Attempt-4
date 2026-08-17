@@ -1,0 +1,104 @@
+% =====================================================================================
+% Figure -- the ArUco space-pin markers in situ across the study site.
+% Belongs in the alignment subsection, alongside the description of the World Locking
+% Tools pin network (METHODOLOGY_NOTES.md section 5).
+%
+% Requires in the preamble (acmart does not load it by default):
+%     \usepackage{subcaption}
+%
+% Expected image files, relative to the main .tex:
+%     figures/marker-curb.jpg      (curb face beside stair handrail)
+%     figures/marker-doorpad.jpg   (service entrance pad)
+%     figures/marker-pier.jpg      (base of a stone-clad pier)
+%     figures/marker-corner.jpg    (brick building corner at a planting bed)
+%     figures/marker-stair.jpg     (foot of an exterior stairwell)
+%     figures/marker-joint.jpg     (slab joint beside a ramp wall)
+%
+% ASPECT RATIO -- all six sources are square (2048 x 2048), so they tile at equal height
+% with no cropping. Do not substitute a non-square image into this grid without cropping
+% it square first, or that row will render at a different height:
+%     magick figures/NEW.jpg -gravity center -crop 2048x2048+0+0 +repage figures/NEW.jpg
+%
+% The marker is small in frame in every shot, which is the point -- it shows the real
+% placement scale. If it reproduces too faintly in print, crop each source tighter around
+% the marker rather than enlarging the panels.
+%
+% CAPTION CAVEAT -- the numbers below come from METHODOLOGY_NOTES.md (section 5, lines
+% 122--124 and 209--216): Dictionary_5x5_250, 0.15 m space-pin markers, 0.1016 m map
+% marker, 19 ArucoPinDriver instances (18 space pins + 1 map marker). Confirm these
+% against the shipped scene before submitting, and confirm the six panels here are space
+% pins and not the map marker.
+%
+% Reference in text as Figure~\ref{fig:markers}.
+% =====================================================================================
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-curb}
+    \caption{Curb face.}
+    \label{fig:marker-curb}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-doorpad}
+    \caption{Entrance pad.}
+    \label{fig:marker-doorpad}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-pier}
+    \caption{Pier base.}
+    \label{fig:marker-pier}
+  \end{subfigure}
+
+  \vspace{2pt}
+
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-corner}
+    \caption{Building corner.}
+    \label{fig:marker-corner}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-stair}
+    \caption{Stairwell foot.}
+    \label{fig:marker-stair}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.32\textwidth}
+    \includegraphics[width=\linewidth]{figures/marker-joint}
+    \caption{Slab joint.}
+    \label{fig:marker-joint}
+  \end{subfigure}
+  \caption{Six of the ArUco markers that register the digital twin to the physical site,
+    photographed in place. Markers are 0.15\,m printed squares from the
+    \texttt{5x5\_250} dictionary, with the physical side length declared explicitly to
+    the tracker rather than estimated. Each marker is fixed at a surveyed position and
+    drives a World Locking Tools space pin: rather than the model snapping to a single
+    marker, every marker pins a known model point to a known world point, and the
+    alignment is the fit over the pin network. Markers are scanned once before trials
+    begin and the twin is then held in place by the locked coordinate frame, so no marker
+    needs to remain in view during a trial. Placement follows a consistent rule across
+    the site: markers sit flat on paving or on the vertical face of a curb, at durable
+    concrete edges, corners, joints, and thresholds, low in the visual field and out of
+    the line of foot traffic. The features they attach to are precisely the ones that
+    reconstruct cleanly in the site scan, so the surveyed model point is unambiguous;
+    keeping them off doors, signage, and vegetation also keeps them from moving between
+    sessions.}
+  \Description{Six square photographs of small printed black-and-white ArUco markers
+    fixed to concrete surfaces around a campus site, each marker roughly the size of a
+    hand and occupying a small part of the frame. In the first, a marker is stuck to the
+    vertical face of a low concrete curb beside a lawn, next to the foot of a stainless
+    steel stair handrail. In the second, a marker sits on the edge of a raised concrete
+    pad in front of grey service doors in a brick wall, with oil stains on the pavement
+    beside it. In the third, a marker lies flat on the pavement in a slab joint at the
+    base of a stone-clad pier. In the fourth, a marker lies on the pavement at the
+    outside corner of a red brick building where the paving meets a planting bed of
+    grasses and shrubs, with a wooden board leaning against the wall. In the fifth, a
+    marker sits on the concrete floor at the foot of an exterior stairwell between two
+    concrete walls. In the sixth, a marker lies on the pavement alongside the sealed
+    joint at the base of a sloping concrete ramp wall. In every case the marker is on
+    bare, hard, permanent construction rather than on a door, a sign, or planting.}
+  \label{fig:markers}
+\end{figure*}
