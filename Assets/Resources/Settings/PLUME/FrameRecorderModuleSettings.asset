@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 253fbde12a804d128edaa31ee7286b8c, type: 3}
   m_Name: FrameRecorderModuleSettings
   m_EditorClassIdentifier: 
-  updateRate: 30
+  updateRate: 15

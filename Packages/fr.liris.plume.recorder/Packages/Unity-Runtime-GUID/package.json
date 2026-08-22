@@ -1,0 +1,27 @@
+{
+  "name": "fr.liris.unity-runtime-guid",
+  "version": "1.0.3",
+  "displayName": "Unity-Runtime-GUID",
+  "description": "Unity Runtime GUID system for consistently identifying objects at runtime across executions.",
+  "unity": "2021.3",
+  "unityRelease": "19f1",
+  "documentationUrl": "",
+  "changelogUrl": "",
+  "licensesUrl": "",
+  "keywords": [
+    "GUID",
+    "Runtime"
+  ],
+  "samples": [
+    {
+      "displayName": "Unity-Runtime-GUID Samples",
+      "description": "Contains sample scripts for the Unity-Runtime-GUID package",
+      "path": "Samples~/"
+    }
+  ],
+  "author": {
+    "name": "Charles JAVERLIAT",
+    "email": "charles.javerliat@liris.cnrs.fr",
+    "url": "https://liris.cnrs.fr/page-membre/charles-javerliat"
+  }
+}

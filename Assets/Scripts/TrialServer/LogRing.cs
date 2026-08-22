@@ -86,6 +86,25 @@ namespace TrialServer
         static volatile StreamWriter _file;
         static string _filePath = "";
 
+        // ---- Flood control ------------------------------------------------------------------------------
+        //
+        // A single misbehaving callback can log every frame forever. On 2026-08-22 a PLUME input-recorder
+        // NullReferenceException fired ~450x/sec for 12 minutes: 328,276 of the run log's 328,681 lines were
+        // two distinct messages, the file reached 76 MB, and AutoFlush turned every line into ~6 flush
+        // syscalls. The session was killed without ever running OnApplicationPause. None of that should be
+        // possible from logging alone, so the file sink now collapses consecutive duplicates, caps its own
+        // size, and batches flushes instead of flushing per write.
+        const long MaxFileBytes = 8L * 1024 * 1024;
+        const float FlushIntervalSeconds = 1f;
+
+        static long _bytesWritten;
+        static bool _fileCapped;
+        static string _lastLevel;
+        static string _lastMessage;
+        static int _repeatCount;
+        static bool _dirty;
+        static float _lastFlushAt;
+
         /// <summary>The run log file currently being written, or "" if the file sink is off. Logged once at
         /// startup so the operator (or an AI reading the run afterward) knows where the run was captured.</summary>
         public static string FilePath { get { lock (FileGate) return _filePath; } }
@@ -137,7 +156,17 @@ namespace TrialServer
                     Directory.CreateDirectory(logDir);
                     string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
                     _filePath = Path.Combine(logDir, "run_" + stamp + ".log");
-                    _file = new StreamWriter(_filePath, false, new UTF8Encoding(false)) { AutoFlush = true };
+                    // AutoFlush is OFF: Pump() flushes on an interval and CRIT flushes immediately, so a
+                    // sustained error loop cannot turn into a syscall storm. Worst case on a hard kill is
+                    // losing up to FlushIntervalSeconds of tail.
+                    _file = new StreamWriter(_filePath, false, new UTF8Encoding(false)) { AutoFlush = false };
+                    _bytesWritten = 0;
+                    _fileCapped = false;
+                    _lastLevel = null;
+                    _lastMessage = null;
+                    _repeatCount = 0;
+                    _dirty = false;
+                    _lastFlushAt = _now;
                     _file.WriteLine("# Trial server run log started " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     _file.WriteLine("# One line per Debug.Log, from every thread. CRIT means the session's data is compromised.");
                     _file.WriteLine();
@@ -158,6 +187,7 @@ namespace TrialServer
             lock (FileGate)
             {
                 if (_file == null) return;
+                try { if (!_fileCapped) FlushRepeatSummary(_now); } catch { }
                 try { _file.Flush(); _file.Dispose(); } catch { /* closing a broken writer is not worth a throw */ }
                 _file = null;
                 _filePath = "";
@@ -173,15 +203,28 @@ namespace TrialServer
             if (_file == null) return;
             lock (FileGate)
             {
-                if (_file == null) return;
+                if (_file == null || _fileCapped) return;
+
+                level = level ?? LevelInfo;
+
+                // Collapse a repeating line instead of writing it again. The count is emitted once the
+                // message changes (or the log closes), so a stuck callback costs one line, not millions.
+                if (message == _lastMessage && level == _lastLevel)
+                {
+                    _repeatCount++;
+                    return;
+                }
+
                 try
                 {
-                    _file.Write('[');
-                    _file.Write(time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8));
-                    _file.Write("] ");
-                    _file.Write((level ?? LevelInfo).PadRight(5));
-                    _file.Write("  ");
-                    _file.WriteLine(message);
+                    FlushRepeatSummary(time);
+
+                    _lastLevel = level;
+                    _lastMessage = message;
+                    _repeatCount = 0;
+
+                    RawWriteLine(level, time, message);
+                    AfterWrite(level);
                 }
                 catch
                 {
@@ -192,8 +235,70 @@ namespace TrialServer
             }
         }
 
+        // Emit the "repeated N times" note for the previous line. Caller holds FileGate.
+        static void FlushRepeatSummary(float time)
+        {
+            if (_repeatCount <= 0) return;
+            int n = _repeatCount;
+            _repeatCount = 0;
+            RawWriteLine(_lastLevel, time, "... previous line repeated " + n + " more time" + (n == 1 ? "" : "s"));
+        }
+
+        // Actual write + byte accounting. Caller holds FileGate and has checked _file / _fileCapped.
+        static void RawWriteLine(string level, float time, string message)
+        {
+            string stamp = time.ToString("F1", System.Globalization.CultureInfo.InvariantCulture).PadLeft(8);
+            _file.Write('[');
+            _file.Write(stamp);
+            _file.Write("] ");
+            _file.Write((level ?? LevelInfo).PadRight(5));
+            _file.Write("  ");
+            _file.WriteLine(message);
+
+            _bytesWritten += stamp.Length + 9 + (message == null ? 0 : message.Length);
+            _dirty = true;
+        }
+
+        // Post-write policy: flush CRIT immediately, and stop the sink once it has had its budget.
+        // Caller holds FileGate.
+        static void AfterWrite(string level)
+        {
+            if (string.Equals(level, LevelCrit, StringComparison.OrdinalIgnoreCase))
+            {
+                try { _file.Flush(); _dirty = false; } catch { }
+            }
+
+            if (_bytesWritten >= MaxFileBytes)
+            {
+                _fileCapped = true;
+                try
+                {
+                    _file.WriteLine();
+                    _file.WriteLine("# Run log capped at " + (MaxFileBytes / (1024 * 1024)) + " MB. Further lines are in the in-memory ring only.");
+                    _file.Flush();
+                    _dirty = false;
+                }
+                catch { }
+            }
+        }
+
         /// <summary>Main-thread tick: samples the clock the logging threads stamp their lines with.</summary>
-        public static void Pump(float realtimeSinceStartup) => _now = realtimeSinceStartup;
+        public static void Pump(float realtimeSinceStartup)
+        {
+            _now = realtimeSinceStartup;
+
+            // Batched flush: keeps the on-disk tail close to live without a syscall per line.
+            if (_file == null) return;
+            if (realtimeSinceStartup - _lastFlushAt < FlushIntervalSeconds) return;
+
+            lock (FileGate)
+            {
+                if (_file == null) return;
+                _lastFlushAt = realtimeSinceStartup;
+                if (!_dirty) return;
+                try { _file.Flush(); _dirty = false; } catch { }
+            }
+        }
 
         static void OnLog(string message, string stackTrace, LogType type)
         {

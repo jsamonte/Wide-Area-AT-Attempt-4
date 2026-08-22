@@ -404,17 +404,16 @@
       }
     },
     "fr.liris.plume.recorder": {
-      "version": "https://github.com/liris-xr/PLUME-Recorder.git",
+      "version": "file:fr.liris.plume.recorder",
       "depth": 0,
-      "source": "git",
+      "source": "embedded",
       "dependencies": {
         "com.unity.scriptablebuildpipeline": "2.0.1",
         "com.unity.burst": "1.8.4",
         "com.unity.collections": "2.1.4",
         "com.unity.mathematics": "1.2.6",
         "com.unity.test-framework": "1.1.33"
-      },
-      "hash": "e9394c3078d0ce3dcfbe28060716e9e1c5f1fdcc"
+      }
     },
     "wu.yize.gsplat": {
       "version": "file:wu.yize.gsplat",

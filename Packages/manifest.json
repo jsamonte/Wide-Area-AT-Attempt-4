@@ -37,7 +37,6 @@
     "com.unity.xr.arfoundation": "5.2.2",
     "com.unity.xr.management": "4.6.0",
     "com.xgrids.lccsdk": "file:C:/Users/yujnkm/Documents/LCCSDK(v2.0.14)",
-    "fr.liris.plume.recorder": "https://github.com/liris-xr/PLUME-Recorder.git",
     "wu.yize.gsplat": "file:C:/Users/yujnkm/Documents/gsplat-unity-main",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",

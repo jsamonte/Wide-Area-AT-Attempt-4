@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58f720b724364abcb9e043d7795cc112, type: 3}
   m_Name: LslRecorderModuleSettings
   m_EditorClassIdentifier: 
-  resolverPredicate: '*'
-  resolveInterval: 100
+  resolverPredicate: name='__plume_disabled__'
+  resolveInterval: 5000
   forgetAfter: 5

@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4946b83e4c454607b58f20d8d4d1d6d7, type: 3}
   m_Name: TransformRecorderModuleSettings
   m_EditorClassIdentifier: 
-  positionThreshold: 0.001
-  scaleThreshold: 0.001
-  angularThreshold: 0.001
+  positionThreshold: 0.005
+  scaleThreshold: 0.005
+  angularThreshold: 0.005
