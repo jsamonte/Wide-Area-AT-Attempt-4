@@ -49,6 +49,9 @@ public class PermanenceArucoSpatialAnchorManager : MonoBehaviour
     private bool permissionGranted = false;
     private bool hasInitializedDetector = false;
 
+    private const float NotLocalizedWarnInterval = 5f;
+    private float lastNotLocalizedWarnTime = -999f;
+
     [Serializable]
     public class ArucoPrefabMapping
     {
@@ -167,6 +170,15 @@ public class PermanenceArucoSpatialAnchorManager : MonoBehaviour
         return mapData.State == LocalizationMapState.Localized;
     }
 
+    // Update() retries every frame a marker stays visible, so this is throttled to keep
+    // logcat readable.
+    private void WarnNotLocalized(ulong arucoID)
+    {
+        if (Time.unscaledTime - lastNotLocalizedWarnTime < NotLocalizedWarnInterval) return;
+        lastNotLocalizedWarnTime = Time.unscaledTime;
+        Debug.LogWarning($"[Persistence] Not localized into a map — deferring anchor creation for ArUco {arucoID}.");
+    }
+
     void Update()
     {
         if (!permissionGranted) return;
@@ -251,6 +263,16 @@ public class PermanenceArucoSpatialAnchorManager : MonoBehaviour
 
     private void CreateAndPublishAnchorFromMarker(ulong arucoID, ArucoPrefabMapping mapping, Pose markerRelativePose)
     {
+        // An anchor created before the headset has localized into a map has no map position to
+        // bind to. The ML runtime then fails its tracked-anchor query and throws on its own
+        // polling thread, which aborts the process. Publishing and querying already gate on
+        // this; creation has to as well.
+        if (!IsLocalized())
+        {
+            WarnNotLocalized(arucoID);
+            return;
+        }
+
         Transform originT = (xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null)
             ? xrOrigin.CameraFloorOffsetObject.transform : null;
 
