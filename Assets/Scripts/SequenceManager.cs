@@ -368,13 +368,9 @@ public class SequenceManager : MonoBehaviour
                  "Part 1 = Trials 1 & 2 (Dusk).   Part 2 = Trials 3 & 4 (Night).");
     }
 
-    /// <summary>Central place to change the render cap. The ceiling exists so a stray
-    /// Inspector value cannot drive the device past what it can sustain thermally; it is
-    /// NOT meant to override a deliberate setting. Raised from 30 to 60 so that
-    /// trialFrameRate = 60 takes effect: rows are logged once per frame, so this constant
-    /// determines the study's sampling rate. Menu screens still idle at menuFrameRate to
-    /// shed heat between trials.</summary>
-    private const int MaxFrameRate = 60;
+    /// <summary>Central place to change the render cap. Hard-capped at 30 fps to keep
+    /// heat down on Magic Leap regardless of any higher value serialized in the Inspector.</summary>
+    private const int MaxFrameRate = 30;
     private void SetFrameRate(int fps)
     {
         Application.targetFrameRate = Mathf.Min(fps, MaxFrameRate);

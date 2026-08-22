@@ -33,9 +33,8 @@ public class TrialManager : MonoBehaviour
 
     private void Start()
     {
-        // Fallback cap only. SequenceManager owns the frame rate where it is present and
-        // runs trials at 60; this matches so the two cannot disagree.
-        Application.targetFrameRate = 60;
+        // Cap the framerate to 30fps to drastically reduce heat generation on Magic Leap
+        Application.targetFrameRate = 30;
 
         // Safety checks to ensure other scripts don't start automatically
         if (spawner != null) spawner.spawnOnAwake = false;
