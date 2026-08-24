@@ -158,6 +158,12 @@ public class EyeAndHeadTracker : MonoBehaviour
         public float target_Y;
         public float target_Z;
         public float gazeStabilityDuringDwell_deg;
+
+        // "eye_dwell" or "controller": which input actually collected this gem. Without it the two
+        // modalities are indistinguishable in the summary, and every per-gem timing below silently mixes
+        // them. -1 in gazeStabilityDuringDwell_deg means "not applicable", which is the case for a
+        // controller collection -- there is no dwell to measure the stability of.
+        public string collectionMethod;
         public string notes;
     }
 
@@ -1094,66 +1100,11 @@ public class EyeAndHeadTracker : MonoBehaviour
 
                 if (dwellOverTargetTracker >= minDwellTimeOverTarget)
                 {
-                    float currentTime = Time.realtimeSinceStartup;
-
-                    if (isRecording)
-                    {
-                        float timeSinceStart = currentTime - appStartTime;
-                        float timeSincePrev = (destroyCount == 0) ? 0f : (currentTime - previousDestroyTime);
-
-                        if (destroyCount == 0)
-                            performanceData.timeToFirstDestroy = timeSinceStart;
-
-                        var head = Camera.main != null ? Camera.main.transform : transform;
-                        Vector3 headPos = head.position;
-                        Vector3 headEuler = head.rotation.eulerAngles;
-                        Vector3 targetPos = renderer.transform.position;
-                        float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
-
-                        destructionEvents.Add(new DestructionEvent
-                        {
-                            destroyOrder = destroyCount + 1,
-                            objectName = renderer.gameObject.name,
-                            timeSinceAppStart = timeSinceStart,
-                            timeSincePreviousDestroy = timeSincePrev,
-                            headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
-                            headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
-                            targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
-                            target_X = targetPos.x,
-                            target_Y = targetPos.y,
-                            target_Z = targetPos.z,
-                            gazeStabilityDuringDwell_deg = stability
-                        });
-
-                        destroyCount++;
-                        previousDestroyTime = currentTime;
-                    }
-
+                    float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
                     dwellDirectionsDuringCurrentDwell.Clear();
 
-                    targetRenderers = targetRenderers.Where(r => r != renderer).ToArray();
-                    Destroy(renderer.gameObject);
+                    CollectTarget(renderer, CollectionMethodEyeDwell, stability);
                     dwellOverTargetTracker = 0;
-
-                    if (isRecording)
-                    {
-                        SaveSessionData();
-                    }
-
-                    if (targetRenderers.Length == 0)
-                    {
-                        if (isRecording && autoSaveWhenAllTargetsDestroyed)
-                        {
-                            performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
-                            performanceData.totalObjectsDestroyed = CountRealDestroys();
-                            performanceData.meanInterDestroyInterval = ComputeMeanInterDestroyInterval();
-
-                            SaveSessionData();
-                        }
-                        
-                        // Fire the event to notify TrialManager
-                        OnAllTargetsDestroyed?.Invoke();
-                    }
                 }
             }
             else
@@ -1169,6 +1120,117 @@ public class EyeAndHeadTracker : MonoBehaviour
             dwellDirectionsDuringCurrentDwell.Clear();
             ClearAllFillings();
         }
+    }
+
+    public const string CollectionMethodEyeDwell = "eye_dwell";
+    public const string CollectionMethodController = "controller";
+
+    /// <summary>The tag a collectable target must carry. Exposed so other input paths resolve the same set.</summary>
+    public string TargetTag => targetTag;
+
+    /// <summary>
+    /// Walks up from a collider that was hit to the tagged target above it, and returns that target's
+    /// registered MeshRenderer -- the same resolution the eye-dwell ray does, so the controller can never
+    /// collect something the eye could not. Returns false for anything that is not a live, registered target.
+    /// </summary>
+    public bool TryResolveTarget(Transform hitTransform, out MeshRenderer renderer)
+    {
+        renderer = null;
+        if (hitTransform == null) return false;
+
+        Transform current = hitTransform;
+        while (current != null)
+        {
+            if (current.CompareTag(targetTag))
+            {
+                renderer = current.GetComponentInChildren<MeshRenderer>();
+                break;
+            }
+            current = current.parent;
+        }
+
+        if (renderer == null)
+            renderer = hitTransform.GetComponentInChildren<MeshRenderer>();
+
+        return renderer != null && targetRenderers != null && targetRenderers.Contains(renderer);
+    }
+
+    /// <summary>
+    /// Logs and destroys one collected target. This is the single place a gem is ever collected, whichever
+    /// input triggered it: the eye-dwell path and the controller path both land here, so the destruction
+    /// event, the autosave, the running counters and the OnAllTargetsDestroyed handshake with TrialManager
+    /// cannot drift apart between modalities.
+    /// </summary>
+    /// <param name="collectionMethod">
+    /// <see cref="CollectionMethodEyeDwell"/> or <see cref="CollectionMethodController"/>; written verbatim
+    /// into the destruction event so the two can be separated during analysis.
+    /// </param>
+    /// <param name="gazeStabilityDeg">Dwell stability, or -1 when the modality has no dwell to measure.</param>
+    /// <returns>True if the target was collected; false if it was already gone or was never registered.</returns>
+    public bool CollectTarget(MeshRenderer renderer, string collectionMethod, float gazeStabilityDeg = -1f)
+    {
+        if (renderer == null || targetRenderers == null || !targetRenderers.Contains(renderer))
+            return false;
+
+        float currentTime = Time.realtimeSinceStartup;
+
+        if (isRecording)
+        {
+            float timeSinceStart = currentTime - appStartTime;
+            float timeSincePrev = (destroyCount == 0) ? 0f : (currentTime - previousDestroyTime);
+
+            if (destroyCount == 0)
+                performanceData.timeToFirstDestroy = timeSinceStart;
+
+            var head = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 headPos = head.position;
+            Vector3 headEuler = head.rotation.eulerAngles;
+            Vector3 targetPos = renderer.transform.position;
+
+            destructionEvents.Add(new DestructionEvent
+            {
+                destroyOrder = destroyCount + 1,
+                objectName = renderer.gameObject.name,
+                timeSinceAppStart = timeSinceStart,
+                timeSincePreviousDestroy = timeSincePrev,
+                headPositionAtDestroy = new Vector3Data { x = headPos.x, y = headPos.y, z = headPos.z },
+                headRotationEulerAtDestroy = new Vector3Data { x = headEuler.x, y = headEuler.y, z = headEuler.z },
+                targetPositionAtDestroy = new Vector3Data { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+                target_X = targetPos.x,
+                target_Y = targetPos.y,
+                target_Z = targetPos.z,
+                gazeStabilityDuringDwell_deg = gazeStabilityDeg,
+                collectionMethod = collectionMethod
+            });
+
+            destroyCount++;
+            previousDestroyTime = currentTime;
+        }
+
+        targetRenderers = targetRenderers.Where(r => r != renderer).ToArray();
+        Destroy(renderer.gameObject);
+
+        if (isRecording)
+        {
+            SaveSessionData();
+        }
+
+        if (targetRenderers.Length == 0)
+        {
+            if (isRecording && autoSaveWhenAllTargetsDestroyed)
+            {
+                performanceData.totalTimeToComplete = Time.realtimeSinceStartup - appStartTime;
+                performanceData.totalObjectsDestroyed = CountRealDestroys();
+                performanceData.meanInterDestroyInterval = ComputeMeanInterDestroyInterval();
+
+                SaveSessionData();
+            }
+
+            // Fire the event to notify TrialManager
+            OnAllTargetsDestroyed?.Invoke();
+        }
+
+        return true;
     }
 
     private float CalculateGazeStability(List<Vector3> directions)
