@@ -82,6 +82,29 @@ public class ControllerGemCollector : MonoBehaviour
              "in a real session.")]
     [SerializeField] private bool logMissedPresses = false;
 
+    [Header("Ray Length During Tasks")]
+    [Tooltip("Shorten the controller ray while a tutorial or trial is running, so gems must be approached " +
+             "rather than collected from across the site. The full length is restored in the menu, where " +
+             "the same ray has to reach the buttons.")]
+    [SerializeField] private bool shortenRayDuringTasks = true;
+
+    [Tooltip("How far the controller ray reaches during a task, in metres. An absolute distance rather than a " +
+             "fraction of the interactor's own setting: the reach a participant has to walk into is a property " +
+             "of the study, not something that should move if the interactor is ever retuned.")]
+    [SerializeField] [Range(0.1f, 30f)] private float taskRayLengthMeters = 1.75f;
+
+    [Tooltip("Also shorten the visible line so it ends where the ray actually stops. Without this the line " +
+             "still reaches its normal length and participants aim at gems the ray can no longer touch.")]
+    [SerializeField] private bool matchLineVisualToRayLength = true;
+
+    // Captured at Start, before anything is changed, so the menu always gets the authored values back
+    // rather than a value some earlier shortening left behind.
+    private float originalMaxRaycastDistance;
+    private XRInteractorLineVisual lineVisual;
+    private float originalLineLength;
+    private bool originalOverrideLineLength;
+    private bool rayIsShortened;
+
     private float lastCollectionTime = -999f;
     private bool wasPressed;
 
@@ -112,17 +135,95 @@ public class ControllerGemCollector : MonoBehaviour
         if (rayInteractor == null)
             Debug.LogError("[CONTROLLER:CRIT] ControllerGemCollector found no XRRayInteractor: there is no ray " +
                            "to decide what is being pointed at.");
+
+        if (rayInteractor != null)
+        {
+            originalMaxRaycastDistance = rayInteractor.maxRaycastDistance;
+
+            lineVisual = rayInteractor.GetComponent<XRInteractorLineVisual>();
+            if (lineVisual != null)
+            {
+                originalLineLength = lineVisual.lineLength;
+                originalOverrideLineLength = lineVisual.overrideInteractorLineLength;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Keeps the ray short for the duration of a task and full length in the menu. Driven by the tracker's
+    /// recording flag rather than a phase variable of its own: recording is on for exactly the tutorial and
+    /// the trials, so the ray can never be left short under a menu the participant then cannot click.
+    /// </summary>
+    private void UpdateRayLength()
+    {
+        if (!shortenRayDuringTasks || rayInteractor == null) return;
+
+        bool shouldShorten = tracker != null && tracker.IsRecording;
+        if (shouldShorten == rayIsShortened) return;
+
+        rayIsShortened = shouldShorten;
+
+        // Never lengthen the ray: if the interactor was authored shorter than the task distance, the authored
+        // value stands rather than this quietly extending the participant's reach.
+        float distance = shouldShorten
+            ? Mathf.Min(taskRayLengthMeters, originalMaxRaycastDistance)
+            : originalMaxRaycastDistance;
+
+        rayInteractor.maxRaycastDistance = distance;
+
+        if (matchLineVisualToRayLength && lineVisual != null)
+        {
+            if (shouldShorten)
+            {
+                // The line has its own length, independent of the raycast: left alone it would keep drawing
+                // past the point the ray stops, pointing at gems that can no longer be hit.
+                lineVisual.overrideInteractorLineLength = true;
+                lineVisual.lineLength = distance;
+            }
+            else
+            {
+                lineVisual.overrideInteractorLineLength = originalOverrideLineLength;
+                lineVisual.lineLength = originalLineLength;
+            }
+        }
+
+        Debug.Log($"[CONTROLLER] Ray length set to {distance:F2}m ({(shouldShorten ? "task" : "menu")}).");
+    }
+
+    /// <summary>Put the interactor back exactly as it was authored.</summary>
+    private void RestoreRayLength()
+    {
+        if (!rayIsShortened || rayInteractor == null) return;
+
+        rayInteractor.maxRaycastDistance = originalMaxRaycastDistance;
+        if (matchLineVisualToRayLength && lineVisual != null)
+        {
+            lineVisual.overrideInteractorLineLength = originalOverrideLineLength;
+            lineVisual.lineLength = originalLineLength;
+        }
+
+        rayIsShortened = false;
     }
 
     private void OnDisable()
     {
         // A claim outlives this component otherwise, and the eye path would refuse to draw that gem's bar
         // for the rest of the trial.
-        if (tracker != null) ReleaseHeldTarget();
+        if (tracker != null)
+        {
+            ReleaseHeldTarget();
+            tracker.SuspendEyeDwell(false);
+        }
+
+        RestoreRayLength();
     }
 
     private void Update()
     {
+        // Outside the enable check: the ray length is about how far the controller can reach at all, which
+        // still matters in an eye-gaze-only condition where controller collection is switched off.
+        UpdateRayLength();
+
         if (!enableControllerCollection) return;
         if (tracker == null || controller == null || rayInteractor == null) return;
 
@@ -137,6 +238,7 @@ public class ControllerGemCollector : MonoBehaviour
         // No countdown configured: keep the original one-press-one-gem behaviour, with no fill to drive.
         if (required <= 0f)
         {
+            tracker.SuspendEyeDwell(false);
             if (justPressed) TryInstantCollect();
             return;
         }
@@ -157,6 +259,11 @@ public class ControllerGemCollector : MonoBehaviour
             // Aiming away, or the button was released. Either abandon the countdown or let it coast,
             // depending on keepProgressWhenAimingAway; either way stop advancing it this frame.
             if (!keepProgressWhenAimingAway) ReleaseHeldTarget();
+
+            // The controller is not mid-interaction, so the eye is free to collect again. Only one modality
+            // is ever live at a time; this is the handover back.
+            tracker.SuspendEyeDwell(false);
+
             if (logMissedPresses && justPressed && aimedAt == null) Debug.Log($"[CONTROLLER] Press ignored: {missReason}");
             return;
         }
@@ -165,6 +272,11 @@ public class ControllerGemCollector : MonoBehaviour
             return;
 
         heldTarget = aimedAt;
+
+        // The participant is using the controller right now, so the eye stops collecting entirely -- not just
+        // visually. Without this a gem they merely glanced at could complete its dwell while their attention
+        // and intent were on the controller.
+        tracker.SuspendEyeDwell(true);
 
         // Take the bar before drawing on it. The eye path blanks every unclaimed target on any frame its own
         // ray misses -- which is most frames while the participant is aiming with the controller -- so an

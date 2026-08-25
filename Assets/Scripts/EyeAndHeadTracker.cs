@@ -339,6 +339,12 @@ public class EyeAndHeadTracker : MonoBehaviour
     // two modalities fight frame by frame, because the eye path blanks EVERY target on any frame its own ray
     // misses, which is most frames while the participant is aiming with the controller instead.
     private MeshRenderer fillOwner;
+
+    // Set while another modality is actively mid-interaction (in practice: the controller aiming at a gem
+    // with the trigger held). Only ONE modality may be collecting at a time -- otherwise a participant using
+    // the controller still accrues eye dwell on whatever they happen to be looking at, and gems collect
+    // themselves through an input the participant was not using.
+    private bool eyeDwellSuspended;
     private int destroyCount = 0;
     private float appStartTime;
     private float previousDestroyTime;
@@ -1066,6 +1072,12 @@ public class EyeAndHeadTracker : MonoBehaviour
         if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh) || !isFresh)
             return;
 
+        // The controller is mid-interaction: the participant is using that modality right now, so the eye
+        // neither fills a bar nor collects. Returning here leaves the dwell timer at the zero SuspendEyeDwell
+        // put it at, so the eye starts clean once the controller is released.
+        if (eyeDwellSuspended)
+            return;
+
         // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log.
         // Gated off by default: this extra unmasked, infinite-distance raycast runs every
         // frame against ALL colliders and needlessly adds CPU/heat on Magic Leap.
@@ -1135,6 +1147,25 @@ public class EyeAndHeadTracker : MonoBehaviour
     }
 
     /// <summary>
+    /// Suspend or resume the eye-dwell path while another modality is mid-interaction. Suspending zeroes any
+    /// dwell in progress rather than freezing it: coming back from a controller attempt should start the eye
+    /// dwell fresh, not resume a countdown the participant had already abandoned.
+    /// </summary>
+    public void SuspendEyeDwell(bool suspended)
+    {
+        if (suspended == eyeDwellSuspended) return;
+
+        eyeDwellSuspended = suspended;
+
+        if (suspended)
+        {
+            dwellOverTargetTracker = 0;
+            dwellDirectionsDuringCurrentDwell.Clear();
+            ClearAllFillings();
+        }
+    }
+
+    /// <summary>
     /// Claim a target's fill bar for a higher-priority input. While claimed, the eye-dwell path leaves that
     /// bar alone entirely -- it will neither draw over it nor clear it -- so the claiming input's countdown
     /// is the one the participant sees. Claiming a different target releases the previous claim.
@@ -1192,6 +1223,14 @@ public class EyeAndHeadTracker : MonoBehaviour
     /// between the modalities.
     /// </summary>
     public float MinDwellTimeOverTarget => minDwellTimeOverTarget;
+
+    /// <summary>
+    /// True for exactly the tutorial and trial phases: set by ResumeRecording/StartNewTrialRecording and
+    /// cleared by PauseRecording, so it is false while the menu is up. Exposed so input behaviour that
+    /// should differ between "in a task" and "in the menu" can key off the same flag the data files do,
+    /// rather than a second phase variable that could disagree with it.
+    /// </summary>
+    public bool IsRecording => isRecording;
 
     /// <summary>
     /// Walks up from a collider that was hit to the tagged target above it, and returns that target's
