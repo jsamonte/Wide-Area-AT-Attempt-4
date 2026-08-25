@@ -333,6 +333,12 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private MeshRenderer[] targetRenderers;
     private float dwellOverTargetTracker;
+
+    // The target whose fill bar a higher-priority input currently owns (in practice the controller).
+    // While a renderer is claimed, the eye-dwell path neither writes its fill nor clears it: without this the
+    // two modalities fight frame by frame, because the eye path blanks EVERY target on any frame its own ray
+    // misses, which is most frames while the participant is aiming with the controller instead.
+    private MeshRenderer fillOwner;
     private int destroyCount = 0;
     private float appStartTime;
     private float previousDestroyTime;
@@ -1093,9 +1099,15 @@ public class EyeAndHeadTracker : MonoBehaviour
                 dwellOverTargetTracker += Time.deltaTime;
                 dwellDirectionsDuringCurrentDwell.Add(gazeRotation * Vector3.forward);
 
-                float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
-                float fillAmount = ConvertPercentageToRange(progress, renderer);
-                renderer.material.SetFloat(fillProgressProperty, fillAmount);
+                // The eye keeps accumulating dwell either way -- only the VISIBLE bar is yielded, so a gem
+                // the controller is aiming at still collects on eye dwell if the eye gets there first.
+                if (renderer != fillOwner)
+                {
+                    float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
+                    float fillAmount = ConvertPercentageToRange(progress, renderer);
+                    renderer.material.SetFloat(fillProgressProperty, fillAmount);
+                }
+
                 ClearAllFillings(renderer.gameObject);
 
                 if (dwellOverTargetTracker >= minDwellTimeOverTarget)
@@ -1122,11 +1134,64 @@ public class EyeAndHeadTracker : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Claim a target's fill bar for a higher-priority input. While claimed, the eye-dwell path leaves that
+    /// bar alone entirely -- it will neither draw over it nor clear it -- so the claiming input's countdown
+    /// is the one the participant sees. Claiming a different target releases the previous claim.
+    /// </summary>
+    public void ClaimFillOwnership(MeshRenderer renderer)
+    {
+        if (fillOwner != null && fillOwner != renderer)
+            ClearTargetFill(fillOwner);
+
+        fillOwner = renderer;
+    }
+
+    /// <summary>
+    /// Give a claimed fill bar back to the eye-dwell path. Ignored if some other renderer holds the claim,
+    /// so a stale release cannot free a claim that has since moved on.
+    /// </summary>
+    public void ReleaseFillOwnership(MeshRenderer renderer)
+    {
+        if (fillOwner == renderer)
+            fillOwner = null;
+    }
+
+    /// <summary>
+    /// Drives one target's fill bar from a 0..1 progress value, using the same conversion the eye-dwell path
+    /// uses. Exposed rather than duplicated because the shader compares against a WORLD-space Y height: the
+    /// value is derived from that renderer's own world bounds, so a second implementation guessing at a
+    /// fixed range would fill correctly only for gems near the world origin.
+    /// </summary>
+    public void SetTargetFillProgress(MeshRenderer renderer, float progress01)
+    {
+        if (renderer == null) return;
+        renderer.material.SetFloat(fillProgressProperty, ConvertPercentageToRange(Mathf.Clamp01(progress01), renderer));
+    }
+
+    /// <summary>
+    /// Resets a single target's fill bar. Deliberately narrower than ClearAllFillings: a second input path
+    /// must be able to abandon its own target without wiping a fill some other path is mid-way through.
+    /// </summary>
+    public void ClearTargetFill(MeshRenderer renderer)
+    {
+        if (renderer == null) return;
+        renderer.material.SetFloat(fillProgressProperty, ConvertPercentageToRange(0f, renderer));
+    }
+
     public const string CollectionMethodEyeDwell = "eye_dwell";
     public const string CollectionMethodController = "controller";
 
     /// <summary>The tag a collectable target must carry. Exposed so other input paths resolve the same set.</summary>
     public string TargetTag => targetTag;
+
+    /// <summary>
+    /// Seconds of eye dwell required to collect a gem. Exposed so a second input modality can match it
+    /// rather than carry its own copy of the number: two fields that are supposed to be equal are two
+    /// fields that will eventually disagree, and a silent mismatch here would confound any comparison
+    /// between the modalities.
+    /// </summary>
+    public float MinDwellTimeOverTarget => minDwellTimeOverTarget;
 
     /// <summary>
     /// Walks up from a collider that was hit to the tagged target above it, and returns that target's
@@ -1261,7 +1326,7 @@ public class EyeAndHeadTracker : MonoBehaviour
         if (targetRenderers == null) return;
         foreach (var r in targetRenderers)
         {
-            if (r != null && r.gameObject != exclude)
+            if (r != null && r.gameObject != exclude && r != fillOwner)
             {
                 float zero = ConvertPercentageToRange(0, r);
                 r.material.SetFloat(fillProgressProperty, zero);

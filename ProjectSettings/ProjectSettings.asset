@@ -157,8 +157,8 @@ PlayerSettings:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  - {fileID: 11400000, guid: 202e71f43b49bb442af917c082d025dd, type: 2}
-  - {fileID: 11400000, guid: 98100181d0275e745a0c1920bbbabb3d, type: 2}
+  - {fileID: 11400000, guid: 74d8ad4d931858548828fbce814124c0, type: 2}
+  - {fileID: 11400000, guid: fc1efb84c623722449c63b2f17e644fd, type: 2}
   - {fileID: 200753018772540543, guid: 583a29f9e3f74304d869096f91238eb6, type: 2}
   - {fileID: 11400000, guid: e3e2ec0a2d235bf4e88abaa1456abb78, type: 2}
   - {fileID: -3693710367517097684, guid: dec0e520e55de8044b64aa4971c504e6, type: 2}
