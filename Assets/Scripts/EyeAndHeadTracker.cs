@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -28,6 +28,18 @@ public class EyeAndHeadTracker : MonoBehaviour
     [SerializeField] private bool enableDwellDestroyFeature = true;
     [Tooltip("If true, casts an extra unmasked ray each frame to log exactly what the eye hits (name + layer). Off by default to save per-frame CPU/heat on Magic Leap.")]
     [SerializeField] private bool logUnmaskedEyeHit = false;
+
+    [Header("Eye Dwell Assists (make dwell selection easier)")]
+    [Tooltip("Radius in metres of the sphere swept along the gaze ray. 0 reproduces the original zero-width ray; 0.05-0.15 forgives tracker jitter without letting a distant gem be picked out of the air.")]
+    [SerializeField] [Range(0f, 0.5f)] private float dwellRayRadius = 0.08f;
+    [Tooltip("When the eye ray misses, retry from the headset pose itself -- the camera, which sits between the eyes -- so the participant can fall back on head aiming.")]
+    [SerializeField] private bool useHeadRayAssist = true;
+    [Tooltip("Sweep radius for the head-ray retry. Usually a little wider than the eye ray, since head aiming is coarser.")]
+    [SerializeField] [Range(0f, 0.5f)] private float headRayRadius = 0.12f;
+    [Tooltip("Seconds of dwell progress kept after the ray falls off the target, so a flick of the eye or a dropped sample does not restart a countdown that was nearly done.")]
+    [SerializeField] [Range(0f, 2f)] private float dwellGraceSeconds = 0.4f;
+    [Tooltip("Record a head-assisted collection as \"head_gaze\" rather than \"eye_dwell\", so the two aiming sources stay separable in analysis.")]
+    [SerializeField] private bool logHeadAssistSeparately = true;
 
     [Header("Gaze Object Logging (targets, recall objects, any collider)")]
     [Tooltip("Records what the eye ray actually lands on — gems, recall objects, walls, props, anything with a collider — into the JSON summary and the raw NDJSON stream.")]
@@ -351,6 +363,15 @@ public class EyeAndHeadTracker : MonoBehaviour
     private int currentFrameId = 0;
     private float lastFrameTimestamp;
     private List<Vector3> dwellDirectionsDuringCurrentDwell = new List<Vector3>();
+
+    /// <summary>Target the dwell timer currently belongs to; also the target the grace window is holding for.</summary>
+    private MeshRenderer dwellGraceRenderer;
+
+    /// <summary>Seconds of grace left before an off-target dwell is abandoned. See dwellGraceSeconds.</summary>
+    private float dwellGraceTimer;
+
+    /// <summary>True once the head-ray assist has contributed to the dwell in progress.</summary>
+    private bool dwellUsedHeadAssist;
     private string currentHitObjectName = "None";
     private float autoSaveTimer = 0f;
 
@@ -1066,84 +1087,157 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     private void RunEyeDwellDestruction()
     {
-        // Stale poses are skipped rather than raycast: returning early neither advances nor resets the dwell
-        // timer, so a blink coasts through instead of either banking free progress on a frozen ray or
-        // cancelling a dwell the participant is still holding.
-        if (!TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh) || !isFresh)
-            return;
-
         // The controller is mid-interaction: the participant is using that modality right now, so the eye
         // neither fills a bar nor collects. Returning here leaves the dwell timer at the zero SuspendEyeDwell
         // put it at, so the eye starts clean once the controller is released.
         if (eyeDwellSuspended)
             return;
 
+        // A stale pose is not aimed anywhere the participant chose, so it is never cast. It is also not
+        // treated as a miss -- the grace window below coasts the dwell through a blink instead of either
+        // banking free progress on a frozen ray or cancelling a dwell that is still being held.
+        bool haveEyeRay = TryGetGazeRay(out Vector3 gazePosition, out Quaternion gazeRotation, out bool isFresh) && isFresh;
+        if (!haveEyeRay && !useHeadRayAssist)
+        {
+            AdvanceDwellGrace();
+            return;
+        }
+
+        Vector3 gazeDirection = gazeRotation * Vector3.forward;
+
         // DEBUG: Record what the eye is actually hitting (ignoring layers) for the JSON log.
         // Gated off by default: this extra unmasked, infinite-distance raycast runs every
         // frame against ALL colliders and needlessly adds CPU/heat on Magic Leap.
-        // Redundant once gaze object logging is on — that already records every collider hit.
-        if (logUnmaskedEyeHit && !enableGazeObjectLogging &&
-            Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit debugHit, Mathf.Infinity))
+        // Redundant once gaze object logging is on - that already records every collider hit.
+        if (haveEyeRay && logUnmaskedEyeHit && !enableGazeObjectLogging &&
+            Physics.Raycast(gazePosition, gazeDirection, out RaycastHit debugHit, Mathf.Infinity))
         {
             currentHitObjectName = debugHit.collider.name + " (Layer: " + LayerMask.LayerToName(debugHit.collider.gameObject.layer) + ")";
         }
 
-        if (Physics.Raycast(gazePosition, gazeRotation * Vector3.forward, out RaycastHit hitInfo, Mathf.Infinity, layersToIncludeWithRay))
+        MeshRenderer renderer = null;
+        Vector3 aimDirection = gazeDirection;
+        bool usedHeadAssist = false;
+
+        if (haveEyeRay)
+            TryDwellCast(gazePosition, gazeDirection, dwellRayRadius, out renderer);
+
+        // Head fallback: a ray straight out of the headset pose, which on an HMD is the point between the
+        // eyes. It only runs when the eye ray found nothing, so it widens what can be selected without ever
+        // overriding where the eye is genuinely pointed.
+        if (renderer == null && useHeadRayAssist &&
+            TryGetHeadRay(out Vector3 headOrigin, out Vector3 headDirection) &&
+            TryDwellCast(headOrigin, headDirection, headRayRadius, out renderer))
         {
-            Transform current = hitInfo.collider.transform;
-            MeshRenderer renderer = null;
-            while (current != null)
-            {
-                if (current.CompareTag(targetTag))
-                {
-                    renderer = current.GetComponentInChildren<MeshRenderer>();
-                    break;
-                }
-                current = current.parent;
-            }
-
-            // Fallback just in case
-            if (renderer == null)
-                renderer = hitInfo.collider.GetComponentInChildren<MeshRenderer>();
-
-            if (renderer != null && targetRenderers != null && targetRenderers.Contains(renderer))
-            {
-                dwellOverTargetTracker += Time.deltaTime;
-                dwellDirectionsDuringCurrentDwell.Add(gazeRotation * Vector3.forward);
-
-                // The eye keeps accumulating dwell either way -- only the VISIBLE bar is yielded, so a gem
-                // the controller is aiming at still collects on eye dwell if the eye gets there first.
-                if (renderer != fillOwner)
-                {
-                    float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
-                    float fillAmount = ConvertPercentageToRange(progress, renderer);
-                    renderer.material.SetFloat(fillProgressProperty, fillAmount);
-                }
-
-                ClearAllFillings(renderer.gameObject);
-
-                if (dwellOverTargetTracker >= minDwellTimeOverTarget)
-                {
-                    float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
-                    dwellDirectionsDuringCurrentDwell.Clear();
-
-                    CollectTarget(renderer, CollectionMethodEyeDwell, stability);
-                    dwellOverTargetTracker = 0;
-                }
-            }
-            else
-            {
-                dwellOverTargetTracker = 0;
-                dwellDirectionsDuringCurrentDwell.Clear();
-                ClearAllFillings();
-            }
+            usedHeadAssist = true;
+            aimDirection = headDirection;
         }
-        else
+
+        if (renderer == null)
         {
-            dwellOverTargetTracker = 0;
-            dwellDirectionsDuringCurrentDwell.Clear();
-            ClearAllFillings();
+            AdvanceDwellGrace();
+            return;
         }
+
+        // Progress belongs to one gem: looking at a different target starts its countdown from zero rather
+        // than inheriting whatever the previous one had accumulated.
+        if (dwellGraceRenderer != null && dwellGraceRenderer != renderer)
+            ResetDwellProgress();
+
+        dwellGraceRenderer = renderer;
+        dwellGraceTimer = dwellGraceSeconds;
+        dwellUsedHeadAssist |= usedHeadAssist;
+
+        dwellOverTargetTracker += Time.deltaTime;
+        dwellDirectionsDuringCurrentDwell.Add(aimDirection);
+
+        // The eye keeps accumulating dwell either way -- only the VISIBLE bar is yielded, so a gem
+        // the controller is aiming at still collects on eye dwell if the eye gets there first.
+        if (renderer != fillOwner)
+        {
+            float progress = dwellOverTargetTracker / minDwellTimeOverTarget;
+            renderer.material.SetFloat(fillProgressProperty, ConvertPercentageToRange(progress, renderer));
+        }
+
+        ClearAllFillings(renderer.gameObject);
+
+        if (dwellOverTargetTracker >= minDwellTimeOverTarget)
+        {
+            float stability = CalculateGazeStability(dwellDirectionsDuringCurrentDwell);
+            string method = dwellUsedHeadAssist && logHeadAssistSeparately
+                ? CollectionMethodHeadGaze
+                : CollectionMethodEyeDwell;
+
+            CollectTarget(renderer, method, stability);
+
+            ResetDwellProgress();
+            dwellGraceRenderer = null;
+            dwellGraceTimer = 0f;
+        }
+    }
+
+    /// <summary>
+    /// Runs one frame in which no target was under either ray. Inside the grace window the dwell in progress
+    /// is left completely untouched -- not advanced, not cleared -- so a momentary miss costs the participant
+    /// nothing; once the window expires this collapses to the original reset-on-miss behaviour.
+    /// </summary>
+    private void AdvanceDwellGrace()
+    {
+        if (dwellGraceRenderer != null && dwellGraceTimer > 0f)
+        {
+            dwellGraceTimer -= Time.deltaTime;
+            if (dwellGraceTimer > 0f) return;
+        }
+
+        dwellGraceRenderer = null;
+        dwellGraceTimer = 0f;
+        ResetDwellProgress();
+        ClearAllFillings();
+    }
+
+    /// <summary>Zeroes the dwell countdown and everything derived from it, leaving the fill bars alone.</summary>
+    private void ResetDwellProgress()
+    {
+        dwellOverTargetTracker = 0;
+        dwellUsedHeadAssist = false;
+        dwellDirectionsDuringCurrentDwell.Clear();
+    }
+
+    /// <summary>
+    /// Casts one dwell ray and resolves whatever it hits to a live, registered target. With a radius above
+    /// zero this is a sphere sweep rather than a ray, and that is what actually makes dwell easier: a
+    /// zero-width ray asks the participant to hold their gaze inside the collider exactly, which tracker
+    /// jitter alone can break on a small gem at distance.
+    /// </summary>
+    private bool TryDwellCast(Vector3 origin, Vector3 direction, float radius, out MeshRenderer renderer)
+    {
+        renderer = null;
+
+        RaycastHit hitInfo;
+        bool hit = radius > 0f
+            ? Physics.SphereCast(origin, radius, direction, out hitInfo, Mathf.Infinity, layersToIncludeWithRay)
+            : Physics.Raycast(origin, direction, out hitInfo, Mathf.Infinity, layersToIncludeWithRay);
+
+        // Resolved through TryResolveTarget, the same walk-up-to-the-tagged-parent the controller path uses,
+        // so no assist can ever collect something the other modalities could not.
+        return hit && TryResolveTarget(hitInfo.collider.transform, out renderer);
+    }
+
+    /// <summary>
+    /// The headset's own forward ray: Camera.main is the HMD pose, which sits between the eyes, so this is
+    /// "where the head is pointed" with no eye tracking involved. False in a scene with no main camera.
+    /// </summary>
+    private bool TryGetHeadRay(out Vector3 origin, out Vector3 direction)
+    {
+        origin = Vector3.zero;
+        direction = Vector3.forward;
+
+        var cam = Camera.main;
+        if (cam == null) return false;
+
+        origin = cam.transform.position;
+        direction = cam.transform.forward;
+        return true;
     }
 
     /// <summary>
@@ -1159,8 +1253,9 @@ public class EyeAndHeadTracker : MonoBehaviour
 
         if (suspended)
         {
-            dwellOverTargetTracker = 0;
-            dwellDirectionsDuringCurrentDwell.Clear();
+            ResetDwellProgress();
+            dwellGraceRenderer = null;
+            dwellGraceTimer = 0f;
             ClearAllFillings();
         }
     }
@@ -1212,6 +1307,13 @@ public class EyeAndHeadTracker : MonoBehaviour
 
     public const string CollectionMethodEyeDwell = "eye_dwell";
     public const string CollectionMethodController = "controller";
+
+    /// <summary>
+    /// Written instead of <see cref="CollectionMethodEyeDwell"/> when the head-ray assist contributed to the
+    /// dwell, so a collection the participant landed by turning their head is never counted as evidence that
+    /// eye tracking alone could hit the target. Set logHeadAssistSeparately false to fold it back in.
+    /// </summary>
+    public const string CollectionMethodHeadGaze = "head_gaze";
 
     /// <summary>The tag a collectable target must carry. Exposed so other input paths resolve the same set.</summary>
     public string TargetTag => targetTag;
